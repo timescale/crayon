@@ -3,7 +3,7 @@
   "root": true,
   "vcs": {
     "enabled": true,
-    "useIgnoreFile": false,
+    "useIgnoreFile": true,
     "clientKind": "git"
   },
   "assist": {
