@@ -19,7 +19,7 @@ export function TriggerButton({
   };
 
   return (
-    <button type="button" onClick={handleClick} disabled={disabled}>
+    <button disabled={disabled} onClick={handleClick} type="button">
       {children ?? "Trigger"}
     </button>
   );

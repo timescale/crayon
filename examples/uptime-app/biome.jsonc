@@ -1,17 +1,77 @@
 {
-	"root": false,
-	"$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
-	"vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
-	"formatter": { "enabled": true, "indentStyle": "tab" },
-	"linter": { "enabled": true, "rules": { "recommended": true } },
-	"files": {
-		"includes": [
-			"**",
-			"!**/dist/",
-			"!**/node_modules/",
-			"!**/.next/",
-			"!**/generated/"
-		]
-	}
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "root": true,
+  "vcs": {
+    "enabled": true,
+    "useIgnoreFile": false,
+    "clientKind": "git"
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "recommended": true,
+      "source": {
+        "recommended": true,
+        "organizeImports": "on",
+        "useSortedAttributes": "on"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedImports": {
+          "level": "error",
+          "fix": "safe"
+        }
+      },
+      "nursery": {
+        "useSortedClasses": {
+          "level": "warn",
+          "fix": "safe",
+          "options": {
+            "functions": ["clsx", "cva", "cn"]
+          }
+        }
+      }
+    }
+  },
+  "html": {
+    "formatter": {
+      "enabled": true
+    }
+  },
+  "javascript": {
+    "assist": {
+      "enabled": true
+    },
+    "formatter": {
+      "enabled": true
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "css": {
+    "assist": {
+      "enabled": true
+    },
+    "formatter": {
+      "enabled": true
+    },
+    "linter": {
+      "enabled": true
+    },
+    "parser": {
+      "cssModules": true,
+      "tailwindDirectives": true
+    }
+  }
 }
