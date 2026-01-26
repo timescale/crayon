@@ -1,23 +1,13 @@
-import type { Workflow } from "./types.js";
-
-export interface PflowConfig {
-  workflowDir: string;
-}
-
-export interface Pflow {
-  listWorkflows: () => Promise<string[]>;
-  getWorkflow: (name: string) => Promise<Workflow | undefined>;
-  triggerWorkflow: <T = unknown>(name: string, input: unknown) => Promise<T>;
-}
+import type { Pflow, PflowConfig } from "./types.js";
 
 /**
  * Create a 0pflow instance
  */
 export async function create0pflow(_config: PflowConfig): Promise<Pflow> {
-  // Placeholder implementation - will be completed in Phase 2
+  // Placeholder implementation - will be completed in Task 8
   return {
-    listWorkflows: async () => [],
-    getWorkflow: async () => undefined,
+    listWorkflows: () => [],
+    getWorkflow: () => undefined,
     triggerWorkflow: async () => {
       throw new Error("Not implemented");
     },

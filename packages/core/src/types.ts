@@ -1,32 +1,54 @@
+import { z } from "zod";
+
 /**
- * Workflow definition interface
+ * Base interface for all executable types (Node, Agent, Workflow)
  */
-export interface Workflow<TInput = unknown, TOutput = unknown> {
-  name: string;
-  version: number;
-  run: (ctx: WorkflowContext, input: TInput) => Promise<TOutput>;
+export interface Executable<TInput = unknown, TOutput = unknown> {
+  readonly name: string;
+  readonly type: "node" | "agent" | "workflow";
+  readonly inputSchema: z.ZodType<TInput>;
+  readonly outputSchema?: z.ZodType<TOutput>;
+  readonly execute: (ctx: WorkflowContext, inputs: TInput) => Promise<TOutput>;
 }
 
 /**
- * Node definition for function nodes
- */
-export interface NodeDefinition<TInput = unknown, TOutput = unknown> {
-  name: string;
-  execute: (input: TInput) => Promise<TOutput>;
-}
-
-/**
- * Context passed to workflow run functions
+ * Context passed to workflow/node run functions
  */
 export interface WorkflowContext {
-  /** Run an agent node */
-  runAgent: <T = unknown>(name: string, input: unknown) => Promise<T>;
-  /** Run a function node */
-  runNode: <T = unknown>(name: string, input: unknown) => Promise<T>;
-  /** Run a sub-workflow */
-  runWorkflow: <T = unknown>(name: string, input: unknown) => Promise<T>;
-  /** Call a built-in primitive */
-  call: <T = unknown>(primitive: string, params: unknown) => Promise<T>;
-  /** Log a message */
-  log: (message: string, level?: "info" | "warn" | "error" | "debug") => void;
+  /** Run any executable (node, agent, workflow) as a durable step */
+  run: <TInput, TOutput>(
+    executable: Executable<TInput, TOutput>,
+    inputs: TInput
+  ) => Promise<TOutput>;
+
+  /** Structured logging */
+  log: (message: string, level?: LogLevel) => void;
+}
+
+export type LogLevel = "info" | "warn" | "error" | "debug";
+
+/**
+ * Configuration for create0pflow()
+ */
+export interface PflowConfig {
+  /** Database connection URL for DBOS durability */
+  databaseUrl: string;
+  /** Registered workflows */
+  workflows?: Record<string, Executable>;
+  /** Registered agents */
+  agents?: Record<string, Executable>;
+  /** Registered function nodes */
+  nodes?: Record<string, Executable>;
+}
+
+/**
+ * The 0pflow instance returned by create0pflow()
+ */
+export interface Pflow {
+  /** List all registered workflow names */
+  listWorkflows: () => string[];
+  /** Get a workflow by name */
+  getWorkflow: (name: string) => Executable | undefined;
+  /** Trigger a workflow by name (for webhooks/UI) */
+  triggerWorkflow: <T = unknown>(name: string, inputs: unknown) => Promise<T>;
 }
