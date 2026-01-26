@@ -280,6 +280,65 @@ DBOS handles: retries, idempotency, checkpointing, replay.
 
 **Note on caching:** DBOS provides durability (step results persisted for recovery) but not semantic caching (e.g., "don't re-research company X if we did it yesterday"). Semantic caching is user responsibility - implement in tool functions as needed.
 
+## Idempotency & Attempt Semantics (Post-MVP)
+
+0pflow distinguishes between idempotent and non-idempotent nodes to determine how retries and recovery are handled. This distinction affects how `maxAttempts` is interpreted and enforced.
+
+**MVP behavior:** All nodes are treated as idempotent. Non-idempotent semantics are deferred to post-MVP.
+
+### Idempotent Nodes (Default)
+
+A node is idempotent if re-executing it with the same inputs does not change the final external state.
+
+**Examples:**
+- Pure computation
+- Deterministic data transformation
+- Upserts by stable key
+- "Set state to X" operations
+- API calls that support idempotency keys
+
+**Attempt semantics (completion-based):**
+- An attempt is counted when the node execution reaches a terminal outcome (success or failure)
+- If execution is interrupted (process crash, restart) before completion, the node may be re-executed without consuming an attempt
+- The runtime may freely re-execute idempotent nodes during recovery
+- At most `maxAttempts` completed executions are allowed
+
+**Rationale:** Idempotent work is safe to re-run, so durability and retry limits are based on completed executions.
+
+### Non-Idempotent Nodes (Post-MVP)
+
+A node is non-idempotent if re-execution may produce duplicate or unintended side effects.
+
+**Examples:**
+- Posting a Slack message
+- Sending an email
+- Appending a CRM note
+- Emitting a webhook without a deduplication key
+
+Non-idempotent nodes must explicitly declare `idempotency: non-idempotent`.
+
+**Attempt semantics (start-based):**
+- An attempt is counted when execution is started, recorded in a durable 0pflow attempt ledger
+- Each execution start consumes one attempt, regardless of whether it completes
+- On recovery, previously started but incomplete attempts are not replayed
+- The engine will start execution at most `maxAttempts` times for a given `(runId, nodeId)` unless explicitly forced
+- If all attempts are exhausted without a confirmed completion, the node resolves to a terminal failure or `UNKNOWN` state
+
+**Rationale:** Non-idempotent work must strictly bound how many times it is initiated, since re-execution may duplicate side effects.
+
+### Invariant
+
+For each workflow run and node instance `(runId, nodeId)`:
+- **Idempotent nodes:** at most `maxAttempts` completed executions
+- **Non-idempotent nodes:** at most `maxAttempts` execution starts
+
+### Defaults & Validation (Post-MVP)
+
+- Nodes are assumed idempotent by default
+- Built-in tools have explicit idempotency metadata (e.g., `slack.postMessage` defaults to non-idempotent)
+- The compiler fails closed if a non-idempotent tool is used without declaring idempotency
+- `maxAttempts` applies uniformly to all nodes; only the counting semantics differ
+
 ## Compiler Behavior
 
 The compiler (Claude Code) transforms workflow specs into TypeScript.
@@ -383,6 +442,7 @@ For MVP, the UI is extremely minimal.
 | Approval nodes (`ctx.requestApproval`) | Add when needed |
 | Resumable/incremental workflows | Full runs only for MVP; users compose smaller workflows if needed |
 | Built-in semantic caching | User responsibility; implement in tool functions |
+| Non-idempotent node semantics | All nodes treated as idempotent for MVP; attempt ledger adds complexity |
 
 ---
 
@@ -441,3 +501,4 @@ For MVP, the UI is extremely minimal.
 - MCP tool server support
 - Approval nodes with human-in-the-loop
 - MCP server to inspect workflow runs from Claude Code
+- **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack.postMessage` that can't safely be re-executed
