@@ -37,10 +37,9 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 1. User authors/edits workflow spec with Claude Code
 2. Compiler generates TypeScript orchestration code
 3. DBOS runtime executes durably
-4. User iterates by editing **either** spec or generated code
-5. Claude Code agents keep spec ↔ code in sync
+4. User iterates by editing spec and recompiling
 
-**Key principle:** Specs and generated code are synchronized artifacts. Claude Code maintains consistency. Users can edit whichever is more natural for the change.
+**Key principle:** Specs are the source of truth. Generated code is derived from specs via compilation. For MVP, only spec→code compilation is supported.
 
 ## Package Structure
 
@@ -373,10 +372,7 @@ throw new WorkflowCompilationError('Unresolved TODOs in step 3');
 - No unreachable steps
 - No undefined variables
 
-**Sync behavior (when editing generated code):**
-- Claude Code detects drift between spec and code
-- Offers to update spec to match code changes
-- Or regenerate code from spec (user chooses)
+**One-way compilation:** For MVP, compilation is strictly spec→code. Users edit specs and recompile; direct editing of generated code is not supported. The generated code should be treated as a build artifact (though committed to git for transparency).
 
 ## Minimal UI (MVP)
 
@@ -433,6 +429,7 @@ For MVP, the UI is extremely minimal.
 
 | Deferred | Reason |
 |----------|--------|
+| Code→spec sync (editing generated code) | Spec→code only for MVP; simplifies mental model |
 | Security policies (tool access, PII redaction) | Complexity |
 | Run history / traces UI | Can use logs for now |
 | Scheduled / event-driven triggers | Manual is enough to validate |
@@ -470,7 +467,6 @@ For MVP, the UI is extremely minimal.
 - Spec parser (extract structure from markdown)
 - Code generator (emit TypeScript from parsed spec)
 - TODO emission for ambiguous specs
-- Sync detection (spec ↔ code drift)
 
 ### Phase 5: Validator (Claude Code Skill)
 - Structure validation (required sections present)
@@ -492,6 +488,7 @@ For MVP, the UI is extremely minimal.
 
 ## Future Considerations (Post-MVP)
 
+- **Code→spec sync** - Allow users to edit generated code directly and have Claude Code update the spec to match (bidirectional sync)
 - **Resumable/incremental workflows** - Trigger workflows from a specific step, not just start-to-finish (DBOS has `forkWorkflow` primitive)
 - Security policies in workflow specs (tool access, PII redaction)
 - Run history and traces UI
