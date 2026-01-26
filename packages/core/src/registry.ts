@@ -2,19 +2,22 @@
 import type { Executable } from "./types.js";
 import type { WorkflowExecutable } from "./workflow.js";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExecutable = Executable<any, any>;
+
 export interface RegistryConfig {
-  workflows?: Record<string, Executable>;
-  agents?: Record<string, Executable>;
-  nodes?: Record<string, Executable>;
+  workflows?: Record<string, AnyExecutable>;
+  agents?: Record<string, AnyExecutable>;
+  nodes?: Record<string, AnyExecutable>;
 }
 
 /**
  * Registry for managing executables (workflows, agents, nodes)
  */
 export class Registry {
-  private workflows: Map<string, Executable>;
-  private agents: Map<string, Executable>;
-  private nodes: Map<string, Executable>;
+  private workflows: Map<string, AnyExecutable>;
+  private agents: Map<string, AnyExecutable>;
+  private nodes: Map<string, AnyExecutable>;
 
   constructor(config: RegistryConfig) {
     this.workflows = new Map(Object.entries(config.workflows ?? {}));
@@ -33,7 +36,7 @@ export class Registry {
   }
 
   /** Get any executable by name (searches all registries) */
-  getExecutable(name: string): Executable | undefined {
+  getExecutable(name: string): AnyExecutable | undefined {
     return (
       this.workflows.get(name) ??
       this.agents.get(name) ??

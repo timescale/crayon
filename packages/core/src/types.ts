@@ -27,6 +27,9 @@ export interface WorkflowContext {
 
 export type LogLevel = "info" | "warn" | "error" | "debug";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExecutable = Executable<any, any>;
+
 /**
  * Configuration for create0pflow()
  */
@@ -34,11 +37,11 @@ export interface PflowConfig {
   /** Database connection URL for DBOS durability */
   databaseUrl: string;
   /** Registered workflows */
-  workflows?: Record<string, Executable>;
+  workflows?: Record<string, AnyExecutable>;
   /** Registered agents */
-  agents?: Record<string, Executable>;
+  agents?: Record<string, AnyExecutable>;
   /** Registered function nodes */
-  nodes?: Record<string, Executable>;
+  nodes?: Record<string, AnyExecutable>;
 }
 
 /**
@@ -48,7 +51,7 @@ export interface Pflow {
   /** List all registered workflow names */
   listWorkflows: () => string[];
   /** Get a workflow by name */
-  getWorkflow: (name: string) => Executable | undefined;
+  getWorkflow: (name: string) => AnyExecutable | undefined;
   /** Trigger a workflow by name (for webhooks/UI) */
   triggerWorkflow: <T = unknown>(name: string, inputs: unknown) => Promise<T>;
 }
