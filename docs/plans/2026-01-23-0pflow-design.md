@@ -51,7 +51,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │   │   ├── src/
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
 │   │   │   ├── agent-node.ts ← Pre-packaged agent node (Vercel AI SDK)
-│   │   │   ├── primitives/   ← Built-in tools (web.fetch, etc.)
+│   │   │   ├── tools/        ← Built-in tools (web.fetch, etc.)
 │   │   │   ├── discovery.ts  ← Workflow discovery from generated/
 │   │   │   └── api.ts        ← Plain functions: listWorkflows, triggerWorkflow, etc.
 │   │   └── package.json
@@ -143,7 +143,7 @@ Reject others without further action.
 
 Alert the sales team about the qualified lead.
 
-**Node:** `slack.postMessage` (primitive)
+**Tool:** `slack.postMessage`
 **Input:** channel = "#sales-leads", text = "New qualified lead: {company_data.name} (score: {score_result.score})"
 
 ## Outputs
@@ -158,7 +158,7 @@ Alert the sales team about the qualified lead.
   - Human-readable description (intent)
   - Structured fields (implementation details)
 - `## Outputs` - What the workflow returns
-- Steps reference nodes by name (agents, functions, primitives)
+- Steps reference nodes by name (agents, functions, tools)
 - Control flow expressed in natural language
 
 ## Agent Definition Format
@@ -209,8 +209,8 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in primitives (`web.fetch`, `http.post`, `slack.postMessage`) - always available
-- User-defined functions from `src/tools/` - resolved by convention (e.g., `linkedin.getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
+- Built-in tools (`web.fetch`, `http.post`, `slack.postMessage`) - ship with 0pflow
+- User-defined tools from `src/tools/` - resolved by convention (e.g., `linkedin.getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
 - MCP server tools (post-MVP)
 
 ## Node Types
@@ -221,14 +221,13 @@ Workflows orchestrate nodes. Node types:
 |------|------------|---------|
 | **Agent** | Markdown spec (system prompt + tools), executed by pre-packaged agent node | `company-researcher` |
 | **Function** | User TypeScript in `src/nodes/` | `calculateScore` |
-| **Primitive** | Built-in side effect | `slack.postMessage`, `web.fetch` |
 | **Sub-workflow** | Another workflow spec | `enrichment-pipeline` |
 
 **Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
 
-**Tool resolution:** Tools referenced in agent specs are resolved by convention:
-- **User tools:** `src/tools/web/scrape.ts` → referenced as `web.scrape`
-- **Built-in primitives:** `web.fetch`, `http.post`, `slack.postMessage` ship with 0pflow
+**Tool resolution:** Tools referenced in agent specs (and workflows) are resolved by convention:
+- **User-defined tools:** `src/tools/web/scrape.ts` → referenced as `web.scrape`
+- **Built-in tools:** `web.fetch`, `http.post`, `slack.postMessage` ship with 0pflow
 
 ## Runtime & SDK
 
@@ -258,7 +257,7 @@ export const icpScoring = Workflow.create({
     // Step 3: Decision
     if (scoreResult.score >= 80) {
       // Step 4: Notify Sales
-      await ctx.call('slack.postMessage', {
+      await ctx.callTool('slack.postMessage', {
         channel: '#sales-leads',
         text: `New qualified lead: ${companyData.name} (score: ${scoreResult.score})`,
       });
@@ -274,7 +273,7 @@ export const icpScoring = Workflow.create({
 - `ctx.runAgent(name, inputs)` - Run an agent node (internally calls the pre-packaged agent node)
 - `ctx.runNode(name, inputs)` - Run a TypeScript function node
 - `ctx.runWorkflow(name, inputs)` - Run a sub-workflow
-- `ctx.call(primitive, params)` - Call a built-in primitive
+- `ctx.callTool(name, params)` - Call a tool (built-in or user-defined)
 - `ctx.log(message, level?)` - Structured logging (wrapper over `DBOS.logger`, decoupled for future flexibility)
 
 DBOS handles: retries, idempotency, checkpointing, replay.
@@ -364,10 +363,10 @@ For MVP, the UI is extremely minimal.
 | **Spec format** | Workflow specs + agent specs (markdown) |
 | **Compiler** | Claude Code skill that generates TypeScript from specs |
 | **Validator** | Claude Code skill that checks spec structure |
-| **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.call`, `ctx.log` |
+| **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
 | **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
-| **Tools** | Built-in primitives: `web.fetch`, `http.post`, `slack.postMessage` |
+| **Tools** | Built-in tools: `web.fetch`, `http.post`, `slack.postMessage` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -402,10 +401,10 @@ For MVP, the UI is extremely minimal.
 - Workflow discovery from `generated/workflows/`
 - Instance methods: `listWorkflows()`, `getWorkflow()`, `triggerWorkflow()`
 
-### Phase 3: Agent Node + Primitives
+### Phase 3: Agent Node + Tools
 - Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
 - Tool interface for user-defined tools (`src/tools/`)
-- Built-in primitives (`web.fetch`, `http.post`, `slack.postMessage`)
+- Built-in tools (`web.fetch`, `http.post`, `slack.postMessage`)
 
 ### Phase 4: Compiler (Claude Code Skill)
 - Spec parser (extract structure from markdown)
