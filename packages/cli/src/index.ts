@@ -28,6 +28,20 @@ function formatDate(timestamp: Date | string | number): string {
   return new Date(ms).toLocaleString();
 }
 
+function formatOutput(output: unknown): string {
+  // DBOS stores output as serialized JSON with superjson wrapper
+  // e.g. '{"json":{...},"__dbos_serializer":"superjson"}'
+  try {
+    const parsed = typeof output === "string" ? JSON.parse(output) : output;
+    if (parsed && typeof parsed === "object" && "__dbos_serializer" in parsed && "json" in parsed) {
+      return JSON.stringify(parsed.json, null, 2);
+    }
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return String(output);
+  }
+}
+
 const program = new Command();
 
 program
@@ -195,7 +209,7 @@ program
             { [pc.dim("Updated")]: formatDate(run.updated_at) },
           );
           if (run.output) {
-            table.push({ [pc.dim("Output")]: JSON.stringify(run.output, null, 2) });
+            table.push({ [pc.dim("Output")]: formatOutput(run.output) });
           }
           if (run.error) {
             table.push({ [pc.dim("Error")]: pc.red(run.error) });
