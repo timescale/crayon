@@ -245,11 +245,4 @@ program
     }
   });
 
-program
-  .command("compile")
-  .description("Compile workflow specs to TypeScript")
-  .action(async () => {
-    console.log("Compiling specs... (not yet implemented)");
-  });
-
 program.parse();
