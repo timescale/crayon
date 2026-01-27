@@ -12,7 +12,7 @@ Check if a URL is reachable and return its status code and response time.
 - url: string (required) - The URL to check
 - timeout_ms: number (optional, defaults to 5000) - Request timeout in milliseconds
 
-## Steps
+## Tasks
 
 ### 1. Fetch URL
 
