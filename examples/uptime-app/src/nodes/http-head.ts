@@ -1,29 +1,29 @@
-import type { NodeDefinition } from "0pflow";
+// src/nodes/http-head.ts
+// Function node for HTTP HEAD requests
+import { z } from "zod";
+import { Node } from "0pflow";
 
-interface HttpHeadInput {
-  url: string;
-  timeout_ms?: number;
-}
-
-interface HttpHeadOutput {
-  status_code: number | null;
-  response_time_ms: number;
-  error: string | null;
-  checked_at: string;
-}
-
-export const httpHead: NodeDefinition<HttpHeadInput, HttpHeadOutput> = {
+export const httpHead = Node.create({
   name: "http-head",
-  async execute(input) {
+  inputSchema: z.object({
+    url: z.string(),
+    timeout_ms: z.number().optional().default(5000),
+  }),
+  outputSchema: z.object({
+    status_code: z.number().nullable(),
+    response_time_ms: z.number(),
+    error: z.string().nullable(),
+    checked_at: z.string(),
+  }),
+  execute: async (_ctx, inputs) => {
     const start = Date.now();
+    const checked_at = new Date().toISOString();
+
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      input.timeout_ms ?? 5000,
-    );
+    const timeout = setTimeout(() => controller.abort(), inputs.timeout_ms);
 
     try {
-      const response = await fetch(input.url, {
+      const response = await fetch(inputs.url, {
         method: "HEAD",
         signal: controller.signal,
       });
@@ -33,7 +33,7 @@ export const httpHead: NodeDefinition<HttpHeadInput, HttpHeadOutput> = {
         status_code: response.status,
         response_time_ms: Date.now() - start,
         error: null,
-        checked_at: new Date().toISOString(),
+        checked_at,
       };
     } catch (e) {
       clearTimeout(timeout);
@@ -41,8 +41,8 @@ export const httpHead: NodeDefinition<HttpHeadInput, HttpHeadOutput> = {
         status_code: null,
         response_time_ms: Date.now() - start,
         error: e instanceof Error ? e.message : "Unknown error",
-        checked_at: new Date().toISOString(),
+        checked_at,
       };
     }
   },
-};
+});

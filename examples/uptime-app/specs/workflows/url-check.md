@@ -20,7 +20,12 @@ Make an HTTP HEAD request to the URL and capture the response.
 
 **Node:** `http-head` (function)
 **Input:** url, timeout_ms
-**Output:** `response`
+**Output:** `response: { status_code: number | null, response_time_ms: number, error: string | null, checked_at: string }`
+**Return:**
+  - status_code: response.status_code
+  - response_time_ms: response.response_time_ms
+  - error: response.error
+  - checked_at: response.checked_at
 
 ## Outputs
 
