@@ -4,5 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export default defineConfig({
-  test: {},
+  test: {
+    exclude: ["**/dist/**", "**/node_modules/**"],
+  },
 });
