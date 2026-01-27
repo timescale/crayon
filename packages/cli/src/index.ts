@@ -1,9 +1,32 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import pc from "picocolors";
+import Table from "cli-table3";
 import { create0pflow } from "0pflow";
 import { discoverWorkflows } from "./discovery.js";
 import { resolveEnv } from "./env.js";
+import { listRuns, getRun } from "./runs.js";
+
+function formatStatus(status: string): string {
+  switch (status) {
+    case "SUCCESS":
+      return pc.green(status);
+    case "ERROR":
+      return pc.red(status);
+    case "PENDING":
+      return pc.yellow(status);
+    default:
+      return status;
+  }
+}
+
+function formatDate(timestamp: Date | string | number): string {
+  // DBOS stores timestamps as bigint strings in milliseconds
+  const ms = typeof timestamp === "string" ? parseInt(timestamp, 10) :
+             typeof timestamp === "number" ? timestamp :
+             timestamp.getTime();
+  return new Date(ms).toLocaleString();
+}
 
 const program = new Command();
 
@@ -127,6 +150,94 @@ program
         }
       } finally {
         await pflow.shutdown();
+      }
+    } catch (err) {
+      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("history [run-id]")
+  .description("List past workflow executions or get details of a specific run")
+  .option("-n, --limit <number>", "Number of runs to show", "20")
+  .option("-w, --workflow <name>", "Filter by workflow name")
+  .option("--json", "Output as JSON")
+  .action(async (runId: string | undefined, options: { limit: string; workflow?: string; json?: boolean }) => {
+    try {
+      resolveEnv();
+      const databaseUrl = process.env.DATABASE_URL!;
+
+      if (runId) {
+        // Get specific run (supports full ID or prefix like git short hashes)
+        const { run, ambiguous } = await getRun(databaseUrl, runId);
+
+        if (ambiguous) {
+          console.error(pc.red(`Ambiguous run ID prefix "${runId}" - matches multiple runs`));
+          console.error(pc.dim("Use a longer prefix or the full ID"));
+          process.exit(1);
+        }
+
+        if (!run) {
+          console.error(pc.red(`Run "${runId}" not found`));
+          process.exit(1);
+        }
+
+        if (options.json) {
+          console.log(JSON.stringify(run, null, 2));
+        } else {
+          const table = new Table();
+          table.push(
+            { [pc.dim("ID")]: run.workflow_uuid },
+            { [pc.dim("Workflow")]: pc.cyan(run.name) },
+            { [pc.dim("Status")]: formatStatus(run.status) },
+            { [pc.dim("Created")]: formatDate(run.created_at) },
+            { [pc.dim("Updated")]: formatDate(run.updated_at) },
+          );
+          if (run.output) {
+            table.push({ [pc.dim("Output")]: JSON.stringify(run.output, null, 2) });
+          }
+          if (run.error) {
+            table.push({ [pc.dim("Error")]: pc.red(run.error) });
+          }
+          console.log();
+          console.log(table.toString());
+          console.log();
+        }
+      } else {
+        // List runs
+        const runs = await listRuns(databaseUrl, {
+          limit: parseInt(options.limit, 10),
+          workflowName: options.workflow,
+        });
+
+        if (runs.length === 0) {
+          if (options.json) {
+            console.log("[]");
+          } else {
+            console.log(pc.yellow("No workflow runs found"));
+          }
+          return;
+        }
+
+        if (options.json) {
+          console.log(JSON.stringify(runs, null, 2));
+        } else {
+          const table = new Table({
+            head: [pc.dim("ID"), pc.dim("Workflow"), pc.dim("Status"), pc.dim("Created")],
+          });
+          for (const run of runs) {
+            table.push([
+              run.workflow_uuid.slice(0, 8),
+              pc.cyan(run.name),
+              formatStatus(run.status),
+              formatDate(run.created_at),
+            ]);
+          }
+          console.log();
+          console.log(table.toString());
+          console.log();
+        }
       }
     } catch (err) {
       console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
