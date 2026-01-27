@@ -7,6 +7,7 @@ import { createModel, getDefaultModelConfig, parseModelString } from "./model-co
 import type { ModelConfig } from "./model-config.js";
 import type { ToolRegistry } from "../../tools/registry.js";
 import type { ToolExecutable } from "../../tools/tool.js";
+import type { WorkflowContext } from "../../types.js";
 
 /**
  * Result of agent execution
@@ -30,6 +31,8 @@ export interface AgentExecutionResult<TOutput = unknown> {
  * Options for agent execution
  */
 export interface ExecuteAgentOptions<TOutput = unknown> {
+  /** Workflow context for tool execution */
+  ctx: WorkflowContext;
   /** Parsed agent spec */
   spec: AgentSpec;
   /** User message / input to the agent */
@@ -50,12 +53,12 @@ type AnyToolExecutable = ToolExecutable<any, any>;
 /**
  * Convert a ToolExecutable to Vercel AI SDK tool format
  */
-function convertToAITool(toolExecutable: AnyToolExecutable) {
+function convertToAITool(toolExecutable: AnyToolExecutable, ctx: WorkflowContext) {
   return tool({
     description: toolExecutable.description,
     inputSchema: toolExecutable.inputSchema,
     execute: async (args: unknown) => {
-      const result = await toolExecutable.execute(args);
+      const result = await toolExecutable.execute(ctx, args);
       return result;
     },
   });
@@ -71,6 +74,7 @@ export async function executeAgent<TOutput = unknown>(
   options: ExecuteAgentOptions<TOutput>
 ): Promise<AgentExecutionResult<TOutput>> {
   const {
+    ctx,
     spec,
     userMessage,
     toolRegistry,
@@ -98,7 +102,7 @@ export async function executeAgent<TOutput = unknown>(
   if (spec.tools.length > 0) {
     const resolvedTools = toolRegistry.getTools(spec.tools);
     for (const t of resolvedTools) {
-      tools[t.name] = convertToAITool(t);
+      tools[t.name] = convertToAITool(t, ctx);
     }
   }
 

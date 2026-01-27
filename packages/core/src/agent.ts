@@ -57,7 +57,7 @@ export const Agent = {
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
       specPath: definition.specPath,
-      execute: async (_ctx: WorkflowContext, inputs: TInput): Promise<TOutput> => {
+      execute: async (ctx: WorkflowContext, inputs: TInput): Promise<TOutput> => {
         if (!agentRuntimeConfig) {
           throw new Error(
             "Agent runtime not configured. Make sure to use create0pflow() before executing agents."
@@ -74,6 +74,7 @@ export const Agent = {
 
         // Execute the agent
         const result = await executeAgent({
+          ctx,
           spec,
           userMessage,
           toolRegistry: agentRuntimeConfig.toolRegistry,

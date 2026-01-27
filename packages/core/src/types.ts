@@ -7,7 +7,7 @@ import type { ModelConfig } from "./nodes/agent/model-config.js";
  */
 export interface Executable<TInput = unknown, TOutput = unknown> {
   readonly name: string;
-  readonly type: "node" | "agent" | "workflow";
+  readonly type: "node" | "agent" | "workflow" | "tool";
   readonly inputSchema: z.ZodType<TInput>;
   readonly outputSchema?: z.ZodType<TOutput>;
   readonly execute: (ctx: WorkflowContext, inputs: TInput) => Promise<TOutput>;

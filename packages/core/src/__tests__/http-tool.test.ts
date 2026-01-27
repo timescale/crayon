@@ -1,6 +1,7 @@
 // packages/core/src/__tests__/http-tool.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { httpGet } from "../tools/builtin/http.js";
+import { createWorkflowContext } from "../context.js";
 
 describe("httpGet tool", () => {
   const originalFetch = global.fetch;
@@ -31,7 +32,8 @@ describe("httpGet tool", () => {
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
-    const result = await httpGet.execute({
+    const ctx = createWorkflowContext();
+    const result = await httpGet.execute(ctx, {
       url: "https://example.com",
       headers: { Authorization: "Bearer token" },
     });
@@ -54,7 +56,8 @@ describe("httpGet tool", () => {
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
-    const result = await httpGet.execute({
+    const ctx = createWorkflowContext();
+    const result = await httpGet.execute(ctx, {
       url: "https://example.com/missing",
     });
 

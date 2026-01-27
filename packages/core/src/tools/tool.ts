@@ -1,5 +1,6 @@
 // packages/core/src/tools/tool.ts
 import { z } from "zod";
+import type { WorkflowContext } from "../types.js";
 
 /**
  * Definition for creating a tool
@@ -21,7 +22,7 @@ export interface ToolExecutable<TInput = unknown, TOutput = unknown> {
   readonly description: string;
   readonly inputSchema: z.ZodType<TInput>;
   readonly outputSchema?: z.ZodType<TOutput>;
-  readonly execute: (inputs: TInput) => Promise<TOutput>;
+  readonly execute: (ctx: WorkflowContext, inputs: TInput) => Promise<TOutput>;
 }
 
 /**
@@ -37,7 +38,7 @@ export const Tool = {
       description: definition.description,
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
-      execute: async (inputs: TInput): Promise<TOutput> => {
+      execute: async (_ctx: WorkflowContext, inputs: TInput): Promise<TOutput> => {
         // Validate inputs
         const validated = definition.inputSchema.parse(inputs);
         return definition.execute(validated);

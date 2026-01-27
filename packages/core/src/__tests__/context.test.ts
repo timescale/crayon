@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import { createWorkflowContext } from "../context.js";
 import type { Executable, WorkflowContext } from "../types.js";
+import { Tool } from "../tools/tool.js";
 
 // Helper to create a minimal executable for testing
 // (Node.create() is implemented in a parallel task)
@@ -64,5 +65,18 @@ describe("createWorkflowContext()", () => {
     ctx.log("test message");
 
     expect(logSpy).toHaveBeenCalledWith("test message", "info");
+  });
+
+  it("ctx.run() works with tools", async () => {
+    const addTool = Tool.create({
+      name: "add",
+      description: "Adds two numbers",
+      inputSchema: z.object({ a: z.number(), b: z.number() }),
+      execute: async ({ a, b }) => a + b,
+    });
+
+    const ctx = createWorkflowContext();
+    const result = await ctx.run(addTool, { a: 2, b: 3 });
+    expect(result).toBe(5);
   });
 });

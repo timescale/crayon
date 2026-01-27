@@ -4,6 +4,7 @@ import { z } from "zod";
 import { parseAgentSpecContent } from "../nodes/agent/parser.js";
 import { executeAgent } from "../nodes/agent/executor.js";
 import { ToolRegistry } from "../tools/registry.js";
+import { createWorkflowContext } from "../context.js";
 
 // Skip if no OpenAI API key
 const hasApiKey = !!process.env.OPENAI_API_KEY;
@@ -29,7 +30,9 @@ When given a URL, use the http_get tool to fetch the page content, then provide 
 Keep your summary to 2-3 sentences.
 `);
 
+    const ctx = createWorkflowContext();
     const result = await executeAgent({
+      ctx,
       spec,
       userMessage: "Please summarize the website at https://www.example.com",
       toolRegistry,
@@ -79,7 +82,9 @@ When given a URL, fetch the page and analyze it. Return your findings in the req
       wordCount: z.number().describe("Estimated word count of the page content"),
     });
 
+    const ctx = createWorkflowContext();
     const result = await executeAgent({
+      ctx,
       spec,
       userMessage: "Analyze https://www.example.com",
       toolRegistry,
