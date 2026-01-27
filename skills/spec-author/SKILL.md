@@ -1,6 +1,6 @@
 ---
 name: spec-author
-description: Collaborative workflow design - guides users through creating well-structured 0pflow workflow specs
+description: Collaborative workflow design - guides users through creating well-structured 0pflow workflow specs. Use this when creating new workflows.
 ---
 
 # Spec Author
