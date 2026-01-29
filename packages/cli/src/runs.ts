@@ -1,5 +1,7 @@
 // packages/cli/src/runs.ts
 import pg from "pg";
+import { getSchemaName } from "0pflow";
+import { getAppName } from "./app.js";
 
 export interface WorkflowRun {
   workflow_uuid: string;
@@ -14,6 +16,7 @@ export interface WorkflowRun {
 export interface ListRunsOptions {
   limit?: number;
   workflowName?: string;
+  schema?: string;
 }
 
 /**
@@ -23,14 +26,15 @@ export async function listRuns(
   databaseUrl: string,
   options: ListRunsOptions = {}
 ): Promise<WorkflowRun[]> {
-  const { limit = 20, workflowName } = options;
+  const { limit = 20, workflowName, schema: schemaOverride } = options;
+  const schema = schemaOverride ?? getSchemaName(getAppName());
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();
   try {
     let query = `
       SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-      FROM dbos.workflow_status
+      FROM ${schema}.workflow_status
     `;
     const params: (string | number)[] = [];
 
@@ -60,8 +64,10 @@ export interface GetRunResult {
  */
 export async function getRun(
   databaseUrl: string,
-  runId: string
+  runId: string,
+  schemaOverride?: string
 ): Promise<GetRunResult> {
+  const schema = schemaOverride ?? getSchemaName(getAppName());
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();
@@ -69,7 +75,7 @@ export async function getRun(
     // Try exact match first
     const exact = await client.query(
       `SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-       FROM dbos.workflow_status
+       FROM ${schema}.workflow_status
        WHERE workflow_uuid = $1`,
       [runId]
     );
@@ -81,7 +87,7 @@ export async function getRun(
     // Try prefix match (like git short hashes)
     const prefix = await client.query(
       `SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-       FROM dbos.workflow_status
+       FROM ${schema}.workflow_status
        WHERE workflow_uuid LIKE $1
        ORDER BY created_at DESC
        LIMIT 2`,

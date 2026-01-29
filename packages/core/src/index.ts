@@ -4,6 +4,7 @@ export const VERSION = "0.1.0";
 
 // Factory
 export { create0pflow } from "./factory.js";
+export { getSchemaName } from "./dbos.js";
 
 // Executable factories
 export { Node } from "./node.js";

@@ -3,10 +3,12 @@ import { describe, it, expect } from "vitest";
 import { listRuns, getRun } from "../runs.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
+// Use uptime-app schema for tests (matches examples/uptime-app)
+const TEST_SCHEMA = "uptime_app_dbos";
 
 describe.skipIf(!DATABASE_URL)("runs", () => {
   it("lists recent workflow runs", async () => {
-    const runs = await listRuns(DATABASE_URL!, { limit: 10 });
+    const runs = await listRuns(DATABASE_URL!, { limit: 10, schema: TEST_SCHEMA });
     expect(Array.isArray(runs)).toBe(true);
     // Each run should have expected fields
     if (runs.length > 0) {
@@ -17,9 +19,9 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
   });
 
   it("gets a specific run by full id", async () => {
-    const runs = await listRuns(DATABASE_URL!, { limit: 1 });
+    const runs = await listRuns(DATABASE_URL!, { limit: 1, schema: TEST_SCHEMA });
     if (runs.length > 0) {
-      const result = await getRun(DATABASE_URL!, runs[0].workflow_uuid);
+      const result = await getRun(DATABASE_URL!, runs[0].workflow_uuid, TEST_SCHEMA);
       expect(result.run).not.toBeNull();
       expect(result.run!.workflow_uuid).toBe(runs[0].workflow_uuid);
       expect(result.ambiguous).toBeUndefined();
@@ -27,11 +29,11 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
   });
 
   it("gets a specific run by id prefix", async () => {
-    const runs = await listRuns(DATABASE_URL!, { limit: 1 });
+    const runs = await listRuns(DATABASE_URL!, { limit: 1, schema: TEST_SCHEMA });
     if (runs.length > 0) {
       // Use first 8 characters as prefix (like displayed in history)
       const prefix = runs[0].workflow_uuid.slice(0, 8);
-      const result = await getRun(DATABASE_URL!, prefix);
+      const result = await getRun(DATABASE_URL!, prefix, TEST_SCHEMA);
       // Should find the run (may be ambiguous if multiple runs share prefix)
       if (!result.ambiguous) {
         expect(result.run).not.toBeNull();
@@ -41,7 +43,7 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
   });
 
   it("returns null for non-existent run", async () => {
-    const result = await getRun(DATABASE_URL!, "non-existent-id");
+    const result = await getRun(DATABASE_URL!, "non-existent-id", TEST_SCHEMA);
     expect(result.run).toBeNull();
     expect(result.ambiguous).toBeUndefined();
   });

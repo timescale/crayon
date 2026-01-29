@@ -9,12 +9,15 @@ import { create0pflow, Workflow, Node, type Pflow } from "../index.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
+// Schema used by tests (must match default from getSchemaName())
+const TEST_SCHEMA = "opflow_dbos";
+
 async function resetDatabase(): Promise<void> {
   const client = new pg.Client({ connectionString: DATABASE_URL });
   await client.connect();
   try {
     // Drop DBOS schema to start fresh - DBOS will recreate it on launch
-    await client.query("DROP SCHEMA IF EXISTS dbos CASCADE");
+    await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`);
   } finally {
     await client.end();
   }
@@ -25,7 +28,7 @@ async function countWorkflowExecutions(workflowName: string): Promise<number> {
   await client.connect();
   try {
     const result = await client.query(
-      "SELECT COUNT(*) FROM dbos.workflow_status WHERE name = $1",
+      `SELECT COUNT(*) FROM ${TEST_SCHEMA}.workflow_status WHERE name = $1`,
       [workflowName]
     );
     return parseInt(result.rows[0].count, 10);

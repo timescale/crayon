@@ -6,6 +6,7 @@ import { create0pflow } from "0pflow";
 import { discoverWorkflows } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
+import { getAppName } from "./app.js";
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -150,6 +151,7 @@ program
 
       const pflow = await create0pflow({
         databaseUrl: process.env.DATABASE_URL!,
+        appName: getAppName(),
         workflows: workflowRegistry,
       });
 

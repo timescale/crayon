@@ -1,13 +1,13 @@
 ---
-name: spec-author
+name: create-workflow
 description: Collaborative workflow design - guides users through creating well-structured 0pflow workflow specs. Use this when creating new workflows.
 ---
 
-# Spec Author
+# Create Workflow
 
 This skill guides you through designing a workflow specification for 0pflow. We'll work together step-by-step to turn your workflow idea into a well-structured spec that can be compiled into executable code.
 
-**Announce at start:** "I'm using the spec-author skill to help you design a workflow."
+**Announce at start:** "I'm using the create-workflow skill. We'll first design the high-level workflow structure, then refine the individual nodes with more detail."
 
 ---
 
@@ -59,6 +59,8 @@ Push for specifics. If the user says "score leads", ask what scoring means - a n
 - External APIs
 - Other
 
+> **Note:** For common integrations (Salesforce, HubSpot, etc.), technical details like authentication, API versions, and schema setup are handled by the `/0pflow:integrations` skill. Users only need to specify *what* data they need, not *how* to fetch it.
+
 ### Question 4: Name
 
 Based on answers, propose a name:
@@ -77,7 +79,17 @@ Walk through the workflow task-by-task.
 
 "After [previous task/trigger], what happens next?"
 
-Then determine:
+If the user describes a **decision point** (branching conditional), switch to:
+
+1. "What's the exact condition for this decision?" (get specific: `score >= 80`, not "if it's good")
+2. "What happens when [condition] is TRUE?"
+3. Continue exploring the TRUE branch until it ends (return or converges)
+4. "Now for the FALSE branch: what happens when [condition] is FALSE?"
+5. Continue exploring the FALSE branch until it ends
+
+Track which paths lead to early returns vs. continuing to subsequent tasks.
+
+For non-branching tasks, determine:
 
 1. **Description** - What does this task do in plain language?
 
@@ -97,43 +109,18 @@ Then determine:
 
 5. **Outputs** - What variable name holds this task's result?
 
-### For new agents:
+### For new nodes:
 
-When a task requires a NEW agent (not an existing one), gather extra detail for the task description. This info will be used by compile-workflow to create a good agent stub.
-
-Ask these follow-up questions (one at a time):
-
-1. **Tools needed:** "What tools or capabilities does this agent need?"
-   - Web scraping/search?
-   - Specific APIs (LinkedIn, Clearbit, CRM)?
-   - Just reasoning over provided data (no tools)?
-
-2. **Guidelines:** "Any specific guidelines for how this agent should work?"
-   - Preferred data sources?
-   - How to handle missing/uncertain data?
-   - Quality or accuracy requirements?
-
-3. **Output format:** "What fields should the output include?"
-   - Get specific field names and types
-   - Note which fields are optional
-
-Capture this detail in the task description:
+When a task requires a new node, capture a clear description of what it does. If the user provides enough detail during this phase, capture it. If not, it can be refined later with `/0pflow:refine-node`.
 
 ```markdown
 ### N. Research Company
 
-Gather comprehensive information about the company including their product,
-market position, team size, and funding status.
-
-**Tools needed:** web scraping, LinkedIn API, Clearbit enrichment
-**Guidelines:** Prefer primary sources (company website, LinkedIn) over aggregators.
-If information is unavailable, indicate "unknown" rather than guessing.
-**Output fields:** name (string), description (string), product (string),
-market (string), team_size (number, optional), funding (string, optional)
+Gather information about the company from their website.
 
 **Node:** `company-researcher` (agent)
 **Input:** company_url
-**Output:** `company_data: { name: string, description: string, product: string, market: string, team_size?: number, funding?: string }`
+**Output:** `company_data: { name: string, description: string }`
 ```
 
 ### For decision points:
@@ -148,6 +135,11 @@ Ask: "What's the exact condition for this decision?"
 ### Continue until done:
 
 Keep asking "What happens next?" until the user indicates the workflow is complete.
+
+For workflows with branches:
+- Explore each branch fully before moving to the next
+- Note when branches converge (rejoin the main flow)
+- Ensure every terminating path returns the same output fields
 
 ---
 
@@ -271,22 +263,24 @@ version: 1
 <validated outputs, or omit this section if workflow has no return value>
 ```
 
-### 4.2 Report Results
+### 4.2 Report Results and Transition
 
 Tell the user:
 
 1. "I've written the workflow spec to `specs/workflows/<name>.md`"
 
-2. If new agents were identified (not existing):
-   "This workflow references new agent(s) that don't exist yet:
-   - `<agent1>` - <brief description of what it does>
-   - `<agent2>` - <brief description of what it does>
+2. Assess which nodes might benefit from more detail (missing tools, guidelines, or clear output schemas). If any:
+   "Some nodes could use more detail:
+   - `<node1>` - missing tools/guidelines
+   - `<node2>` - output schema is vague"
 
-   These will be created as stubs when you run compile-workflow."
+   Ask: "Would you like to refine these nodes now?"
 
-3. "**Next steps:**
-   - Run `/0pflow:compile-workflow` to generate TypeScript and create any missing agent stubs
-   - Review and refine generated agent stubs in `specs/agents/`"
+   - If yes: Invoke `/0pflow:refine-node` for the workflow
+   - If no: "No problem. Run `/0pflow:refine-node <workflow-name>` later when you're ready. Then run `/0pflow:compile-workflow` to generate TypeScript."
+
+3. If all nodes already have sufficient detail:
+   "All nodes have clear definitions. **Next step:** Run `/0pflow:compile-workflow` to generate TypeScript."
 
 ---
 
@@ -306,7 +300,7 @@ Tell the user:
 ```
 User: I want to score inbound leads
 
-Agent: I'm using the spec-author skill to help you design a workflow.
+Agent: I'm using the create-workflow skill. We'll first design the high-level workflow structure, then refine the individual nodes with more detail.
 
 [Pre-flight] Found 0 existing workflows. Found 0 existing agents.
 This appears to be a new project with no existing specs.

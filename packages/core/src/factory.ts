@@ -10,7 +10,7 @@ import { configureAgentRuntime } from "./agent.js";
  */
 export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Initialize DBOS for durability
-  await initializeDBOS({ databaseUrl: config.databaseUrl });
+  await initializeDBOS({ databaseUrl: config.databaseUrl, appName: config.appName });
 
   // Build tool registry (includes built-in tools + user tools)
   const toolRegistry = new ToolRegistry({

@@ -17,9 +17,11 @@ claude --plugin-dir /path/to/0pflow
 
 ### Available Skills
 
-- `/0pflow:spec-author` - Collaborative workflow design (guides you through creating workflow specs)
+- `/0pflow:create-workflow` - Collaborative workflow design (guides you through creating workflow specs)
+- `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, output formats to nodes)
 - `/0pflow:compile-workflow` - Compile workflow specs to TypeScript
 - `/0pflow:validate-spec` - Validate spec structure and references
+- `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
 
 ## Key Documents
 

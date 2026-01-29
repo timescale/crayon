@@ -6,13 +6,21 @@ export interface DBOSConfig {
   appName?: string;
 }
 
+/** Get the schema name for a given app */
+export function getSchemaName(appName?: string): string {
+  const name = appName ?? "opflow";
+  // Convert to valid schema name: lowercase, replace non-alphanumeric with underscore
+  return `${name.toLowerCase().replace(/[^a-z0-9]/g, "_")}_dbos`;
+}
+
 /**
  * Initialize DBOS with the given configuration
  */
 export async function initializeDBOS(config: DBOSConfig): Promise<void> {
   DBOS.setConfig({
-    name: config.appName ?? "0pflow",
+    name: config.appName ?? "opflow",
     systemDatabaseUrl: config.databaseUrl,
+    systemDatabaseSchemaName: getSchemaName(config.appName),
   });
   await DBOS.launch();
 }
