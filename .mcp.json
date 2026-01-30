@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "0pflow": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "${CLAUDE_PLUGIN_ROOT}/packages/mcp/src/index.ts",
+        "start"
+      ],
+      "env": {}
+    }
+  }
+}

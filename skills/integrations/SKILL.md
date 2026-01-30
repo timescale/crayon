@@ -11,9 +11,14 @@ This skill generates function nodes for querying external APIs. It creates prope
 
 ## Supported Integrations
 
-| Integration | File | Auth Method |
-|-------------|------|-------------|
-| Salesforce | `salesforce.md` | OAuth2 Client Credentials |
-| *(more coming)* | | |
+| Integration | Auth Method |
+|-------------|-------------|
+| Salesforce | OAuth2 Client Credentials |
+| *(more coming)* | |
+
+**To use an integration:** Read the corresponding file in this skill's directory using the Read tool.
+
+Example: To set up Salesforce, read the file at the same path as this SKILL.md but with `salesforce.md` instead:
+- `skills/integrations/salesforce.md`
 
 ---

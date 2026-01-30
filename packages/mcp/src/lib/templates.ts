@@ -1,0 +1,103 @@
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, extname, join, relative } from "node:path";
+import Handlebars from "handlebars";
+import { templatesDir } from "../config.js";
+
+export interface AppTemplateVars {
+  app_name: string;
+}
+
+type ContentTransform = (content: string) => string;
+
+// Binary file extensions that should be copied without transformation
+const BINARY_EXTENSIONS = new Set([
+  ".ico",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".otf",
+  ".pdf",
+]);
+
+/**
+ * Copy a template directory to destination, optionally transforming file contents
+ */
+async function copyTemplateDir(
+  templateName: string,
+  destDir: string,
+  transform?: ContentTransform,
+): Promise<void> {
+  const srcBaseDir = join(templatesDir, templateName);
+
+  async function copyDir(srcDir: string): Promise<void> {
+    const entries = await readdir(srcDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(srcDir, entry.name);
+      const relPath = relative(srcBaseDir, srcPath);
+      const destPath = join(destDir, relPath);
+
+      if (entry.isDirectory()) {
+        await mkdir(destPath, { recursive: true });
+        await copyDir(srcPath);
+      } else {
+        await mkdir(dirname(destPath), { recursive: true });
+
+        // Copy binary files directly without transformation
+        if (BINARY_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+          await copyFile(srcPath, destPath);
+        } else {
+          const content = await readFile(srcPath, "utf-8");
+          const output = transform ? transform(content) : content;
+          await writeFile(destPath, output);
+        }
+      }
+    }
+  }
+
+  await copyDir(srcBaseDir);
+}
+
+/**
+ * Write app templates with Handlebars templating
+ */
+export async function writeAppTemplates(
+  destDir: string,
+  vars: AppTemplateVars,
+): Promise<void> {
+  await copyTemplateDir("app", destDir, (content) => {
+    const template = Handlebars.compile(content);
+    return template(vars);
+  });
+}
+
+/**
+ * Create 0pflow-specific directories in the app
+ */
+export async function create0pflowDirectories(destDir: string): Promise<void> {
+  const dirs = [
+    "specs/workflows",
+    "specs/agents",
+    "generated/workflows",
+    "nodes",
+    "tools",
+    "agents",
+  ];
+
+  for (const dir of dirs) {
+    await mkdir(join(destDir, dir), { recursive: true });
+  }
+}

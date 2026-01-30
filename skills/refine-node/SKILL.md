@@ -53,7 +53,7 @@ For each node needing refinement, ask questions ONE AT A TIME:
 
 #### 2.0 Check for Integration Skills
 
-Before refining a node, check if it interacts with an external system (Salesforce, HubSpot, Slack, etc.). If so, read the relevant integration skill in `skills/integrations/` first.
+Before refining a node, check if it interacts with an external system (Salesforce, HubSpot, Slack, etc.). If so, use the `/0pflow:integrations` skill to get the necessary information first.
 
 Integration skills provide:
 - Pre-built scripts for schema/type generation

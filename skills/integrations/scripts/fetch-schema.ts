@@ -22,7 +22,7 @@ if (envPath) {
   console.log("No .env file found, using existing environment variables");
 }
 
-const SALESFORCE_DOMAIN = process.argv[2] || process.env.SALESFORCE_DOMAIN;
+const SALESFORCE_DOMAIN = process.argv[2] || process.env.SALESFORCE_DOMAIN || '';
 const OUTPUT_PATH = process.argv[3] || "schemas/schema-clean.json";
 
 interface EnumValue {

@@ -22,6 +22,7 @@ claude --plugin-dir /path/to/0pflow
 - `/0pflow:compile-workflow` - Compile workflow specs to TypeScript
 - `/0pflow:validate-spec` - Validate spec structure and references
 - `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
+- `/0pflow:cli` - Reference for 0pflow CLI commands (list, run, history)
 
 ## Key Documents
 

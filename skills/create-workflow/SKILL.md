@@ -7,27 +7,48 @@ description: Collaborative workflow design - guides users through creating well-
 
 This skill guides you through designing a workflow specification for 0pflow. We'll work together step-by-step to turn your workflow idea into a well-structured spec that can be compiled into executable code.
 
-**Announce at start:** "I'm using the create-workflow skill. We'll first design the high-level workflow structure, then refine the individual nodes with more detail."
-
 ---
 
 ## Pre-Flight Check
 
 Before starting, perform these checks:
 
-1. **Check directories exist:**
-   - If `specs/workflows/` doesn't exist, create it
-   - If `specs/agents/` doesn't exist, create it
+### 1. Detect Project Type
 
-2. **Read existing context:**
-   - Read all files in `specs/workflows/*.md` to understand existing workflows
-   - Read all files in `specs/agents/*.md` to know available agents
-   - Note what exists so you can suggest reuse
+Check if this is a **new project** or an **existing 0pflow project**:
 
-3. **Report context to user:**
-   - "Found N existing workflows: [names]"
-   - "Found M existing agents: [names]"
-   - Or "This appears to be a new project with no existing specs"
+- **New project indicators:** No `package.json` and the directory is empty
+- **Existing project indicators:** Has `specs/workflows/` or `specs/agents/` directories
+
+### 2. For New Projects - Offer App Scaffolding
+
+If this appears to be a new project (empty directory or no 0pflow structure):
+
+Ask the user: "This looks like a new project. Would you like me to scaffold a full app with the T3 Stack template (Next.js + tRPC + Drizzle)? Or do you want to add 0pflow to an existing project?"
+
+- **If scaffold new app:** Read `app-scaffolding.md` in this skill directory and follow those instructions first. Then return here to continue with workflow creation.
+- **If existing project:** Just create the `specs/` directories and continue.
+
+### 3. Ensure Directories Exist
+
+- If `specs/workflows/` doesn't exist, create it
+- If `specs/agents/` doesn't exist, create it
+
+### 4. Read Existing Context
+
+- Read all files in `specs/workflows/*.md` to understand existing workflows
+- Read all files in `specs/agents/*.md` to know available agents
+- Note what exists so you can suggest reuse
+
+### 5. Report Context to User
+
+- "Found N existing workflows: [names]"
+- "Found M existing agents: [names]"
+- Or "This appears to be a new project with no existing specs"
+
+### 6. Announce
+
+"I'm using the create-workflow skill. We'll first design the high-level workflow structure, then refine the individual nodes with more detail."
 
 ---
 
@@ -75,7 +96,29 @@ Based on answers, propose a name:
 
 Walk through the workflow task-by-task.
 
-### For each task, ask:
+### For each task:
+
+**First, show the workflow so far** with an ASCII diagram:
+
+```
+┌─────────────┐
+│   Trigger   │
+│ (inputs)    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Task 1     │
+│ node-name   │
+└──────┬──────┘
+       │
+       ▼
+      ???
+```
+
+Update the diagram as tasks are added. Use `???` to show where we're asking about next.
+
+**Then ask:**
 
 "After [previous task/trigger], what happens next?"
 
@@ -147,14 +190,62 @@ For workflows with branches:
 
 Present each section for validation. Wait for approval before proceeding.
 
-### 3.1 Present Inputs
+### 3.0 Present Workflow Diagram
 
-"Here's the **Inputs** section I've captured:"
+First, present an ASCII diagram showing the workflow structure:
+
+"Here's the workflow structure:"
+
+```
+┌─────────────┐
+│   Trigger   │
+│ (input)     │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Task 1     │
+│ node-name   │
+└──────┬──────┘
+       │
+       ▼
+   ◇ Decision?
+  ╱           ╲
+YES             NO
+ │               │
+ ▼               ▼
+┌─────┐      ┌──────┐
+│Task2│      │Return│
+└──┬──┘      └──────┘
+   │
+   ▼
+┌─────────────┐
+│   Return    │
+└─────────────┘
+```
+
+Adapt the diagram to match the actual workflow tasks and branches discovered in Phase 2. Use:
+- `┌─────┐` boxes for tasks
+- `◇` diamonds for decision points
+- `▼` arrows for flow direction
+- Show both branches for decisions
+
+"Does this flow look correct?"
+
+### 3.1 Present Workflow Interface (Inputs & Outputs)
+
+Present the overall workflow contract - what goes in and what comes out:
+
+"Here's the **workflow interface** - the inputs it receives and outputs it returns:"
 
 ```markdown
 ## Inputs
 
 - input_name: type (required|optional, defaults to X) - Description
+
+## Outputs
+
+- field_name: type - Description
 ```
 
 **Type syntax:**
@@ -163,74 +254,47 @@ Present each section for validation. Wait for approval before proceeding.
 - Objects: `{ field1: type, field2: type, field3?: type }` (? = optional)
 - Arrays: `string[]` or `{ name: string }[]`
 
-"Does this look right? Any changes?"
+If the workflow only performs side effects (notifications, CRM updates, etc.) with no return value, omit the Outputs section.
+
+"Does this interface look right? Any changes?"
 
 ### 3.2 Present Tasks
 
+Present all tasks together (we already walked through each one in Phase 2):
+
 "Here are the **Tasks**:"
 
-Present each task:
-
 ```markdown
-### N. Task Name
+## Tasks
 
+### 1. Task Name
 Description of what this task does.
-
 **Node:** `node-name` (agent|function|tool)
 **Input:** var1, var2
 **Output:** `result_var: type`
-```
 
-**Output type syntax:**
-- Simple: `result: string`
-- Object: `company_data: { name: string, funding?: string }`
-- Array: `matches: { url: string, score: number }[]`
+---
 
-For decision tasks that may terminate the workflow:
+### 2. Next Task
+...
 
-```markdown
-### N. Decision Name
+---
 
-Description of the decision.
-
+### 3. Decision Name
 **Condition:** `variable.field >= value`
-**If true:** continue to task M
-**If false:** return:
-  - status: "rejected"
-  - score: score_result.score
-  - data: company_data
+**If true:** continue to task 4
+**If false:** return early with outputs
+
+---
+
+### 4. Final Task
+...
+**Return:** (final outputs)
 ```
 
-**Important:** If the workflow defines outputs, every terminating path must return the same fields as the workflow outputs.
+**Important:** Every terminating path must return the same fields as the workflow outputs.
 
 "Does this look right? Any changes?"
-
-### 3.3 Present Outputs (Optional)
-
-Ask: "Does this workflow need to return data to the caller? Or does it just perform actions (like sending notifications)?"
-
-If the workflow returns data, present the outputs section:
-
-"Here's the **Outputs** section:"
-
-```markdown
-## Outputs
-
-- field_name: type - Description
-- another_field: type - Description
-```
-
-Workflow outputs are always an object with named fields. Each field has a type:
-- Simple types: `string`, `number`, `boolean`
-- Union types: `"value1" | "value2"`
-- Objects: `{ field1: type, field2?: type }` (? = optional)
-- Arrays: `string[]` or `{ id: number, name: string }[]`
-
-For nested objects, always specify the schema inline rather than using generic `object`.
-
-"Does this look right? Any changes?"
-
-If the workflow only performs side effects (notifications, CRM updates, etc.) with no return value, skip the Outputs section entirely.
 
 ---
 
