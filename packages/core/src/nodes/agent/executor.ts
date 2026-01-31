@@ -5,9 +5,8 @@ import { z } from "zod";
 import type { AgentSpec } from "./parser.js";
 import { createModel, getDefaultModelConfig, parseModelString } from "./model-config.js";
 import type { ModelConfig } from "./model-config.js";
-import type { ToolRegistry } from "../../tools/registry.js";
-import type { ToolExecutable } from "../../tools/tool.js";
-import type { WorkflowContext } from "../../types.js";
+import type { NodeRegistry } from "../registry.js";
+import type { Executable, WorkflowContext } from "../../types.js";
 
 /**
  * Result of agent execution
@@ -37,8 +36,8 @@ export interface ExecuteAgentOptions<TOutput = unknown> {
   spec: AgentSpec;
   /** User message / input to the agent */
   userMessage: string;
-  /** Tool registry for resolving tools */
-  toolRegistry: ToolRegistry;
+  /** Node registry for resolving nodes as tools */
+  nodeRegistry: NodeRegistry;
   /** Optional model configuration override */
   modelConfig?: ModelConfig;
   /** Optional max steps override (defaults to spec.maxSteps or 10) */
@@ -48,17 +47,17 @@ export interface ExecuteAgentOptions<TOutput = unknown> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolExecutable = ToolExecutable<any, any>;
+type AnyExecutable = Executable<any, any>;
 
 /**
- * Convert a ToolExecutable to Vercel AI SDK tool format
+ * Convert an Executable to Vercel AI SDK tool format
  */
-function convertToAITool(toolExecutable: AnyToolExecutable, ctx: WorkflowContext) {
+function convertToAITool(executable: AnyExecutable, ctx: WorkflowContext) {
   return tool({
-    description: toolExecutable.description,
-    inputSchema: toolExecutable.inputSchema,
+    description: executable.description,
+    inputSchema: executable.inputSchema,
     execute: async (args: unknown) => {
-      const result = await toolExecutable.execute(ctx, args);
+      const result = await executable.execute(ctx, args);
       return result;
     },
   });
@@ -77,7 +76,7 @@ export async function executeAgent<TOutput = unknown>(
     ctx,
     spec,
     userMessage,
-    toolRegistry,
+    nodeRegistry,
     modelConfig: providedModelConfig,
     maxSteps: providedMaxSteps,
     outputSchema,
@@ -97,12 +96,12 @@ export async function executeAgent<TOutput = unknown>(
   // Create the model instance
   const model = createModel(modelConfig);
 
-  // Resolve tools from registry
+  // Resolve nodes from registry to use as tools
   const tools: ToolSet = {};
   if (spec.tools.length > 0) {
-    const resolvedTools = toolRegistry.getTools(spec.tools);
-    for (const t of resolvedTools) {
-      tools[t.name] = convertToAITool(t, ctx);
+    const resolvedNodes = nodeRegistry.getNodes(spec.tools);
+    for (const node of resolvedNodes) {
+      tools[node.name] = convertToAITool(node, ctx);
     }
   }
 

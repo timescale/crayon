@@ -9,7 +9,7 @@
 |-------|-----------|--------|
 | 1 | Project Scaffolding | Done |
 | 2 | SDK Core | Done |
-| 3 | Agent Node + Tools | Done |
+| 3 | Agent Node + Nodes | Done |
 | 4 | Spec Author (Claude Code Skill) | Done |
 | 5 | Compiler (Claude Code Skill) | Done |
 | 6 | CLI | Done |
@@ -38,8 +38,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │    workflows/            ← Workflow specs (markdown)│
 │    agents/               ← Agent definitions        │
 │  src/                                               │
-│    nodes/                ← Workflow node functions  │
-│    tools/                ← Tools for agents         │
+│    nodes/                ← User-defined nodes       │
 │    ... (standard Next.js app structure)            │
 │  generated/                                         │
 │    workflows/            ← Compiled TS (in git)     │
@@ -63,10 +62,10 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 │   ├── core/                 ← SDK + runtime (0pflow)
 │   │   ├── src/
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
-│   │   │   ├── agent-node.ts ← Pre-packaged agent node (Vercel AI SDK)
-│   │   │   ├── tools/        ← Built-in tools (http_get, etc.)
-│   │   │   ├── discovery.ts  ← Workflow discovery from generated/
-│   │   │   └── api.ts        ← Plain functions: listWorkflows, triggerWorkflow, etc.
+│   │   │   ├── node.ts       ← Node.create()
+│   │   │   ├── agent.ts      ← Agent.create()
+│   │   │   ├── nodes/        ← Built-in nodes, registry, agent internals
+│   │   │   └── factory.ts    ← create0pflow()
 │   │   └── package.json
 │   │
 │   ├── ui/                   ← Default UI (@0pflow/ui)
@@ -179,7 +178,7 @@ Alert the sales team about the qualified lead.
   - Human-readable description (intent)
   - Structured fields (implementation details)
 - `## Outputs` (optional) - What the workflow returns (always an object with named fields)
-- Tasks reference nodes by name (agents, functions, tools)
+- Tasks reference nodes by name (agents, user-defined nodes, built-in nodes)
 - Control flow expressed in natural language
 
 ## Agent Definition Format
@@ -230,10 +229,10 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in tools (`http_get`) - ship with 0pflow
-- User-defined tools from `src/tools/` - resolved by convention (e.g., `linkedin_getCompanyProfile` → `src/tools/linkedin/getCompanyProfile.ts`)
+- Built-in nodes (`http_get`) - ship with 0pflow
+- User-defined nodes from `src/nodes/` - resolved by convention
 
-**Tool naming convention:** Tool names must use underscores, not dots (e.g., `http_get` not `http.get`). This ensures compatibility with all LLM providers.
+**Node naming convention:** Node names must use underscores, not dots (e.g., `http_get` not `http.get`). This ensures compatibility with all LLM providers.
 - MCP server tools (post-MVP)
 
 ## Node Types
@@ -243,14 +242,16 @@ Workflows orchestrate nodes. Node types:
 | Type | Definition | Example |
 |------|------------|---------|
 | **Agent** | Markdown spec (system prompt + tools), executed by pre-packaged agent node | `company-researcher` |
-| **Function** | User TypeScript in `src/nodes/` | `calculateScore` |
+| **Node** | User TypeScript in `src/nodes/` | `calculateScore` |
 | **Sub-workflow** | Another workflow spec | `enrichment-pipeline` |
+
+**Unified node model:** Tools and function nodes are unified into a single concept: nodes. All nodes have a `description` field which allows them to be used as agent tools. Built-in nodes like `http_get` ship with 0pflow; user-defined nodes live in `src/nodes/`.
 
 **Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
 
-**Tool resolution:** Tools referenced in agent specs (and workflows) are resolved by convention:
-- **User-defined tools:** `src/tools/web/scrape.ts` → referenced as `web_scrape`
-- **Built-in tools:** `http_get` ships with 0pflow
+**Node resolution:** Nodes referenced in agent specs (as tools) and workflows are resolved by convention:
+- **User-defined nodes:** `src/nodes/<name>.ts`
+- **Built-in nodes:** `http_get` ships with 0pflow
 
 ## Runtime & SDK
 
@@ -293,11 +294,10 @@ export const icpScoring = Workflow.create({
 ```
 
 **Core SDK methods:**
-- `ctx.runAgent(name, inputs)` - Run an agent node (internally calls the pre-packaged agent node)
-- `ctx.runNode(name, inputs)` - Run a TypeScript function node
-- `ctx.runWorkflow(name, inputs)` - Run a sub-workflow
-- `ctx.callTool(name, params)` - Call a tool (built-in or user-defined)
+- `ctx.run(executable, inputs)` - Run any executable (node, agent, or workflow)
 - `ctx.log(message, level?)` - Structured logging (wrapper over `DBOS.logger`, decoupled for future flexibility)
+
+**Note:** The unified `ctx.run()` method accepts any `Executable` (nodes, agents, workflows). Nodes and agents are created with `Node.create()` and `Agent.create()` respectively, both requiring a `description` field which enables nodes to be used as agent tools.
 
 DBOS handles: retries, idempotency, checkpointing, replay.
 
@@ -552,7 +552,7 @@ For MVP, the UI is extremely minimal.
 | **SDK** | `ctx.runAgent`, `ctx.runNode`, `ctx.callTool`, `ctx.log` |
 | **Runtime** | DBOS-backed execution, local only |
 | **Agents** | Pre-packaged agent node (Vercel AI SDK, reads specs from `specs/agents/`) |
-| **Tools** | Built-in tools: `http_get` |
+| **Nodes** | Built-in nodes: `http_get`; user-defined nodes in `src/nodes/` |
 | **UI** | Workflow list + trigger button |
 | **Triggers** | Manual (UI button, webhook, CLI) |
 
@@ -580,7 +580,7 @@ For MVP, the UI is extremely minimal.
 - Initialize monorepo structure for 0pflow packages
 - Set up TypeScript, DBOS dependencies
 - Create example user app based on T3 scaffolding (Next.js 16, tRPC, Drizzle, better-auth)
-- Add `specs/workflows/`, `specs/agents/`, `src/nodes/`, `src/tools/`, `generated/workflows/` to example app
+- Add `specs/workflows/`, `specs/agents/`, `src/nodes/`, `generated/workflows/` to example app
 
 ### Phase 2: SDK Core
 - `create0pflow()` factory - returns instance with config (workflow dir, DBOS setup)
@@ -589,10 +589,10 @@ For MVP, the UI is extremely minimal.
 - Workflow discovery from `generated/workflows/`
 - Instance methods: `listWorkflows()`, `getWorkflow()`, `triggerWorkflow()`
 
-### Phase 3: Agent Node + Tools
+### Phase 3: Agent Node + Nodes
 - Pre-packaged agent node using Vercel AI SDK (reads agent specs, runs agentic loop)
-- Tool interface for user-defined tools (`src/tools/`)
-- Built-in tools (`http_get`)
+- Unified node interface (nodes can be used as workflow steps and agent tools)
+- Built-in nodes (`http_get`)
 
 ### Phase 4: Spec Author (Claude Code Skill)
 - Collaborative dialogue flow for workflow design
@@ -635,7 +635,7 @@ For MVP, the UI is extremely minimal.
 - Multi-provider deployment (Vercel, Render, Fly.io)
 - CRM integrations (Salesforce, HubSpot)
 - MCP tool server support
-- Additional built-in tools (`http_post`, `slack_postMessage`)
+- Additional built-in nodes (`http_post`, `slack_postMessage`)
 - Approval nodes with human-in-the-loop
 - MCP server to inspect workflow runs from Claude Code
 - **Non-idempotent node semantics** - Attempt ledger with start-based counting for tools like `slack_postMessage` that can't safely be re-executed

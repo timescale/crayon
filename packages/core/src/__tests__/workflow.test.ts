@@ -25,6 +25,7 @@ describe("Workflow.create()", () => {
 
     const workflow = Workflow.create({
       name: "fetch-status",
+      description: "Fetches status",
       version: 1,
       inputSchema,
       outputSchema,
@@ -34,12 +35,14 @@ describe("Workflow.create()", () => {
     expect(workflow.name).toBe("fetch-status");
     expect(workflow.type).toBe("workflow");
     expect(workflow.version).toBe(1);
+    expect(workflow.description).toBe("Fetches status");
     expect(workflow.inputSchema).toBe(inputSchema);
   });
 
   it("execute calls run with context and inputs", async () => {
     const workflow = Workflow.create({
       name: "echo",
+      description: "Echoes input",
       version: 1,
       inputSchema: z.object({ message: z.string() }),
       run: async (_ctx, inputs) => inputs.message,

@@ -41,6 +41,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
   // Define nodes
   const fetchData = Node.create({
     name: "fetch-data",
+    description: "Fetches data from a URL",
     inputSchema: z.object({ url: z.string() }),
     outputSchema: z.object({ title: z.string(), body: z.string() }),
     execute: async (_ctx, inputs) => ({
@@ -51,6 +52,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
 
   const summarize = Node.create({
     name: "summarize",
+    description: "Summarizes text",
     inputSchema: z.object({ text: z.string() }),
     outputSchema: z.object({ summary: z.string() }),
     execute: async (_ctx, inputs) => ({
@@ -61,6 +63,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
   // Define workflows
   const researchWorkflow = Workflow.create({
     name: "research",
+    description: "Researches a URL",
     version: 1,
     inputSchema: z.object({ url: z.string() }),
     outputSchema: z.object({ title: z.string(), summary: z.string() }),
@@ -76,6 +79,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
 
   const innerWorkflow = Workflow.create({
     name: "inner",
+    description: "Inner workflow that doubles",
     version: 1,
     inputSchema: z.object({ value: z.number() }),
     run: async (_ctx, inputs) => inputs.value * 2,
@@ -83,6 +87,7 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
 
   const outerWorkflow = Workflow.create({
     name: "outer",
+    description: "Outer workflow that calls inner",
     version: 1,
     inputSchema: z.object({ value: z.number() }),
     run: async (ctx, inputs) => {

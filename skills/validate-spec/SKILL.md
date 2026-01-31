@@ -46,7 +46,7 @@ Invoke this skill when:
    - Has output format
 
 2. **Tool validation**
-   - All tools exist (built-in primitives or user tools in `src/tools/`)
+   - All tools exist (built-in nodes from 0pflow or user nodes in `src/nodes/`)
 
 ## Output
 

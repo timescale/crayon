@@ -9,18 +9,21 @@ describe("Agent.create()", () => {
 
     const agent = Agent.create({
       name: "researcher",
+      description: "Researches topics",
       inputSchema,
       specPath: "specs/agents/researcher.md",
     });
 
     expect(agent.name).toBe("researcher");
     expect(agent.type).toBe("agent");
+    expect(agent.description).toBe("Researches topics");
     expect(agent.inputSchema).toBe(inputSchema);
   });
 
   it("execute throws error without runtime configured", async () => {
     const agent = Agent.create({
       name: "researcher",
+      description: "Researches topics",
       inputSchema: z.object({ query: z.string() }),
       specPath: "specs/agents/researcher.md",
     });

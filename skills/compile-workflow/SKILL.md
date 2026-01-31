@@ -96,9 +96,9 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 | Type | Location | Import Pattern |
 |------|----------|----------------|
-| `(tool)` | Built-in or `src/tools/` | `import { toolName } from "0pflow"` or `import { toolName } from "../../src/tools/..."` |
+| `(builtin)` | Built-in nodes from 0pflow | `import { httpGet } from "0pflow"` |
+| `(node)` | User-defined in `src/nodes/` | `import { nodeName } from "../../src/nodes/<name>.js"` |
 | `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>.js"` |
-| `(function)` | `src/nodes/<name>.ts` | `import { nodeName } from "../../src/nodes/<name>.js"` |
 
 **Note:** Agent imports reference the executable file (`agents/<name>.ts`), not the spec file (`specs/agents/<name>.md`). The executable contains the runtime code that loads the spec.
 
@@ -106,19 +106,18 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)`
 
-2. **For tools:**
-   - Check if it's a built-in tool (`http_get`)
-   - Otherwise look for `src/tools/<name>.ts`
-   - If missing: ask user if they want to create a stub
+2. **For builtin nodes:**
+   - Check if it's a built-in node (`http_get`, etc.)
+   - Import from `"0pflow"`
 
-3. **For agents:**
+3. **For user-defined nodes:**
+   - Look for `src/nodes/<name>.ts`
+   - If missing: ask user to create it (nodes require user implementation)
+
+4. **For agents:**
    - Look for `specs/agents/<name>.md`
    - If missing but task has enough context: create agent stub (see Stub Generation)
    - If missing and context is insufficient: ask clarifying questions
-
-4. **For functions:**
-   - Look for `src/nodes/<name>.ts`
-   - If missing: ask user to create it (functions require user implementation)
 
 ---
 

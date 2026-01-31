@@ -1,11 +1,11 @@
 // packages/core/src/tools/builtin/http.ts
 import { z } from "zod";
-import { Tool } from "../tool.js";
+import { Node } from "../../node.js";
 
 /**
- * HTTP GET tool - fetches content from a URL
+ * HTTP GET node - fetches content from a URL
  */
-export const httpGet = Tool.create({
+export const httpGet = Node.create({
   name: "http_get",
   description: "Fetch content from a URL using HTTP GET request",
   inputSchema: z.object({
@@ -27,7 +27,7 @@ export const httpGet = Tool.create({
     body: z.string(),
     headers: z.record(z.string(), z.string()),
   }),
-  execute: async ({ url, headers }) => {
+  execute: async (_ctx, { url, headers }) => {
     const response = await fetch(url, {
       method: "GET",
       headers: headers as Record<string, string> | undefined,

@@ -2,30 +2,27 @@
 import fs from "fs";
 import path from "path";
 import { createJiti } from "jiti";
-import type { Executable, ToolExecutable } from "0pflow";
+import type { Executable } from "0pflow";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type WorkflowExecutable = Executable<any, any>;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolExecutable = ToolExecutable<any, any>;
+type AnyExecutable = Executable<any, any>;
 
 const jiti = createJiti(import.meta.url);
 
 export interface DiscoveryResult {
-  workflows: WorkflowExecutable[];
+  workflows: AnyExecutable[];
   warnings: string[];
 }
 
-export interface ToolDiscoveryResult {
-  tools: Record<string, AnyToolExecutable>;
+export interface NodeDiscoveryResult {
+  nodes: Record<string, AnyExecutable>;
   warnings: string[];
 }
 
 /**
  * Check if a value is a workflow executable
  */
-function isWorkflow(value: unknown): value is WorkflowExecutable {
+function isWorkflow(value: unknown): value is AnyExecutable {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -49,7 +46,7 @@ export async function discoverWorkflows(
   }
 
   const files = fs.readdirSync(workflowDir).filter(f => f.endsWith(".ts") || f.endsWith(".js"));
-  const workflows: WorkflowExecutable[] = [];
+  const workflows: AnyExecutable[] = [];
   const warnings: string[] = [];
 
   for (const file of files) {
@@ -74,54 +71,54 @@ export async function discoverWorkflows(
 }
 
 /**
- * Check if a value is a tool executable
+ * Check if a value is a node executable
  */
-function isTool(value: unknown): value is AnyToolExecutable {
+function isNode(value: unknown): value is AnyExecutable {
   return (
     value !== null &&
     typeof value === "object" &&
     "type" in value &&
-    (value as { type: string }).type === "tool"
+    (value as { type: string }).type === "node"
   );
 }
 
 /**
- * Discover and load tool executables from tools/ directory
+ * Discover and load node executables from nodes/ directory
  * Uses jiti to load TypeScript files directly without compilation
- * Returns tools indexed by name and any warnings
+ * Returns nodes indexed by name and any warnings
  */
-export async function discoverTools(
+export async function discoverNodes(
   projectDir: string
-): Promise<ToolDiscoveryResult> {
-  const toolsDir = path.join(projectDir, "tools");
-  const tools: Record<string, AnyToolExecutable> = {};
+): Promise<NodeDiscoveryResult> {
+  const nodesDir = path.join(projectDir, "nodes");
+  const nodes: Record<string, AnyExecutable> = {};
   const warnings: string[] = [];
 
-  if (!fs.existsSync(toolsDir)) {
-    return { tools, warnings };
+  if (!fs.existsSync(nodesDir)) {
+    return { nodes, warnings };
   }
 
-  const files = fs.readdirSync(toolsDir).filter(f => f.endsWith(".ts") || f.endsWith(".js"));
+  const files = fs.readdirSync(nodesDir).filter(f => f.endsWith(".ts") || f.endsWith(".js"));
 
   for (const file of files) {
     // Skip index files
     if (file === "index.ts" || file === "index.js") continue;
 
-    const filePath = path.join(toolsDir, file);
+    const filePath = path.join(nodesDir, file);
 
     try {
       const module = await jiti.import(filePath);
 
-      // Find tool exports in the module
+      // Find node exports in the module
       for (const value of Object.values(module as Record<string, unknown>)) {
-        if (isTool(value)) {
-          tools[value.name] = value;
+        if (isNode(value)) {
+          nodes[value.name] = value;
         }
       }
     } catch (err) {
-      warnings.push(`Failed to load tool ${file}: ${err}`);
+      warnings.push(`Failed to load node ${file}: ${err}`);
     }
   }
 
-  return { tools, warnings };
+  return { nodes, warnings };
 }

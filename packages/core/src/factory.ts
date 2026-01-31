@@ -2,7 +2,7 @@
 import type { Pflow, PflowConfig, WorkflowContext } from "./types.js";
 import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
-import { ToolRegistry } from "./tools/registry.js";
+import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
 
 /**
@@ -12,14 +12,15 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Initialize DBOS for durability
   await initializeDBOS({ databaseUrl: config.databaseUrl, appName: config.appName });
 
-  // Build tool registry (includes built-in tools + user tools)
-  const toolRegistry = new ToolRegistry({
-    userTools: config.tools,
+  // Build node registry (includes built-in nodes + user nodes)
+  // Nodes can be used both via ctx.run() and as agent tools
+  const nodeRegistry = new NodeRegistry({
+    userNodes: config.nodes,
   });
 
-  // Configure agent runtime with tool registry and model config
+  // Configure agent runtime with node registry and model config
   configureAgentRuntime({
-    toolRegistry,
+    nodeRegistry,
     modelConfig: config.modelConfig,
   });
 

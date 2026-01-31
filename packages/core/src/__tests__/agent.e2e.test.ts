@@ -3,17 +3,17 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import { parseAgentSpecContent } from "../nodes/agent/parser.js";
 import { executeAgent } from "../nodes/agent/executor.js";
-import { ToolRegistry } from "../tools/registry.js";
+import { NodeRegistry } from "../nodes/registry.js";
 import { createWorkflowContext } from "../context.js";
 
 // Skip if no OpenAI API key
 const hasApiKey = !!process.env.OPENAI_API_KEY;
 
 describe.skipIf(!hasApiKey)("Agent e2e", () => {
-  let toolRegistry: ToolRegistry;
+  let nodeRegistry: NodeRegistry;
 
   beforeAll(() => {
-    toolRegistry = new ToolRegistry();
+    nodeRegistry = new NodeRegistry();
   });
 
   it("summarizes a website using http_get and OpenAI", async () => {
@@ -35,7 +35,7 @@ Keep your summary to 2-3 sentences.
       ctx,
       spec,
       userMessage: "Please summarize the website at https://www.example.com",
-      toolRegistry,
+      nodeRegistry,
       modelConfig: {
         provider: "openai",
         modelId: "gpt-4o-mini",
@@ -87,7 +87,7 @@ When given a URL, fetch the page and analyze it. Return your findings in the req
       ctx,
       spec,
       userMessage: "Analyze https://www.example.com",
-      toolRegistry,
+      nodeRegistry,
       modelConfig: {
         provider: "openai",
         modelId: "gpt-4o-mini",

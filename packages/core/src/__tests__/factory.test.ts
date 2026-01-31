@@ -41,6 +41,7 @@ describe("create0pflow()", () => {
   it("listWorkflows returns registered workflow names", async () => {
     const workflow = Workflow.create({
       name: "test-workflow",
+      description: "A test workflow",
       version: 1,
       inputSchema: z.object({}),
       run: async () => "done",
@@ -57,6 +58,7 @@ describe("create0pflow()", () => {
   it("getWorkflow returns workflow by name", async () => {
     const workflow = Workflow.create({
       name: "my-workflow",
+      description: "My workflow",
       version: 1,
       inputSchema: z.object({}),
       run: async () => "done",
@@ -74,6 +76,7 @@ describe("create0pflow()", () => {
   it("triggerWorkflow executes workflow by name", async () => {
     const workflow = Workflow.create({
       name: "echo",
+      description: "Echoes input",
       version: 1,
       inputSchema: z.object({ message: z.string() }),
       run: async (_ctx, inputs) => ({ echoed: inputs.message }),
@@ -101,6 +104,7 @@ describe("create0pflow()", () => {
   it("triggerWorkflow validates inputs", async () => {
     const workflow = Workflow.create({
       name: "strict",
+      description: "Strict workflow",
       version: 1,
       inputSchema: z.object({ required: z.string() }),
       run: async () => "done",
@@ -117,12 +121,14 @@ describe("create0pflow()", () => {
   it("workflows can use ctx.run to call nodes", async () => {
     const doubleNode = Node.create({
       name: "double",
+      description: "Doubles a number",
       inputSchema: z.object({ value: z.number() }),
       execute: async (_ctx, inputs) => inputs.value * 2,
     });
 
     const workflow = Workflow.create({
       name: "double-workflow",
+      description: "Workflow that doubles a number",
       version: 1,
       inputSchema: z.object({ value: z.number() }),
       run: async (ctx, inputs) => {

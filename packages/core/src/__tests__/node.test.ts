@@ -2,35 +2,54 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import { Node } from "../node.js";
+import { createWorkflowContext } from "../context.js";
 
 describe("Node.create()", () => {
-  it("creates an executable with correct properties", () => {
-    const inputSchema = z.object({ value: z.number() });
-    const outputSchema = z.object({ doubled: z.number() });
+  it("creates a node with correct properties", () => {
+    const inputSchema = z.object({ url: z.string() });
+    const outputSchema = z.object({ status: z.number() });
 
-    const doubleNode = Node.create({
-      name: "double",
+    const node = Node.create({
+      name: "test.fetch",
+      description: "Fetch something",
       inputSchema,
       outputSchema,
-      execute: async (_ctx, inputs) => ({ doubled: inputs.value * 2 }),
+      execute: async () => ({ status: 200 }),
     });
 
-    expect(doubleNode.name).toBe("double");
-    expect(doubleNode.type).toBe("node");
-    expect(doubleNode.inputSchema).toBe(inputSchema);
-    expect(doubleNode.outputSchema).toBe(outputSchema);
+    expect(node.name).toBe("test.fetch");
+    expect(node.type).toBe("node");
+    expect(node.description).toBe("Fetch something");
+    expect(node.inputSchema).toBe(inputSchema);
+    expect(node.outputSchema).toBe(outputSchema);
   });
 
-  it("infers input types from schema", async () => {
+  it("executes with context and inputs", async () => {
     const node = Node.create({
-      name: "greet",
-      inputSchema: z.object({ name: z.string() }),
-      execute: async (_ctx, inputs) => `Hello, ${inputs.name}!`,
+      name: "test.number",
+      description: "Returns a number",
+      inputSchema: z.object({ value: z.number() }),
+      execute: async (_ctx, { value }) => ({ doubled: value * 2 }),
     });
 
-    // Type check: inputs.name should be string
-    const mockCtx = { run: async () => {}, log: () => {} } as any;
-    const result = await node.execute(mockCtx, { name: "World" });
-    expect(result).toBe("Hello, World!");
+    const ctx = createWorkflowContext();
+
+    // Valid input
+    const result = await node.execute(ctx, { value: 5 });
+    expect(result).toEqual({ doubled: 10 });
+  });
+
+  it("works without outputSchema", async () => {
+    const node = Node.create({
+      name: "test.simple",
+      description: "Simple node",
+      inputSchema: z.object({ msg: z.string() }),
+      execute: async (_ctx, { msg }) => `Hello, ${msg}`,
+    });
+
+    const ctx = createWorkflowContext();
+    expect(node.outputSchema).toBeUndefined();
+    const result = await node.execute(ctx, { msg: "world" });
+    expect(result).toBe("Hello, world");
   });
 });

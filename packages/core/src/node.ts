@@ -6,6 +6,7 @@ import type { Executable, WorkflowContext } from "./types.js";
  */
 export interface NodeDefinition<TInput, TOutput> {
   name: string;
+  description: string;
   inputSchema: z.ZodType<TInput>;
   outputSchema?: z.ZodType<TOutput>;
   execute: (ctx: WorkflowContext, inputs: TInput) => Promise<TOutput>;
@@ -21,6 +22,7 @@ export const Node = {
     return {
       name: definition.name,
       type: "node",
+      description: definition.description,
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
       execute: definition.execute,

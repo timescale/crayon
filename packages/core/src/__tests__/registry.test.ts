@@ -9,6 +9,7 @@ describe("Registry", () => {
   it("registers and retrieves workflows", () => {
     const workflow = Workflow.create({
       name: "test-workflow",
+      description: "A test workflow",
       version: 1,
       inputSchema: z.object({}),
       run: async () => "done",
@@ -25,6 +26,7 @@ describe("Registry", () => {
   it("registers and retrieves nodes", () => {
     const node = Node.create({
       name: "test-node",
+      description: "A test node",
       inputSchema: z.object({}),
       execute: async () => "done",
     });
@@ -46,11 +48,13 @@ describe("Registry", () => {
   it("lists all registered executables", () => {
     const node = Node.create({
       name: "my-node",
+      description: "My node",
       inputSchema: z.object({}),
       execute: async () => {},
     });
     const workflow = Workflow.create({
       name: "my-workflow",
+      description: "My workflow",
       version: 1,
       inputSchema: z.object({}),
       run: async () => {},

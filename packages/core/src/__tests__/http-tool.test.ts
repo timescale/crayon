@@ -1,6 +1,6 @@
 // packages/core/src/__tests__/http-tool.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { httpGet } from "../tools/builtin/http.js";
+import { httpGet } from "../nodes/builtin/http.js";
 import { createWorkflowContext } from "../context.js";
 
 describe("httpGet tool", () => {
@@ -16,7 +16,7 @@ describe("httpGet tool", () => {
 
   it("has correct properties", () => {
     expect(httpGet.name).toBe("http_get");
-    expect(httpGet.type).toBe("tool");
+    expect(httpGet.type).toBe("node");
     expect(httpGet.description).toContain("HTTP GET");
   });
 

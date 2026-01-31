@@ -143,14 +143,23 @@ For non-branching tasks, determine:
 
 3. **Node selection** - Check if an existing node fits:
    - Existing agents from `specs/agents/`
-   - Built-in tools: `http_get`
-   - User-defined functions in `src/nodes/`
+   - Built-in nodes: `http_get`
+   - User-defined nodes in `src/nodes/`
 
-   If nothing fits, we'll create a new agent or function.
+   If nothing fits, we'll create a new agent or node.
 
-4. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
+4. **For new agents - ask about tools:**
+   "What tools or capabilities does this agent need?"
+   - A) Web scraping / HTTP requests (`http_get` - built-in)
+   - B) Web search
+   - C) CRM access (Salesforce, HubSpot)
+   - D) Other
 
-5. **Outputs** - What variable name holds this task's result?
+   For any tool that isn't built-in and doesn't exist, we'll add a task to implement it.
+
+5. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
+
+6. **Outputs** - What variable name holds this task's result?
 
 ### For new nodes:
 
@@ -165,6 +174,22 @@ Gather information about the company from their website.
 **Input:** company_url
 **Output:** `company_data: { name: string, description: string }`
 ```
+
+### For agent tools that don't exist:
+
+When an agent needs a tool that is NOT built-in (`http_get`) and doesn't exist in `src/nodes/`, add a task to implement it:
+
+```markdown
+### N. Implement web_search
+
+Create the web_search capability for searching the web.
+
+**Node:** `web_search` (node)
+**Input:** query: string
+**Output:** `results: { title: string, url: string, snippet: string }[]`
+```
+
+This is a regular task - the `(node)` type indicates it needs to be implemented in `src/nodes/`. Ask the user what inputs/outputs the tool should have.
 
 ### For decision points:
 
@@ -483,15 +508,44 @@ Does this look right?
 
 User: Yes
 
+Agent: What tools does the `company-researcher` agent need?
+- A) Web scraping / HTTP requests (http_get)
+- B) Web search
+- C) LinkedIn API
+- D) Multiple of the above
+
+User: A and B
+
+Agent: `http_get` is built-in. I'll add a task to implement `web_search`.
+
+What inputs/outputs should `web_search` have?
+
+User: Takes a query string, returns list of results with title, url, snippet
+
+Agent: Got it. I'll add this as a task.
+
+[... after presenting all tasks ...]
+
+Agent: Here are the **Tasks**:
+
+### 1. Implement web_search
+
+Create web search capability for the company-researcher agent.
+
+**Node:** `web_search` (node)
+**Input:** query: string
+**Output:** `results: { title: string, url: string, snippet: string }[]`
+
+---
+
+### 2. Research Company
+...
+
+[... rest of tasks ...]
+
 Agent: I've written the workflow spec to `specs/workflows/lead-scoring.md`
 
-This workflow references new agents that don't exist yet:
-- `company-researcher` - researches company info from URL
-- `icp-scorer` - scores company against ICP criteria
-
-These will be created as stubs when you run compile-workflow.
-
 **Next steps:**
+- Implement the `web_search` node in `src/nodes/web-search.ts`
 - Run `/0pflow:compile-workflow` to generate TypeScript and create agent stubs
-- Review and refine the generated agent stubs in `specs/agents/`
 ```

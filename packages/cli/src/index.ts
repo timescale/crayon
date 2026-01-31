@@ -3,7 +3,7 @@ import { Command } from "commander";
 import pc from "picocolors";
 import Table from "cli-table3";
 import { create0pflow } from "0pflow";
-import { discoverWorkflows, discoverTools } from "./discovery.js";
+import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
 import { getAppName } from "./app.js";
@@ -139,11 +139,11 @@ program
       }
       const inputs = validation.data;
 
-      // Discover tools
-      const { tools, warnings: toolWarnings } = await discoverTools(process.cwd());
+      // Discover user-defined nodes
+      const { nodes, warnings: nodeWarnings } = await discoverNodes(process.cwd());
 
-      // Show tool warnings on stderr
-      for (const warning of toolWarnings) {
+      // Show node warnings on stderr
+      for (const warning of nodeWarnings) {
         console.error(pc.yellow(`Warning: ${warning}`));
       }
 
@@ -161,7 +161,7 @@ program
         databaseUrl: process.env.DATABASE_URL!,
         appName: getAppName(),
         workflows: workflowRegistry,
-        tools,
+        nodes,
       });
 
       try {

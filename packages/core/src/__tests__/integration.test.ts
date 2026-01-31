@@ -29,6 +29,7 @@ describe("0pflow integration", () => {
     // Define nodes
     const fetchData = Node.create({
       name: "fetch-data",
+      description: "Fetches data from a URL",
       inputSchema: z.object({ url: z.string() }),
       outputSchema: z.object({ title: z.string(), body: z.string() }),
       execute: async (_ctx, inputs) => ({
@@ -39,6 +40,7 @@ describe("0pflow integration", () => {
 
     const summarize = Node.create({
       name: "summarize",
+      description: "Summarizes text",
       inputSchema: z.object({ text: z.string() }),
       outputSchema: z.object({ summary: z.string() }),
       execute: async (_ctx, inputs) => ({
@@ -49,6 +51,7 @@ describe("0pflow integration", () => {
     // Define workflow
     const researchWorkflow = Workflow.create({
       name: "research",
+      description: "Researches a URL",
       version: 1,
       inputSchema: z.object({ url: z.string() }),
       outputSchema: z.object({ title: z.string(), summary: z.string() }),
@@ -86,6 +89,7 @@ describe("0pflow integration", () => {
   it("nested workflow calls", async () => {
     const innerWorkflow = Workflow.create({
       name: "inner",
+      description: "Inner workflow that doubles",
       version: 1,
       inputSchema: z.object({ value: z.number() }),
       run: async (_ctx, inputs) => inputs.value * 2,
@@ -93,6 +97,7 @@ describe("0pflow integration", () => {
 
     const outerWorkflow = Workflow.create({
       name: "outer",
+      description: "Outer workflow that calls inner",
       version: 1,
       inputSchema: z.object({ value: z.number() }),
       run: async (ctx, inputs) => {

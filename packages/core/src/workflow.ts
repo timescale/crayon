@@ -8,6 +8,7 @@ import type { Executable, WorkflowContext, LogLevel } from "./types.js";
  */
 export interface WorkflowDefinition<TInput, TOutput> {
   name: string;
+  description: string;
   version: number;
   inputSchema: z.ZodType<TInput>;
   outputSchema?: z.ZodType<TOutput>;
@@ -76,6 +77,7 @@ export const Workflow = {
     return {
       name: definition.name,
       type: "workflow",
+      description: definition.description,
       version: definition.version,
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,

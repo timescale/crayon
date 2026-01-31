@@ -4,13 +4,14 @@ import type { Executable, WorkflowContext } from "./types.js";
 import { parseAgentSpec } from "./nodes/agent/parser.js";
 import { executeAgent } from "./nodes/agent/executor.js";
 import type { ModelConfig } from "./nodes/agent/model-config.js";
-import type { ToolRegistry } from "./tools/registry.js";
+import type { NodeRegistry } from "./nodes/registry.js";
 
 /**
  * Definition for creating an agent
  */
 export interface AgentDefinition<TInput, TOutput> {
   name: string;
+  description: string;
   inputSchema: z.ZodType<TInput>;
   outputSchema?: z.ZodType<TOutput>;
   /** Path to agent spec markdown file */
@@ -30,7 +31,7 @@ export interface AgentExecutable<TInput = unknown, TOutput = unknown>
  * Set by create0pflow() factory
  */
 interface AgentRuntimeConfig {
-  toolRegistry: ToolRegistry;
+  nodeRegistry: NodeRegistry;
   modelConfig?: ModelConfig;
 }
 
@@ -54,6 +55,7 @@ export const Agent = {
     return {
       name: definition.name,
       type: "agent",
+      description: definition.description,
       inputSchema: definition.inputSchema,
       outputSchema: definition.outputSchema,
       specPath: definition.specPath,
@@ -77,7 +79,7 @@ export const Agent = {
           ctx,
           spec,
           userMessage,
-          toolRegistry: agentRuntimeConfig.toolRegistry,
+          nodeRegistry: agentRuntimeConfig.nodeRegistry,
           modelConfig: agentRuntimeConfig.modelConfig,
           outputSchema: definition.outputSchema,
         });
