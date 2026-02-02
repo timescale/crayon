@@ -87,9 +87,12 @@ The tools scaffold a T3 Stack application with 0pflow directories:
 ## After Scaffolding
 
 1. The tool returns the absolute path to the created app
-2. Announce to the user: "App scaffolded at `<path>`. Now let's create your first workflow."
+2. Announce to the user: "App scaffolded at `<path>` with database configured."
 3. Change into the app directory if needed
-4. Continue with the main workflow creation process from SKILL.md
+4. **Return to SKILL.md and continue from step 5 (Report Context and Announce)** - this includes:
+   - Reporting context ("Found 0 existing workflows...")
+   - Saying "I'm using the create-workflow skill..." announcement
+   - Proceeding to Phase 1 questions
 
 ## Template Variables
 

@@ -53,7 +53,7 @@ For each node needing refinement, ask questions ONE AT A TIME:
 
 #### 2.0 Check for Integration Skills
 
-Before refining a node, check if it interacts with an external system (Salesforce, HubSpot, Slack, etc.). If so, use the `/0pflow:integrations` skill to get the necessary information first.
+**IMPORTANT - DO NOT SKIP:** Before refining a node, check if it interacts with an external system (Salesforce, HubSpot, Slack, etc.). If so, you MUST invoke `/0pflow:integrations` to get the necessary information first. Do not proceed with refinement until you've loaded the integration skill.
 
 Integration skills provide:
 - Pre-built scripts for schema/type generation
@@ -62,6 +62,19 @@ Integration skills provide:
 - Node templates
 
 **These nodes still need refinement**, but focus on *what* the user wants (which fields, which objects, what to do with the data) rather than *how* to connect. The integration skill handles the technical details - use it to inform the output schema and available capabilities.
+
+After loading the integration skill:
+- **For listed integrations** (Salesforce, HubSpot, etc.): Read the specific file (e.g., `salesforce.md`) and follow its instructions.
+- **For unlisted systems:** Read `unlisted.md` and follow the research process to find the best API/SDK option.
+
+Add an `Integration:` line to the node spec documenting the approach, e.g.:
+```
+Integration: This node should be built using the `/0pflow:integrations` skill (`salesforce` component)
+```
+or for custom integrations:
+```
+Integration: Custom integration using `[package-name]` TypeScript SDK (see `/0pflow:integrations unlisted`)
+```
 
 #### 2.1 Analyze Current Description
 

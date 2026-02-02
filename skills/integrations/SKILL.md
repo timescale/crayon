@@ -16,7 +16,9 @@ This skill generates function nodes for querying external APIs. It creates prope
 | Salesforce | OAuth2 Client Credentials |
 | *(more coming)* | |
 
-**To use an integration:** Read the corresponding file in this skill's directory using the Read tool.
+**To use a listed integration:** Read the corresponding file in this skill's directory (e.g., `salesforce.md`).
+
+**For unlisted systems:** Read `unlisted.md` for instructions on researching and setting up custom integrations.
 
 Example: To set up Salesforce, read the file at the same path as this SKILL.md but with `salesforce.md` instead:
 - `skills/integrations/salesforce.md`

@@ -61,7 +61,7 @@ Types:
 
 Description of what this task does.
 
-**Node:** `node-name` (agent|function|tool)
+**Node:** `node-name` (agent|node)
 **Input:** var1, var2.field, inputs.field
 **Output:** `var_name: type`
 ```
@@ -385,7 +385,7 @@ Tell user:
 **Process:**
 1. Parse spec - found: name=url-summarizer, version=1, 1 input, 3 tasks, 4 outputs
 2. Resolve nodes:
-   - Task 1: `http_get` (tool) - built-in ✓
+   - Task 1: `http_get` (node) - built-in ✓
    - Task 2: Decision - no node needed
    - Task 3: `page-summarizer` (agent) - check specs/agents/... found ✓
 3. No ambiguities
