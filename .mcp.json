@@ -6,8 +6,7 @@
     },
     "0pflow-local-tools": {
       "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-mcp.sh",
-      "args": [],
-      "env": {}
+      "args": []
     }
   }
 }

@@ -74,12 +74,10 @@ export const createAppFactory: ApiFactory<
         // In dev mode, link local 0pflow packages (before npm install)
         if (isDevMode()) {
           const corePath = join(monorepoRoot, "packages", "core");
-          const cliPath = join(monorepoRoot, "packages", "cli");
-          // Register packages globally first
+          // Register package globally first
           await execAsync("npm link", corePath);
-          await execAsync("npm link", cliPath);
-          // Then link them in the app
-          await execAsync("npm link 0pflow @0pflow/cli", appPath);
+          // Then link it in the app
+          await execAsync("npm link 0pflow", appPath);
         }
 
         // Install dependencies if requested
