@@ -157,6 +157,14 @@ export const setupAppSchemaFactory: ApiFactory<
         await sql.unsafe(
           `CREATE SCHEMA IF NOT EXISTS ${app_name} AUTHORIZATION ${app_name}`,
         );
+        await sql.unsafe(
+          `CREATE SCHEMA IF NOT EXISTS ${app_name}_dbos AUTHORIZATION ${app_name}`,
+        );
+
+        //annoyingly, dbos seems to need this. TODO: find a better way to do this.
+        await sql.unsafe(
+          `GRANT CREATE ON DATABASE tsdb TO ${app_name}`,
+        );
 
         // Allow using extensions in public schema, but not creating objects there
         await sql.unsafe(`REVOKE CREATE ON SCHEMA public FROM ${app_name}`);
@@ -164,7 +172,7 @@ export const setupAppSchemaFactory: ApiFactory<
 
         // Set search_path for app user (app schema first, then public for extensions)
         await sql.unsafe(
-          `ALTER ROLE ${app_name} SET search_path TO ${app_name}, public`,
+          `ALTER ROLE ${app_name} SET search_path TO ${app_name}, ${app_name}_dbos, public`,
         );
 
         // Append app schema to tsdbadmin's search_path
@@ -174,7 +182,7 @@ export const setupAppSchemaFactory: ApiFactory<
         const existingPath = currentPath[0]?.setting ?? "public";
         if (!existingPath.includes(app_name)) {
           await sql.unsafe(
-            `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${app_name}`,
+            `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${app_name}, ${app_name}_dbos`,
           );
         }
 

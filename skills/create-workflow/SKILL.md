@@ -7,6 +7,8 @@ description: Collaborative workflow design - guides users through creating well-
 
 This skill guides you through designing a workflow specification for 0pflow. We'll work together step-by-step to turn your workflow idea into a well-structured spec that can be compiled into executable code.
 
+**Important:** This phase focuses on **WHAT** each node should do, not **HOW** it should do it. We capture the purpose and intent of each node—what information it needs and what it produces—described in plain language. Specific implementation details (exact fields, API schemas, tool configurations) are handled later in the refinement phase (`/0pflow:refine-node`).
+
 ---
 
 ## Pre-Flight Check
@@ -164,15 +166,15 @@ For non-branching tasks, determine:
 
    If nothing fits, we'll create a new agent or node.
 
-4. **Inputs** - What data does this task need? (from workflow inputs or previous tasks)
+4. **Input description** - What information does this task need? Describe in plain language what the inputs represent (e.g., "the company's website URL", "the lead's contact information"). Don't specify exact field names or types yet.
 
-5. **Outputs** - What variable name holds this task's result?
+5. **Output description** - What does this task produce? Describe in plain language what the output represents (e.g., "information about the company including what they do and their size", "a qualification score with reasoning"). Don't specify exact field names or types yet.
 
-Note: Detailed tool selection for agents is handled later by `/0pflow:refine-node`.
+Note: Detailed schemas, field names, and tool selection are handled later by `/0pflow:refine-node`.
 
 ### For new nodes:
 
-When a task requires a new node, capture a clear description of what it does. If the user provides enough detail during this phase, capture it. If not, it can be refined later with `/0pflow:refine-node`.
+When a task requires a new node, capture a clear description of what it does and what its inputs/outputs represent conceptually. Don't worry about exact field names or types—those are determined during refinement.
 
 ```markdown
 ### N. Research Company
@@ -180,8 +182,8 @@ When a task requires a new node, capture a clear description of what it does. If
 Gather information about the company from their website.
 
 **Node:** `company-researcher` (agent)
-**Input:** company_url
-**Output:** `company_data: { name: string, description: string }`
+**Input Description:** The company's website URL
+**Output Description:** Information about the company relevant to ICP fit: their industry, number of employees, whether they are B2B, SaaS, etc.
 ```
 
 ### For decision points:
@@ -259,18 +261,14 @@ Present the overall workflow contract - what goes in and what comes out:
 ```markdown
 ## Inputs
 
-- input_name: type (required|optional, defaults to X) - Description
+- input_name (required|optional) - Description of what this input represents
 
 ## Outputs
 
-- field_name: type - Description
+- Description of what the workflow returns when complete
 ```
 
-**Type syntax:**
-- Simple types: `string`, `number`, `boolean`
-- Union types: `"value1" | "value2"`
-- Objects: `{ field1: type, field2: type, field3?: type }` (? = optional)
-- Arrays: `string[]` or `{ name: string }[]`
+Keep descriptions high-level. Exact field names and types are determined during refinement.
 
 If the workflow only performs side effects (notifications, CRM updates, etc.) with no return value, omit the Outputs section.
 
@@ -293,8 +291,8 @@ Present all tasks together (we already walked through each one in Phase 2).
 ### 1. Task Name
 Description of what this task does.
 **Node:** `node-name` (agent|node)
-**Input:** var1, var2
-**Output:** `result_var: type`
+**Input Description:** What information this task needs
+**Output Description:** What this task produces
 
 ---
 
@@ -315,7 +313,7 @@ Description of what this task does.
 **Return:** (final outputs)
 ```
 
-**Important:** Every terminating path must return the same fields as the workflow outputs.
+**Important:** Every terminating path should return equivalent information as described in the workflow outputs.
 
 "Does this look right? Any changes?"
 
@@ -356,20 +354,18 @@ Tell the user:
 
 1. "I've written the workflow spec to `specs/workflows/<name>.md`"
 
-2. Identify any NEW nodes created during this workflow design (not built-in nodes like `web_read`, and not existing nodes from `src/nodes/`). New nodes MUST be refined before compilation:
-   "The following new nodes need to be refined before compilation:
-   - `<node1>` - new node
-   - `<node2>` - new node"
+2. List all the nodes in the workflow:
+   "The following nodes need to be refined to define their exact input/output structures:
+   - `<node1>`
+   - `<node2>`
+   - ..."
 
    Ask: "Would you like to refine these nodes now?"
 
    - If yes: Invoke `/0pflow:refine-node` for the workflow
    - If no: "No problem. Run `/0pflow:refine-node <workflow-name>` later when you're ready. Then run `/0pflow:compile-workflow` to generate TypeScript."
 
-   **IMPORTANT:** New nodes MUST be refined before `/0pflow:compile-workflow` will succeed.
-
-3. If all nodes are existing (built-in or already in `src/nodes/`):
-   "All nodes use existing implementations. **Next step:** Run `/0pflow:compile-workflow` to generate TypeScript."
+   **IMPORTANT:** All nodes MUST be refined before `/0pflow:compile-workflow` will succeed. The refinement phase determines exact field names, types, and implementation details.
 
 ---
 
@@ -456,15 +452,15 @@ Agent: Got it. I'm adding two tasks:
 **Task 1: Implement web_search**
 - Create web search capability
 - **Node:** `web_search` (node) - needs implementation
-- **Input:** query: string
-- **Output:** `results: { title: string, url: string, snippet: string }[]`
+- **Input Description:** A search query
+- **Output Description:** Search results with titles, URLs, and snippets
 
 **Task 2: Research Company**
 - Gather information about the company
 - **Node:** `company-researcher` (agent) - NEW
 - **Tools:** `web_read`, `web_search`
-- **Input:** company_url
-- **Output:** `company_data: { name: string, description: string, team_size?: number, funding?: string }`
+- **Input Description:** The company's website URL
+- **Output Description:** Information about the company relevant to ICP fit: their industry, number of employees, whether they are B2B, SaaS, etc.
 
 What happens after we have the company data?
 
@@ -473,7 +469,7 @@ What happens after we have the company data?
 Agent: Here's the **Inputs** section:
 
 ## Inputs
-- company_url: string (required) - The company website URL
+- company_url (required) - The company's website URL to research
 
 Does this look right?
 
@@ -486,47 +482,41 @@ Agent: Here are the **Tasks**:
 Create web search capability for the company-researcher agent.
 
 **Node:** `web_search` (node)
-**Input:** query: string
-**Output:** `results: { title: string, url: string, snippet: string }[]`
+**Input Description:** A search query
+**Output Description:** Search results with titles, URLs, and snippets
 
 ---
 
 ### 2. Research Company
-Gather comprehensive information about the company...
+Gather comprehensive information about the company.
 **Node:** `company-researcher` (agent)
 **Tools:** `web_read`, `web_search`
-**Input:** company_url
-**Output:** `company_data: { name: string, description: string, team_size?: number, funding?: string }`
+**Input Description:** The company's website URL
+**Output Description:** Information about the company relevant to ICP fit: their industry, number of employees, whether they are B2B, SaaS, etc.
 
 ---
 
 ### 3. Score Against ICP
-Evaluate if company matches B2B SaaS $5M+ ARR criteria...
+Evaluate if company matches B2B SaaS $5M+ ARR criteria.
 **Node:** `icp-scorer` (agent)
-**Input:** company_data
-**Output:** `score_result: { score: number, reasons: string[] }`
+**Input Description:** The company information gathered in the previous step
+**Output Description:** A qualification score (0-100) with reasoning for the score
 
 ---
 
 ### 4. Decision
 Route based on score.
-**Condition:** `score_result.score >= 80`
+**Condition:** `score >= 80`
 **If true:** continue to task 5
-**If false:** return:
-  - qualification: "not_qualified"
-  - score: score_result.score
-  - company_data: company_data
+**If false:** return early (not qualified)
 
 ---
 
 ### 5. Notify Sales
 Alert sales team about qualified lead.
-**Tool:** `slack_postMessage`
-**Input:** channel = "#sales-leads", message with company details
-**Return:**
-  - qualification: "qualified"
-  - score: score_result.score
-  - company_data: company_data
+**Node:** `slack_postMessage` (node)
+**Input Description:** The Slack channel and a message with company details and score
+**Return:** The qualification result, score, and company data
 
 Does this look right?
 
@@ -535,9 +525,9 @@ User: Yes
 Agent: Here's the **Outputs** section:
 
 ## Outputs
-- qualification: "qualified" | "not_qualified"
-- score: number
-- company_data: { name: string, description: string, team_size?: number, funding?: string }
+- The qualification result (qualified or not qualified)
+- The ICP score
+- The company information that was gathered
 
 Does this look right?
 
@@ -545,7 +535,15 @@ User: Yes
 
 Agent: I've written the workflow spec to `specs/workflows/lead-scoring.md`
 
-**Next steps:**
-- Implement the `web_search` node in `src/nodes/web-search.ts`
-- Run `/0pflow:compile-workflow` to generate TypeScript and create agent stubs
+The following nodes need to be refined to define their exact input/output structures:
+- `web_search`
+- `company-researcher`
+- `icp-scorer`
+- `slack_postMessage`
+
+Would you like to refine these nodes now?
+
+User: Yes
+
+Agent: [Invokes /0pflow:refine-node lead-scoring]
 ```
