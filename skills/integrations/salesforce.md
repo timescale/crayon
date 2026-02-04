@@ -31,10 +31,19 @@ If not: "I don't see a Salesforce SDK in your project. Would you like me to set 
 
 ### 2. Check for Credentials
 
-Required environment variables in `.env`:
+Required environment variable in `.env`:
 - `SALESFORCE_DOMAIN` (e.g., `https://yourcompany.my.salesforce.com`)
+
+Plus ONE of the following authentication methods:
+
+**Option A: Direct Access Token** (from Nango or other OAuth provider)
+- `SALESFORCE_ACCESS_TOKEN` - OAuth access token
+
+**Option B: Client Credentials Flow** (for server-to-server auth)
 - `SALESFORCE_CLIENT_ID`
 - `SALESFORCE_CLIENT_SECRET`
+
+If both are set, the direct access token takes priority.
 
 ### 3. Check for Dependencies
 
@@ -95,7 +104,7 @@ mkdir -p src/integrations/salesforce/{scripts,schemas,graphql/operations,generat
 Copy from this skill's `scripts/fetch-schema.ts` to `src/integrations/salesforce/scripts/fetch-schema.ts`.
 
 This single script handles everything:
-1. Authenticates via OAuth client credentials
+1. Authenticates via direct token (`SALESFORCE_ACCESS_TOKEN`) or client credentials flow
 2. Fetches the full GraphQL schema via introspection
 3. Decodes HTML entities (`&quot;` → `"`, etc.)
 4. Fixes empty enums that break codegen
@@ -194,12 +203,15 @@ if (envPath) config({ path: envPath });
 const SALESFORCE_DOMAIN = process.env.SALESFORCE_DOMAIN!;
 const API_VERSION = "v59.0";
 
-async function getAccessToken(): Promise<string> {
+async function getAccessTokenViaClientCredentials(): Promise<string> {
   const clientId = process.env.SALESFORCE_CLIENT_ID;
   const clientSecret = process.env.SALESFORCE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error("SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET must be set");
+    throw new Error(
+      "No authentication method available. " +
+      "Set SALESFORCE_ACCESS_TOKEN or SALESFORCE_CLIENT_ID + SALESFORCE_CLIENT_SECRET"
+    );
   }
 
   const response = await fetch(`${SALESFORCE_DOMAIN}/services/oauth2/token`, {
@@ -219,10 +231,26 @@ async function getAccessToken(): Promise<string> {
   return (await response.json()).access_token;
 }
 
-// Token cache
+async function getAccessToken(): Promise<string> {
+  // Method 1: Direct access token (from Nango or other OAuth provider)
+  const directToken = process.env.SALESFORCE_ACCESS_TOKEN;
+  if (directToken) {
+    return directToken;
+  }
+
+  // Method 2: Client credentials OAuth flow
+  return getAccessTokenViaClientCredentials();
+}
+
+// Token cache (only used for client credentials flow)
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
 async function getCachedAccessToken(): Promise<string> {
+  // Direct tokens are managed externally, don't cache them
+  if (process.env.SALESFORCE_ACCESS_TOKEN) {
+    return process.env.SALESFORCE_ACCESS_TOKEN;
+  }
+
   const now = Date.now();
   if (cachedToken && cachedToken.expiresAt > now + 5 * 60 * 1000) {
     return cachedToken.token;

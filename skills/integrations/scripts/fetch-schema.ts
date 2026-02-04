@@ -1,11 +1,27 @@
 // fetch-schema.ts
-// Fetches and cleans the Salesforce GraphQL schema using client credentials OAuth flow
+// Fetches and cleans the Salesforce GraphQL schema
+// Supports two authentication methods (via environment variables):
+//   1. Direct access token: SALESFORCE_ACCESS_TOKEN (from Nango or other OAuth provider)
+//   2. Client credentials: SALESFORCE_CLIENT_ID + SALESFORCE_CLIENT_SECRET
+//
 // - Fetches schema via introspection
 // - Decodes HTML entities (&quot;, &amp;, etc.)
 // - Fixes empty enums that break graphql-codegen
 //
 // Usage: npx tsx fetch-schema.ts [salesforce-domain] [output-path]
-// Example: npx tsx fetch-schema.ts https://mycompany.my.salesforce.com
+//
+// Environment variables:
+//   SALESFORCE_DOMAIN         - Salesforce instance URL (can also be passed as first arg)
+//   SALESFORCE_ACCESS_TOKEN   - Direct access token (takes priority if set)
+//   SALESFORCE_CLIENT_ID      - Client ID for client credentials flow
+//   SALESFORCE_CLIENT_SECRET  - Client secret for client credentials flow
+//
+// Examples:
+//   # With direct access token
+//   SALESFORCE_ACCESS_TOKEN=00D... npx tsx fetch-schema.ts https://mycompany.my.salesforce.com
+//
+//   # With client credentials (reads from .env)
+//   npx tsx fetch-schema.ts https://mycompany.my.salesforce.com
 
 import { config } from "dotenv";
 import findConfig from "find-config";
@@ -22,7 +38,7 @@ if (envPath) {
   console.log("No .env file found, using existing environment variables");
 }
 
-const SALESFORCE_DOMAIN = process.argv[2] || process.env.SALESFORCE_DOMAIN || '';
+const SALESFORCE_DOMAIN = process.argv[2] || process.env.SALESFORCE_DOMAIN || "";
 const OUTPUT_PATH = process.argv[3] || "schemas/schema-clean.json";
 
 interface EnumValue {
@@ -72,19 +88,40 @@ function fixEmptyEnums(schema: { data: { __schema: { types: SchemaType[] } } }):
 }
 
 if (!SALESFORCE_DOMAIN) {
-  console.error("Usage: npx tsx fetch-schema.ts [salesforce-domain] [output-path]");
-  console.error("Or set SALESFORCE_DOMAIN in .env");
+  console.error(`
+Usage: npx tsx fetch-schema.ts [salesforce-domain] [output-path]
+
+Environment variables (set in .env or environment):
+  SALESFORCE_DOMAIN          Salesforce instance URL (or pass as first argument)
+
+Authentication (one of the following):
+  SALESFORCE_ACCESS_TOKEN    Direct access token (from Nango, etc.) - takes priority
+  SALESFORCE_CLIENT_ID +     Client credentials OAuth flow
+  SALESFORCE_CLIENT_SECRET
+
+Examples:
+  # With direct access token
+  SALESFORCE_ACCESS_TOKEN=00D... npx tsx fetch-schema.ts https://mycompany.my.salesforce.com
+
+  # With client credentials (from .env)
+  npx tsx fetch-schema.ts https://mycompany.my.salesforce.com
+`);
   process.exit(1);
 }
 
-async function getAccessToken(): Promise<{ accessToken: string; instanceUrl: string }> {
+async function getAccessTokenViaClientCredentials(): Promise<{ accessToken: string; instanceUrl: string }> {
   const clientId = process.env.SALESFORCE_CLIENT_ID;
   const clientSecret = process.env.SALESFORCE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error("SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET must be set");
+    throw new Error(
+      "No authentication method available.\n" +
+      "Set SALESFORCE_ACCESS_TOKEN for direct token auth, or\n" +
+      "Set SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET for client credentials flow."
+    );
   }
 
+  console.log("Using client credentials OAuth flow...");
   const response = await fetch(`${SALESFORCE_DOMAIN}/services/oauth2/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -104,6 +141,21 @@ async function getAccessToken(): Promise<{ accessToken: string; instanceUrl: str
     accessToken: data.access_token,
     instanceUrl: data.instance_url || SALESFORCE_DOMAIN,
   };
+}
+
+async function getAccessToken(): Promise<{ accessToken: string; instanceUrl: string }> {
+  // Method 1: Direct access token (from Nango or other OAuth provider)
+  const directToken = process.env.SALESFORCE_ACCESS_TOKEN;
+  if (directToken) {
+    console.log("Using direct access token (SALESFORCE_ACCESS_TOKEN)...");
+    return {
+      accessToken: directToken,
+      instanceUrl: SALESFORCE_DOMAIN,
+    };
+  }
+
+  // Method 2: Client credentials OAuth flow
+  return getAccessTokenViaClientCredentials();
 }
 
 async function fetchGraphQLSchema(accessToken: string, instanceUrl: string): Promise<unknown> {
