@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
+import { getNpmTagForMcp } from "./index.js";
 
 export interface McpCommandResult {
   command: string[];
@@ -42,20 +43,9 @@ export function buildMcpCommand(): McpCommandResult {
 
   // If running from npx cache or node_modules, use npx 0pflow@version
   if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/0pflow")) {
-    // Read version from package.json
-    const pkgJsonPath = resolve(dirname(scriptPath), "../package.json");
-    let version = "latest";
-    try {
-      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
-      if (pkgJson.version) {
-        // If version contains "dev", use @dev tag, otherwise use exact version
-        version = pkgJson.version.includes("dev") ? "dev" : pkgJson.version;
-      }
-    } catch {
-      // Fallback to latest if we can't read package.json
-    }
+    const tag = getNpmTagForMcp();
     return {
-      command: ["npx", "-y", `0pflow@${version}`, "mcp", "start"],
+      command: ["npx", "-y", `0pflow@${tag}`, "mcp", "start"],
       isLocal: false,
     };
   }

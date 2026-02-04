@@ -2,6 +2,9 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import Table from "cli-table3";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { create0pflow } from "../index.js";
 import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
@@ -10,6 +13,24 @@ import { getTrace, printTrace } from "./trace.js";
 import { getAppName } from "./app.js";
 import { startMcpServer } from "./mcp/server.js";
 import { runInstall, runUninstall } from "./install.js";
+
+// Read version from package.json
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkgJsonPath = resolve(__dirname, "../../package.json");
+export let version = "0.0.0";
+try {
+  const pkgJson = JSON.parse(readFileSync(pkgJsonPath, "utf-8"));
+  version = pkgJson.version || version;
+} catch {
+  // Fallback if we can't read package.json
+}
+
+/**
+ * Get the npm tag for MCP command (e.g., "dev" for dev builds, "latest" otherwise)
+ */
+export function getNpmTagForMcp(): string {
+  return version.includes("dev") ? "dev" : "latest";
+}
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -51,7 +72,7 @@ const program = new Command();
 program
   .name("0pflow")
   .description("CLI for 0pflow workflow engine")
-  .version("0.1.0");
+  .version(version);
 
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");
