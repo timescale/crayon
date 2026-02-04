@@ -152,12 +152,20 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
 
   // Check for existing installation
   const existingSettings = readSettings();
-  if (existingSettings && !options.force) {
-    console.log(pc.yellow("0pflow is already installed."));
-    console.log(pc.dim("Current MCP command:"), existingSettings.mcpCommand.join(" "));
+  if (existingSettings) {
+    if (!options.force) {
+      console.log(pc.yellow("0pflow is already installed."));
+      console.log(pc.dim("Current MCP command:"), existingSettings.mcpCommand.join(" "));
+      console.log();
+      console.log(pc.dim("Use --force to reinstall."));
+      return;
+    }
+    // Force reinstall - uninstall first
+    console.log(pc.dim("Uninstalling existing installation..."));
+    await runUninstall();
     console.log();
-    console.log(pc.dim("Use --force to reinstall."));
-    return;
+    console.log(pc.bold("Reinstalling 0pflow..."));
+    console.log();
   }
 
   // Write settings
