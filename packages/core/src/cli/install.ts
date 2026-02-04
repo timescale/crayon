@@ -1,7 +1,13 @@
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
+
+export interface McpCommandResult {
+  command: string[];
+  isLocal: boolean;
+  packageRoot?: string;
+}
 
 export interface InstallSettings {
   mcpCommand: string[];
@@ -11,7 +17,7 @@ export interface InstallSettings {
 /**
  * Build the MCP command by taking the current invocation and replacing "install" with "mcp start"
  */
-export function buildMcpCommand(): string[] {
+export function buildMcpCommand(): McpCommandResult {
   const args = [...process.argv];
 
   // Find and replace "install" with "mcp", "start"
@@ -25,7 +31,13 @@ export function buildMcpCommand(): string[] {
   // If we're running a .ts file, tsx hides itself from argv
   // so we see "node file.ts" but need "npx tsx file.ts" to actually run it
   if (scriptPath.endsWith(".ts")) {
-    return ["npx", "tsx", scriptPath, "mcp", "start"];
+    // Script is at packages/core/src/cli/index.ts, repo root is 4 levels up
+    const packageRoot = resolve(dirname(scriptPath), "../../../..");
+    return {
+      command: ["npx", "tsx", scriptPath, "mcp", "start"],
+      isLocal: true,
+      packageRoot,
+    };
   }
 
   // If running from npx cache or node_modules, use npx 0pflow@version
@@ -33,13 +45,22 @@ export function buildMcpCommand(): string[] {
     // Try to get version from npm_lifecycle_script (e.g., "0pflow@latest")
     const npmScript = process.env.npm_lifecycle_script;
     if (npmScript?.startsWith("0pflow")) {
-      return ["npx", "-y", npmScript, "mcp", "start"];
+      return {
+        command: ["npx", "-y", npmScript, "mcp", "start"],
+        isLocal: false,
+      };
     }
     // Fallback to latest
-    return ["npx", "-y", "0pflow@latest", "mcp", "start"];
+    return {
+      command: ["npx", "-y", "0pflow@latest", "mcp", "start"],
+      isLocal: false,
+    };
   }
 
-  return [...baseArgs, "mcp", "start"];
+  return {
+    command: [...baseArgs, "mcp", "start"],
+    isLocal: false,
+  };
 }
 
 /**
@@ -98,9 +119,12 @@ export function isClaudeCliAvailable(): boolean {
 /**
  * Add the 0pflow marketplace to Claude Code
  */
-export function addMarketplace(): { success: boolean; error?: string } {
+export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "ignore" = "inherit"): { success: boolean; error?: string } {
   try {
-    execSync("claude plugin marketplace add timescale/0pflow", { stdio: "inherit" });
+    const marketplaceSource = mcpResult.isLocal && mcpResult.packageRoot
+      ? mcpResult.packageRoot
+      : "timescale/0pflow";
+    execSync(`claude plugin marketplace add ${marketplaceSource}`, { stdio });
     return { success: true };
   } catch (err) {
     return {
@@ -113,9 +137,9 @@ export function addMarketplace(): { success: boolean; error?: string } {
 /**
  * Install the 0pflow plugin to Claude Code
  */
-export function installPlugin(): { success: boolean; error?: string } {
+export function installPlugin(stdio: "inherit" | "ignore" = "inherit"): { success: boolean; error?: string } {
   try {
-    execSync("claude plugin install 0pflow", { stdio: "inherit" });
+    execSync("claude plugin install 0pflow", { stdio });
     return { success: true };
   } catch (err) {
     return {
@@ -127,107 +151,97 @@ export function installPlugin(): { success: boolean; error?: string } {
 
 export interface InstallOptions {
   force?: boolean;
+  verbose?: boolean;
 }
 
 /**
  * Run the install command
  */
 export async function runInstall(options: InstallOptions = {}): Promise<void> {
-  console.log();
-  console.log(pc.bold("0pflow Install"));
-  console.log();
+  const { verbose = false } = options;
 
   // Check if Claude CLI is available
   if (!isClaudeCliAvailable()) {
     console.log(pc.red("Error: Claude Code CLI not found."));
-    console.log(pc.dim("Please install Claude Code first: https://claude.ai/code"));
+    console.log(pc.dim("Install Claude Code first: https://claude.ai/code"));
     process.exit(1);
   }
 
   // Build MCP command from current invocation
-  const mcpCommand = buildMcpCommand();
+  const mcpResult = buildMcpCommand();
 
-  console.log(pc.dim("MCP command:"), mcpCommand.join(" "));
-  console.log();
+  if (verbose) {
+    console.log(pc.dim("MCP command:"), mcpResult.command.join(" "));
+  }
 
   // Check for existing installation
   const existingSettings = readSettings();
+  if (existingSettings && !options.force) {
+    console.log(pc.yellow("Already installed."), pc.dim("Use --force to reinstall."));
+    return;
+  }
+
   if (existingSettings) {
-    if (!options.force) {
-      console.log(pc.yellow("0pflow is already installed."));
-      console.log(pc.dim("Current MCP command:"), existingSettings.mcpCommand.join(" "));
-      console.log();
-      console.log(pc.dim("Use --force to reinstall."));
-      return;
-    }
-    // Force reinstall - uninstall first
-    console.log(pc.dim("Uninstalling existing installation..."));
-    await runUninstall();
-    console.log();
-    console.log(pc.bold("Reinstalling 0pflow..."));
-    console.log();
+    console.log(pc.dim("Existing installation found, reinstalling (--force)..."));
+    await runUninstall({ verbose });
   }
 
   // Write settings
   const settings: InstallSettings = {
-    mcpCommand,
+    mcpCommand: mcpResult.command,
     installedAt: new Date().toISOString(),
   };
-
-  console.log(pc.dim("Writing settings to:"), getSettingsPath());
   writeSettings(settings);
-  console.log(pc.green("✓"), "Settings saved");
-  console.log();
 
-  // Add marketplace
-  console.log(pc.dim("Adding 0pflow marketplace..."));
-  const marketplaceResult = addMarketplace();
-  if (marketplaceResult.success) {
-    console.log(pc.green("✓"), "Marketplace added");
-  } else {
-    console.log(pc.yellow("⚠"), "Could not add marketplace (may already exist)");
+  // Add marketplace (suppress claude CLI output in non-verbose mode)
+  const stdio = verbose ? "inherit" : "ignore";
+  const marketplaceResult = addMarketplace(mcpResult, stdio);
+  const pluginResult = installPlugin(stdio);
+
+  if (verbose) {
+    console.log(marketplaceResult.success ? pc.green("✓ Marketplace added") : pc.yellow("⚠ Marketplace may already exist"));
+    console.log(pluginResult.success ? pc.green("✓ Plugin installed") : pc.red("✗ Plugin install failed"));
   }
 
-  // Install plugin
-  console.log(pc.dim("Installing 0pflow plugin..."));
-  const pluginResult = installPlugin();
   if (pluginResult.success) {
-    console.log(pc.green("✓"), "Plugin installed");
+    console.log(pc.green("✓"), "0pflow installed");
+    console.log();
+    console.log(pc.bold("Next steps:"));
+    console.log(pc.dim("  1. Restart Claude Code in a new project folder"));
+    console.log(pc.dim("  2. Ask Claude to create a workflow, e.g.:"));
+    console.log(pc.cyan('     "Create a workflow that enriches leads from a CSV file"'));
+    console.log();
   } else {
-    console.log(pc.red("✗"), "Failed to install plugin:", pluginResult.error);
+    console.log(pc.red("✗"), "Installation failed");
+    process.exit(1);
   }
+}
 
-  console.log();
-  console.log(pc.green(pc.bold("Installation complete!")));
-  console.log();
-  console.log("You can now use 0pflow in Claude Code.");
-  console.log();
+export interface UninstallOptions {
+  verbose?: boolean;
 }
 
 /**
  * Run the uninstall command
  */
-export async function runUninstall(): Promise<void> {
-  console.log();
-  console.log(pc.bold("0pflow Uninstall"));
-  console.log();
+export async function runUninstall(options: UninstallOptions = {}): Promise<void> {
+  const { verbose = false } = options;
+  const stdio = verbose ? "inherit" : "ignore";
 
   // Uninstall plugin and marketplace from Claude
   if (isClaudeCliAvailable()) {
-    console.log(pc.dim("Uninstalling plugin from Claude Code..."));
     try {
-      execSync("claude plugin uninstall 0pflow", { stdio: "inherit" });
-      console.log(pc.green("✓"), "Plugin uninstalled");
+      execSync("claude plugin uninstall 0pflow", { stdio });
+      if (verbose) console.log(pc.green("✓"), "Plugin uninstalled");
     } catch {
-      console.log(pc.yellow("⚠"), "Could not uninstall plugin (may not exist)");
+      if (verbose) console.log(pc.yellow("⚠"), "Could not uninstall plugin");
     }
 
-    console.log(pc.dim("Removing marketplace..."));
     try {
-      execSync("claude plugin marketplace remove 0pflow", { stdio: "inherit" });
-      console.log(pc.green("✓"), "Marketplace removed");
+      execSync("claude plugin marketplace remove 0pflow", { stdio });
+      if (verbose) console.log(pc.green("✓"), "Marketplace removed");
     } catch {
-      console.log(pc.yellow("⚠"), "Could not remove marketplace (may not exist)");
+      if (verbose) console.log(pc.yellow("⚠"), "Could not remove marketplace");
     }
   }
 
@@ -236,10 +250,10 @@ export async function runUninstall(): Promise<void> {
   if (existsSync(settingsPath)) {
     const { unlinkSync } = await import("node:fs");
     unlinkSync(settingsPath);
-    console.log(pc.green("✓"), "Settings file removed");
+    if (verbose) console.log(pc.green("✓"), "Settings file removed");
   }
 
-  console.log();
-  console.log(pc.green("Uninstallation complete."));
-  console.log();
+  if (verbose) {
+    console.log(pc.green("Uninstalled."));
+  }
 }

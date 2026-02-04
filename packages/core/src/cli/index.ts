@@ -452,15 +452,17 @@ program
   .command("install")
   .description("Install 0pflow plugin to Claude Code")
   .option("-f, --force", "Force reinstall even if already installed")
-  .action(async (options: { force?: boolean }) => {
-    await runInstall({ force: options.force });
+  .option("-v, --verbose", "Show detailed output")
+  .action(async (options: { force?: boolean; verbose?: boolean }) => {
+    await runInstall({ force: options.force, verbose: options.verbose });
   });
 
 program
   .command("uninstall")
   .description("Uninstall 0pflow plugin from Claude Code")
-  .action(async () => {
-    await runUninstall();
+  .option("-v, --verbose", "Show detailed output")
+  .action(async (options: { verbose?: boolean }) => {
+    await runUninstall({ verbose: options.verbose });
   });
 
 program.parse();
