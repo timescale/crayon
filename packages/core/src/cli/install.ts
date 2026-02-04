@@ -204,7 +204,15 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    console.log(pc.green("✓"), "0pflow installed");
+    console.log();
+    console.log(pc.red("   ___        __ _"));
+    console.log(pc.red("  / _ \\ _ __ / _| | _____      __"));
+    console.log(pc.red(" | | | | '_ \\ |_| |/ _ \\ \\ /\\ / /"));
+    console.log(pc.red(" | |_| | |_) |  _| | (_) \\ V  V /"));
+    console.log(pc.red("  \\___/| .__/|_| |_|\\___/ \\_/\\_/"));
+    console.log(pc.red("       |_|"));
+    console.log();
+    console.log(pc.green("✓"), "Installed successfully");
     console.log();
     console.log(pc.bold("Next steps:"));
     console.log(pc.dim("  1. Restart Claude Code in a new project folder"));

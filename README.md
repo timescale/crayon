@@ -2,6 +2,26 @@
 
 AI-native workflow engine for GTM/RevOps automation.
 
+## Installation
+
+Install the 0pflow plugin for Claude Code:
+
+```bash
+npx -y 0pflow@dev install --force
+```
+
+### Development Mode
+
+To install from source (for development):
+
+```bash
+git clone https://github.com/timescale/0pflow.git
+cd 0pflow
+pnpm install
+pnpm build
+npx tsx packages/core/src/cli/index.ts install --force
+```
+
 ## Quick Start
 
 From an app directory (e.g., `examples/uptime-app`):
