@@ -20,7 +20,22 @@ Check if this is a **new project** or an **existing 0pflow project**:
 - **New project indicators:** No `package.json` and the directory is empty
 - **Existing project indicators:** Has `specs/workflows/` or `specs/agents/` directories
 
-### 2. For New Projects - Offer App Scaffolding
+### 2. Discover Available Integrations
+
+Call `list_integrations` on the 0pflow MCP server to discover what integrations are available:
+
+```
+Use the mcp__plugin_0pflow_0pflow__list_integrations tool
+```
+
+This returns the user's connected integrations (Slack, Salesforce, HubSpot, etc.) with their credentials. Store this information so you can:
+- Suggest relevant integrations during workflow design
+- Know which external systems are available for tasks
+- Guide users toward integrations they already have connected
+
+Report to user: "Found N connected integrations: [list names]" or "No integrations connected yet."
+
+### 3. For New Projects - Offer App Scaffolding
 
 If this appears to be a new project (empty directory or no 0pflow structure):
 
@@ -29,18 +44,18 @@ Ask the user: "This looks like a new project. Would you like me to scaffold a fu
 - **If scaffold new app:** Read `app-scaffolding.md` in this skill directory and follow those instructions first. Then return here to continue with workflow creation.
 - **If existing project:** Just create the `specs/` directories and continue.
 
-### 3. Ensure Directories Exist
+### 4. Ensure Directories Exist
 
 - If `specs/workflows/` doesn't exist, create it
 - If `specs/agents/` doesn't exist, create it
 
-### 4. Read Existing Context
+### 5. Read Existing Context
 
 - Read all files in `specs/workflows/*.md` to understand existing workflows
 - Read all files in `specs/agents/*.md` to know available agents
 - Note what exists so you can suggest reuse
 
-### 5. Report Context and Announce
+### 6. Report Context and Announce
 
 **IMPORTANT:** If scaffolding was performed, steps 5-6 MUST happen AFTER scaffolding completes and you return here.
 
@@ -376,7 +391,8 @@ User: I want to score inbound leads
 
 Agent: I'm using the create-workflow skill. We'll first design the high-level workflow structure, then refine the individual nodes with more detail.
 
-[Pre-flight] Found 0 existing workflows. Found 0 existing agents.
+[Pre-flight] Found 2 connected integrations: Slack, Salesforce.
+Found 0 existing workflows. Found 0 existing agents.
 This appears to be a new project with no existing specs.
 
 **Question 1:** What triggers this workflow?
