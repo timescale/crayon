@@ -7,11 +7,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Package root directory (relative to dist/cli/mcp/)
 export const packageRoot = join(__dirname, "..", "..", "..");
 
-// Monorepo root (up from packages/core)
-export const monorepoRoot = join(packageRoot, "..", "..");
-
-// Templates directory at monorepo root level
-export const templatesDir = join(monorepoRoot, "templates");
+// Templates directory (bundled with the package)
+export const templatesDir = join(packageRoot, "templates");
 
 // Read version from package.json
 const pkg = JSON.parse(
