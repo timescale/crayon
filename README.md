@@ -12,7 +12,7 @@ npx -y 0pflow@dev install --force
 
 ### Development Mode
 
-To install from source (for development):
+To use the plugin from source (for development):
 
 ```bash
 git clone https://github.com/timescale/0pflow.git
@@ -21,6 +21,8 @@ pnpm install
 pnpm build
 npx tsx packages/core/src/cli/index.ts install --force
 ```
+
+> **Note:** This outputs the `claude --plugin-dir <path>` command you need to run Claude Code with the local plugin.
 
 ## Quick Start
 

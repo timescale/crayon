@@ -4,6 +4,17 @@ import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
 import { getNpmTagForMcp } from "./index.js";
 
+function printBanner(): void {
+  console.log();
+  console.log(pc.red("   ___        __ _"));
+  console.log(pc.red("  / _ \\ _ __ / _| | _____      __"));
+  console.log(pc.red(" | | | | '_ \\ |_| |/ _ \\ \\ /\\ / /"));
+  console.log(pc.red(" | |_| | |_) |  _| | (_) \\ V  V /"));
+  console.log(pc.red("  \\___/| .__/|_| |_|\\___/ \\_/\\_/"));
+  console.log(pc.red("       |_|"));
+  console.log();
+}
+
 export interface McpCommandResult {
   command: string[];
   isLocal: boolean;
@@ -186,6 +197,18 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   };
   writeSettings(settings);
 
+  // Development mode: just show the command to use
+  if (mcpResult.isLocal) {
+    printBanner();
+    console.log(pc.yellow("Development mode detected"));
+    console.log();
+    console.log(pc.bold("To use the plugin, run Claude Code with:"));
+    console.log();
+    console.log(pc.cyan(`  claude --plugin-dir ${mcpResult.packageRoot}`));
+    console.log();
+    return;
+  }
+
   // Add marketplace (suppress claude CLI output in non-verbose mode)
   const stdio = verbose ? "inherit" : "ignore";
   const marketplaceResult = addMarketplace(mcpResult, stdio);
@@ -197,14 +220,7 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    console.log();
-    console.log(pc.red("   ___        __ _"));
-    console.log(pc.red("  / _ \\ _ __ / _| | _____      __"));
-    console.log(pc.red(" | | | | '_ \\ |_| |/ _ \\ \\ /\\ / /"));
-    console.log(pc.red(" | |_| | |_) |  _| | (_) \\ V  V /"));
-    console.log(pc.red("  \\___/| .__/|_| |_|\\___/ \\_/\\_/"));
-    console.log(pc.red("       |_|"));
-    console.log();
+    printBanner();
     console.log(pc.green("✓"), "Installed successfully");
     console.log();
     console.log(pc.bold("Next steps:"));

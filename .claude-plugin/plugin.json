@@ -1,7 +1,0 @@
-{
-  "name": "0pflow",
-  "description": "AI-native workflow engine for GTM/RevOps automation",
-  "version": "0.1.0",
-  "repository": "https://github.com/cevian/0pflow",
-  "keywords": ["workflow", "automation", "gtm", "revops", "ai"]
-}
