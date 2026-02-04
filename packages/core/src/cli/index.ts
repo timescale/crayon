@@ -26,10 +26,10 @@ try {
 }
 
 /**
- * Get the npm tag for MCP command (e.g., "dev" for dev builds, "latest" otherwise)
+ * Get the npm version for MCP command (exact version to keep skills and MCP server in sync)
  */
-export function getNpmTagForMcp(): string {
-  return version.includes("dev") ? "dev" : "latest";
+export function getNpmVersionForMcp(): string {
+  return version;
 }
 
 function formatStatus(status: string): string {

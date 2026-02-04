@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
-import { getNpmTagForMcp } from "./index.js";
+import { getNpmVersionForMcp } from "./index.js";
 
 function printBanner(): void {
   console.log();
@@ -54,9 +54,9 @@ export function buildMcpCommand(): McpCommandResult {
 
   // If running from npx cache or node_modules, use npx 0pflow@version
   if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/0pflow")) {
-    const tag = getNpmTagForMcp();
+    const ver = getNpmVersionForMcp();
     return {
-      command: ["npx", "-y", `0pflow@${tag}`, "mcp", "start"],
+      command: ["npx", "-y", `0pflow@${ver}`, "mcp", "start"],
       isLocal: false,
     };
   }
