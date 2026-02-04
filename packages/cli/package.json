@@ -15,12 +15,16 @@
   "dependencies": {
     "0pflow": "workspace:*",
     "@clack/prompts": "^0.11.0",
+    "@tigerdata/mcp-boilerplate": "^0.8.0",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
+    "handlebars": "^4.7.8",
     "jiti": "^2.6.1",
     "pg": "^8.17.2",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "postgres": "^3.4.8",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/pg": "^8.16.0",

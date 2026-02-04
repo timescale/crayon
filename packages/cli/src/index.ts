@@ -8,6 +8,7 @@ import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
 import { getTrace, printTrace } from "./trace.js";
 import { getAppName } from "./app.js";
+import { startMcpServer } from "./mcp/server.js";
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -433,6 +434,16 @@ program
       console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
       process.exit(1);
     }
+  });
+
+// ============ MCP commands ============
+const mcp = program.command("mcp").description("MCP server commands");
+
+mcp
+  .command("start")
+  .description("Start the MCP server for Claude Code")
+  .action(async () => {
+    await startMcpServer();
   });
 
 program.parse();

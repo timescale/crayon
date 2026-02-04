@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Package root directory (relative to dist/)
-export const packageRoot = join(__dirname, "..");
+// Package root directory (relative to dist/mcp/)
+export const packageRoot = join(__dirname, "..", "..");
 
-// Monorepo root (up from packages/mcp)
+// Monorepo root (up from packages/cli)
 export const monorepoRoot = join(packageRoot, "..", "..");
 
 // Templates directory at monorepo root level
