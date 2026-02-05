@@ -11,10 +11,10 @@ This skill generates function nodes for querying external APIs. It creates prope
 
 ## Supported Integrations
 
-| Integration | Auth Method |
-|-------------|-------------|
-| Salesforce | OAuth2 Client Credentials |
-| *(more coming)* | |
+| Integration | Auth Method | File |
+|-------------|-------------|------|
+| PostgreSQL | Connection String | `postgres.md` |
+| Salesforce | OAuth2 Client Credentials | `salesforce.md` |
 
 **To use a listed integration:** Read the corresponding file in this skill's directory (e.g., `salesforce.md`).
 
