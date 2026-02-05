@@ -22,7 +22,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && chmod +x dist/cli/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
