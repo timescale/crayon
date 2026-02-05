@@ -11,7 +11,7 @@ describe("discoverWorkflows", () => {
   });
 
   it("discovers workflow executables from uptime-app", async () => {
-    const projectRoot = path.resolve(__dirname, "../../../..");
+    const projectRoot = path.resolve(__dirname, "../../../../..");
     const uptimeApp = path.join(projectRoot, "examples/uptime-app");
     const result = await discoverWorkflows(uptimeApp);
     expect(result.workflows.length).toBeGreaterThan(0);
