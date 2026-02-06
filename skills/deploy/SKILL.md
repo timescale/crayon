@@ -49,7 +49,39 @@ This creates `bun.lock` which DBOS Cloud prefers over `package-lock.json`.
 
 ---
 
-## Phase 2: Deploy
+## Phase 2: Link Database (BYOD — first-time only)
+
+0pflow apps use Tiger Cloud as their database. DBOS Cloud connects to it via **Bring Your Own Database (BYOD)**.
+
+The `setup_app_schema` tool automatically creates a `dbosadmin` role on the database and writes `DBOS_ADMIN_URL` to `.env`. If `DBOS_ADMIN_URL` is not in `.env`, the dbosadmin role may not exist yet — re-run `setup_app_schema` or create it manually:
+
+```sql
+CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '<password>';
+```
+
+### Link the database to DBOS Cloud
+
+1. **Extract hostname and port from `DATABASE_URL`:**
+   - Parse the `DATABASE_URL` from `.env` to get the hostname and port
+
+2. **Link:**
+   ```bash
+   npx dbos-cloud db link <database-instance-name> -H <hostname> -p <port>
+   ```
+   - `<database-instance-name>` must be 3-16 chars, lowercase alphanumeric + underscores
+   - When prompted for the password, use the password from `DBOS_ADMIN_URL` in `.env`
+
+3. **Verify:**
+   ```bash
+   npx dbos-cloud db list
+   ```
+   - The linked database should appear in the list
+
+Skip this phase if `npx dbos-cloud db list` already shows the database.
+
+---
+
+## Phase 3: Deploy
 
 ### First-time Deployment
 
@@ -63,12 +95,13 @@ This creates `bun.lock` which DBOS Cloud prefers over `package-lock.json`.
    npx dbos-cloud app env import -d .env
    ```
    - Review `.env` before importing — ensure it doesn't contain local-only values
+   - Do NOT import `DBOS_ADMIN_URL` — it's only for setup, not the app runtime
 
 3. **Deploy:**
    ```bash
-   npx dbos-cloud app deploy -d <database-name>
+   npx dbos-cloud app deploy -d <database-instance-name>
    ```
-   - Ask user for the database name if not obvious from context
+   - Use the same database instance name from the `db link` step
 
 ### Subsequent Deployments
 
@@ -80,7 +113,7 @@ No need to re-import env variables or specify database on subsequent deploys.
 
 ---
 
-## Phase 3: Verify Deployment
+## Phase 4: Verify Deployment
 
 After deployment completes:
 
@@ -133,6 +166,9 @@ bun install
 - `DATABASE_URL` — Application database connection string
 - `OPENAI_API_KEY` — If using AI agents
 - Any other secrets your workflows need (API tokens, etc.)
+
+**Setup only (do not import to DBOS Cloud):**
+- `DBOS_ADMIN_URL` — Connection string for the `dbosadmin` role, used for `dbos-cloud db link`
 
 **Not needed when deployed (DBOS Cloud provides them):**
 - `DBOS_CONDUCTOR_KEY` — Only for local development with `npx dbos start`

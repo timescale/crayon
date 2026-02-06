@@ -186,6 +186,18 @@ export const setupAppSchemaFactory: ApiFactory<
           );
         }
 
+        // Create dbosadmin role for DBOS Cloud BYOD (Bring Your Own Database)
+        const existingAdmin = await sql`
+          SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'dbosadmin'
+        `;
+        let dbosAdminPassword: string | undefined;
+        if (existingAdmin.length === 0) {
+          dbosAdminPassword = generatePassword();
+          await sql.unsafe(
+            `CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '${dbosAdminPassword}'`,
+          );
+        }
+
         await sql.end();
 
         // Build app connection string
@@ -201,10 +213,17 @@ export const setupAppSchemaFactory: ApiFactory<
           envContent = await readFile(envPath, "utf-8");
         }
 
-        // Update or add DATABASE_URL and DATABASE_SCHEMA
+        // Update or add DATABASE_URL, DATABASE_SCHEMA, and DBOS_ADMIN_URL
         const env = dotenv.parse(envContent);
         env.DATABASE_URL = appDatabaseUrl;
         env.DATABASE_SCHEMA = app_name;
+        if (dbosAdminPassword) {
+          env.DBOS_ADMIN_URL = buildConnectionString(
+            adminConnectionString,
+            "dbosadmin",
+            dbosAdminPassword,
+          );
+        }
 
         // Rebuild .env content
         const newEnvContent = Object.entries(env)
