@@ -1,6 +1,6 @@
 # App Scaffolding Instructions
 
-When starting a new 0pflow project from scratch, use the `mcp__0pflow-local-tools__create_app` MCP tool to scaffold the app before creating workflows.
+When starting a new 0pflow project from scratch, use the `mcp__plugin_0pflow_0pflow-local-tools__create_app` MCP tool to scaffold the app before creating workflows.
 
 ## Pre-Flight Check
 
@@ -14,10 +14,10 @@ Ask the user: "Do you want to create a new Tiger Cloud database, or use an exist
 
 **If creating new:**
 
-Use the `mcp__0pflow-local-tools__create_database` MCP tool to provision a new Timescale Cloud database:
+Use the `mcp__plugin_0pflow_0pflow-local-tools__create_database` MCP tool to provision a new Timescale Cloud database:
 
 ```
-mcp__0pflow-local-tools__create_database()
+mcp__plugin_0pflow_0pflow-local-tools__create_database()
 ```
 
 Store the returned `service_id` - you'll need it later for database migrations and the app's `.env` configuration.
@@ -26,9 +26,9 @@ Store the returned `service_id` - you'll need it later for database migrations a
 
 Ask for the `service_id` of the existing Tiger Cloud database. You can list available databases with `mcp__tiger__service_list` if the user needs help finding it.
 
-## Step 2: Create App with mcp__0pflow-local-tools__create_app Tool
+## Step 2: Create App with mcp__plugin_0pflow_0pflow-local-tools__create_app Tool
 
-Call the `mcp__0pflow-local-tools__create_app` MCP tool with the following parameters:
+Call the `mcp__plugin_0pflow_0pflow-local-tools__create_app` MCP tool with the following parameters:
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
@@ -37,7 +37,7 @@ Call the `mcp__0pflow-local-tools__create_app` MCP tool with the following param
 
 **Example:**
 ```
-mcp__0pflow-local-tools__create_app(
+mcp__plugin_0pflow_0pflow-local-tools__create_app(
   app_name: "lead-scoring-app",
   install_deps: true
 )
@@ -45,10 +45,10 @@ mcp__0pflow-local-tools__create_app(
 
 ## Step 3: Setup Database Schema
 
-Once the database is ready (poll with `mcp__tiger__service_get` if needed), use `mcp__0pflow-local-tools__setup_app_schema` to configure the database connection:
+Once the database is ready (poll with `mcp__tiger__service_get` if needed), use `mcp__plugin_0pflow_0pflow-local-tools__setup_app_schema` to configure the database connection:
 
 ```
-mcp__0pflow-local-tools__setup_app_schema(
+mcp__plugin_0pflow_0pflow-local-tools__setup_app_schema(
   application_directory: "<app_name>",
   service_id: "<service_id from step 1>",
   app_name: "<app_name with underscores, e.g., lead_scoring_app>"
