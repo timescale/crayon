@@ -33,7 +33,7 @@ export function WorkflowNode({ data }: NodeProps) {
   return (
     <div
       className={`
-        border rounded-lg shadow-sm
+        border rounded-lg shadow-sm relative
         ${style.bg} ${style.border}
         ${isCondition ? "border-dashed border-2" : ""}
       `}

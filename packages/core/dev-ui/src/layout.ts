@@ -4,6 +4,19 @@ export const NODE_HEIGHT = 50;
 const RANK_SEP = 80;
 const NODE_SEP = 40;
 
+export const GROUP_PADDING_X = 20;
+export const GROUP_PADDING_Y = 16;
+export const GROUP_LABEL_HEIGHT = 28;
+
+export interface GroupLayout {
+  id: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  /** Map of child node ID → position relative to the group's top-left */
+  childPositions: Map<string, { x: number; y: number }>;
+}
+
 interface LayoutEdge {
   source: string;
   target: string;
@@ -152,4 +165,58 @@ function orderWithinRanks(
 
     rankGroups.set(rank, group);
   }
+}
+
+/**
+ * Given absolute node positions and loop groups, compute group container
+ * positions/sizes and convert child positions to be relative to their group.
+ */
+export function computeGroupLayouts(
+  positions: Map<string, { x: number; y: number }>,
+  groups: Array<{ id: string; nodeIds: string[] }>,
+): GroupLayout[] {
+  const layouts: GroupLayout[] = [];
+
+  for (const group of groups) {
+    const childPositions = new Map<string, { x: number; y: number }>();
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const nodeId of group.nodeIds) {
+      const pos = positions.get(nodeId);
+      if (!pos) continue;
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + NODE_WIDTH);
+      maxY = Math.max(maxY, pos.y + NODE_HEIGHT);
+    }
+
+    if (minX === Infinity) continue;
+
+    const groupX = minX - GROUP_PADDING_X;
+    const groupY = minY - GROUP_LABEL_HEIGHT - GROUP_PADDING_Y;
+    const groupWidth = maxX - minX + 2 * GROUP_PADDING_X;
+    const groupHeight = maxY - minY + GROUP_LABEL_HEIGHT + 2 * GROUP_PADDING_Y;
+
+    for (const nodeId of group.nodeIds) {
+      const pos = positions.get(nodeId);
+      if (!pos) continue;
+      childPositions.set(nodeId, {
+        x: pos.x - groupX,
+        y: pos.y - groupY,
+      });
+    }
+
+    layouts.push({
+      id: group.id,
+      position: { x: groupX, y: groupY },
+      width: groupWidth,
+      height: groupHeight,
+      childPositions,
+    });
+  }
+
+  return layouts;
 }

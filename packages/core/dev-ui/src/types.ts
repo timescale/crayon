@@ -9,6 +9,12 @@ export interface DAGNode {
   fields?: string[];
 }
 
+export interface LoopGroup {
+  id: string;
+  label: string;
+  nodeIds: string[];
+}
+
 export interface DAGEdge {
   id: string;
   source: string;
@@ -22,6 +28,7 @@ export interface WorkflowDAG {
   filePath: string;
   nodes: DAGNode[];
   edges: DAGEdge[];
+  loopGroups?: LoopGroup[];
 }
 
 export interface ProjectDAGs {

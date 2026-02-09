@@ -1,4 +1,4 @@
-import type { DAGNode, DAGEdge, WorkflowDAG } from "./types.js";
+import type { DAGNode, DAGEdge, WorkflowDAG, LoopGroup } from "./types.js";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -327,6 +327,42 @@ function extractCtxRunCalls(body: SyntaxNode, ctxName: string): CtxRunCall[] {
   return calls;
 }
 
+const LOOP_TYPES = new Set([
+  "for_statement",
+  "for_in_statement",
+  "while_statement",
+  "do_statement",
+]);
+
+function findEnclosingLoop(callNode: SyntaxNode, runMethodBody: SyntaxNode): SyntaxNode | null {
+  let current: SyntaxNode | null = callNode;
+  while (current && current !== runMethodBody) {
+    if (LOOP_TYPES.has(current.type)) return current;
+    current = current.parent;
+  }
+  return null;
+}
+
+function extractLoopLabel(loopNode: SyntaxNode): string {
+  if (loopNode.type === "for_in_statement") {
+    // Covers for...of and for...in
+    // Structure: for (const <var> of/in <iterable>) { ... }
+    const left = loopNode.childForFieldName("left");
+    const right = loopNode.childForFieldName("right");
+    // Determine if it's "of" or "in" by checking the text between left and right
+    const keyword = loopNode.text.includes(" of ") ? "of" : "in";
+    const varName = left?.text.replace(/^(const|let|var)\s+/, "") ?? "item";
+    const iterableName = right?.text ?? "items";
+    return `for each ${varName} ${keyword} ${iterableName}`;
+  }
+  if (loopNode.type === "while_statement") {
+    const condition = loopNode.childForFieldName("condition");
+    return `while ${condition?.text ?? "(...)"}`;
+  }
+  // for_statement, do_statement
+  return "for loop";
+}
+
 function getEnclosingIfCondition(
   callNode: SyntaxNode,
   runMethodBody: SyntaxNode,
@@ -539,6 +575,7 @@ export async function extractDAGs(
     const nodes: DAGNode[] = [];
     const edges: DAGEdge[] = [];
     let condCounter = 0;
+    const loopGroupMap = new Map<SyntaxNode, { label: string; stepIds: string[] }>();
 
     nodes.push({ id: "input", label: "Input", type: "input", fields: inputFields.length > 0 ? inputFields : undefined });
 
@@ -552,6 +589,18 @@ export async function extractDAGs(
 
       const nodeId = `step-${i}`;
       const ifContext = getEnclosingIfCondition(call.node, runBody);
+
+      // Track loop group membership
+      const enclosingLoop = findEnclosingLoop(call.node, runBody);
+      if (enclosingLoop) {
+        if (!loopGroupMap.has(enclosingLoop)) {
+          loopGroupMap.set(enclosingLoop, {
+            label: extractLoopLabel(enclosingLoop),
+            stepIds: [],
+          });
+        }
+        loopGroupMap.get(enclosingLoop)!.stepIds.push(nodeId);
+      }
 
       const guards = findGuardClausesBetween(runBody, prevLine, call.lineNumber);
       for (const guard of guards) {
@@ -665,12 +714,24 @@ export async function extractDAGs(
       }
     }
 
+    // Build loop groups array
+    const loopGroups: LoopGroup[] = [];
+    let loopCounter = 0;
+    for (const [, group] of loopGroupMap) {
+      loopGroups.push({
+        id: `loop-${loopCounter++}`,
+        label: group.label,
+        nodeIds: group.stepIds,
+      });
+    }
+
     dags.push({
       workflowName,
       version,
       filePath,
       nodes,
       edges,
+      loopGroups: loopGroups.length > 0 ? loopGroups : undefined,
     });
   }
 

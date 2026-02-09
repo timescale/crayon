@@ -13,11 +13,13 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { WorkflowNode } from "./WorkflowNode";
+import { LoopGroupNode } from "./LoopGroupNode";
 import type { WorkflowDAG } from "../types";
-import { computeLayout, NODE_WIDTH, NODE_HEIGHT } from "../layout";
+import { computeLayout, computeGroupLayouts, NODE_WIDTH, NODE_HEIGHT } from "../layout";
 
 const nodeTypes: NodeTypes = {
   workflowNode: WorkflowNode,
+  loopGroup: LoopGroupNode,
 };
 
 interface WorkflowGraphProps {
@@ -33,18 +35,65 @@ export function WorkflowGraph({ dag }: WorkflowGraphProps) {
       dag.edges.map((e) => ({ source: e.source, target: e.target })),
     );
 
-    const flowNodes: Node[] = dag.nodes.map((node) => {
-      const pos = positions.get(node.id) ?? { x: 0, y: 0 };
-      return {
-        id: node.id,
-        type: "workflowNode",
-        position: pos,
-        data: { ...node },
+    // Compute group layouts if there are loop groups
+    const groups = dag.loopGroups ?? [];
+    const groupLayouts = computeGroupLayouts(positions, groups);
+
+    // Build a lookup: nodeId → group layout (for child nodes)
+    const nodeToGroup = new Map<string, typeof groupLayouts[number]>();
+    for (const gl of groupLayouts) {
+      const group = groups.find((g) => g.id === gl.id);
+      if (!group) continue;
+      for (const nodeId of group.nodeIds) {
+        nodeToGroup.set(nodeId, gl);
+      }
+    }
+
+    const flowNodes: Node[] = [];
+
+    // Add group container nodes first (must come before children)
+    for (const gl of groupLayouts) {
+      const group = groups.find((g) => g.id === gl.id);
+      flowNodes.push({
+        id: gl.id,
+        type: "loopGroup",
+        position: gl.position,
+        data: { label: group?.label ?? "", width: gl.width, height: gl.height },
         draggable: false,
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-      };
-    });
+        style: { width: gl.width, height: gl.height },
+      });
+    }
+
+    // Add regular nodes
+    for (const node of dag.nodes) {
+      const gl = nodeToGroup.get(node.id);
+      if (gl) {
+        // Child of a group — use relative position
+        const relPos = gl.childPositions.get(node.id) ?? { x: 0, y: 0 };
+        flowNodes.push({
+          id: node.id,
+          type: "workflowNode",
+          position: relPos,
+          parentId: gl.id,
+          extent: "parent" as const,
+          data: { ...node },
+          draggable: false,
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+        });
+      } else {
+        const pos = positions.get(node.id) ?? { x: 0, y: 0 };
+        flowNodes.push({
+          id: node.id,
+          type: "workflowNode",
+          position: pos,
+          data: { ...node },
+          draggable: false,
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+        });
+      }
+    }
 
     const flowEdges: Edge[] = dag.edges.map((edge) => ({
       id: edge.id,
