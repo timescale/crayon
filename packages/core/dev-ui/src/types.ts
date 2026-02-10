@@ -7,6 +7,7 @@ export interface DAGNode {
   lineNumber?: number;
   /** Schema field names for input/output nodes */
   fields?: string[];
+  description?: string;
 }
 
 export interface LoopGroup {

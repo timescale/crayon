@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,11 +10,13 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { WorkflowNode } from "./WorkflowNode";
 import { LoopGroupNode } from "./LoopGroupNode";
-import type { WorkflowDAG } from "../types";
+import { NodeDetailPopover } from "./NodeDetailPopover";
+import type { WorkflowDAG, DAGNode } from "../types";
 import { computeLayout, computeGroupLayouts, NODE_WIDTH, NODE_HEIGHT } from "../layout";
 
 const nodeTypes: NodeTypes = {
@@ -28,6 +30,8 @@ interface WorkflowGraphProps {
 
 export function WorkflowGraph({ dag }: WorkflowGraphProps) {
   const { fitView } = useReactFlow();
+  const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ x: number; y: number } | null>(null);
 
   const { flowNodes, flowEdges } = useMemo(() => {
     const positions = computeLayout(
@@ -119,32 +123,63 @@ export function WorkflowGraph({ dag }: WorkflowGraphProps) {
     setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 50);
   }, [flowNodes, flowEdges, setNodes, setEdges, fitView]);
 
+  const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
+    const nodeData = node.data as DAGNode;
+    // Skip input/output/condition nodes — they have no descriptions
+    if (nodeData.type === "input" || nodeData.type === "output" || nodeData.type === "condition") return;
+
+    // Use the click position relative to the graph container
+    const target = event.currentTarget as HTMLElement;
+    const container = target.closest(".react-flow") as HTMLElement | null;
+    const rect = container?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    setSelectedNode(nodeData);
+    setPopoverPosition({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+  }, []);
+
+  const closePopover = useCallback(() => {
+    setSelectedNode(null);
+    setPopoverPosition(null);
+  }, []);
+
   const onInit = useCallback(() => {
     setTimeout(() => fitView({ padding: 0.2, duration: 200 }), 50);
   }, [fitView]);
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      nodeTypes={nodeTypes}
-      onInit={onInit}
-      fitView
-      fitViewOptions={{ padding: 0.2 }}
-      minZoom={0.3}
-      maxZoom={2}
-      proOptions={{ hideAttribution: true }}
-    >
-      <Background color="#e2e8f0" gap={16} />
-      <Controls showInteractive={false} />
-      <MiniMap
-        nodeStrokeWidth={3}
-        pannable
-        zoomable
-        style={{ width: 120, height: 80 }}
-      />
-    </ReactFlow>
+    <div className="relative w-full h-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        onInit={onInit}
+        onNodeClick={onNodeClick}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.3}
+        maxZoom={2}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#e2e8f0" gap={16} />
+        <Controls showInteractive={false} />
+        <MiniMap
+          nodeStrokeWidth={3}
+          pannable
+          zoomable
+          style={{ width: 120, height: 80 }}
+        />
+      </ReactFlow>
+      {selectedNode && popoverPosition && (
+        <NodeDetailPopover
+          node={selectedNode}
+          position={popoverPosition}
+          onClose={closePopover}
+        />
+      )}
+    </div>
   );
 }

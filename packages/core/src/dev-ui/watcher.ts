@@ -1,7 +1,7 @@
 import { watch } from "chokidar";
 import { readFileSync, existsSync } from "node:fs";
-import { resolve, relative, extname } from "node:path";
-import { extractDAGs } from "./dag/extractor.js";
+import { resolve, relative, extname, dirname } from "node:path";
+import { extractDAGs, extractNodeDescription } from "./dag/extractor.js";
 import type { ProjectDAGs } from "./dag/types.js";
 import type { WSMessage } from "./ws.js";
 
@@ -38,6 +38,29 @@ export function createWatcher(options: WatcherOptions) {
     try {
       const source = readFileSync(absPath, "utf-8");
       const dags = await extractDAGs(relPath, source);
+
+      // Resolve node descriptions from imported files
+      for (const dag of dags) {
+        for (const node of dag.nodes) {
+          if (!node.importPath) continue;
+          try {
+            let importFile = node.importPath;
+            // Convert .js extension to .ts for source files
+            if (importFile.endsWith(".js")) {
+              importFile = importFile.slice(0, -3) + ".ts";
+            }
+            const resolvedPath = resolve(dirname(absPath), importFile);
+            if (!existsSync(resolvedPath)) continue;
+            const nodeSource = readFileSync(resolvedPath, "utf-8");
+            const description = await extractNodeDescription(nodeSource);
+            if (description) {
+              node.description = description;
+            }
+          } catch {
+            // Skip nodes we can't resolve
+          }
+        }
+      }
 
       // Remove old entries for this file
       state.workflows = state.workflows.filter((w) => w.filePath !== relPath);

@@ -99,6 +99,54 @@ function humanize(identifier: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+function extractStringProperty(obj: SyntaxNode, propName: string): string | null {
+  for (const prop of obj.namedChildren) {
+    if (prop.type === "pair" || prop.type === "property_assignment") {
+      const key = prop.namedChildren[0];
+      const value = prop.namedChildren[1];
+      if (key?.text === propName && value) {
+        if (value.type === "template_string") {
+          // Strip backticks
+          return value.text.replace(/^`|`$/g, "").trim();
+        }
+        if (value.type === "string") {
+          return value.text.replace(/^['"]|['"]$/g, "").trim();
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Parse a node source file and extract the description from its .create() config.
+ */
+export async function extractNodeDescription(source: string): Promise<string | undefined> {
+  const parser = await getParser();
+  const tree = parser.parse(source);
+  const root = tree.rootNode;
+
+  // Find any .create() call
+  const calls = root.descendantsOfType("call_expression");
+  for (const call of calls) {
+    const fn = call.namedChildren[0];
+    if (!fn || fn.type !== "member_expression") continue;
+    const prop = fn.namedChildren[1];
+    if (prop?.text !== "create") continue;
+
+    const args = call.descendantsOfType("arguments")[0];
+    if (!args) continue;
+
+    const obj = args.descendantsOfType("object")[0];
+    if (!obj) continue;
+
+    const desc = extractStringProperty(obj, "description");
+    if (desc) return desc;
+  }
+
+  return undefined;
+}
+
 function extractImports(root: SyntaxNode): Map<string, ImportInfo> {
   const imports = new Map<string, ImportInfo>();
   const importStatements = root.descendantsOfType("import_statement");
