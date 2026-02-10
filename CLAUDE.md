@@ -4,7 +4,7 @@ AI-native workflow engine for GTM/RevOps automation.
 
 ## Project Status
 
-**Status:** Active development - Phase 4 (Spec Author) complete.
+**Status:** Active development - building MVP workflow engine.
 
 **Current Focus:** Building MVP workflow engine with Claude Code skills.
 
@@ -17,10 +17,9 @@ claude --plugin-dir /path/to/0pflow
 
 ### Available Skills
 
-- `/0pflow:create-workflow` - Collaborative workflow design (guides you through creating workflow specs)
-- `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, output formats to nodes)
-- `/0pflow:compile-workflow` - Compile workflow specs to TypeScript
-- `/0pflow:validate-spec` - Validate spec structure and references
+- `/0pflow:create-workflow` - Collaborative workflow design (guides you through creating workflows with embedded descriptions)
+- `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, typed schemas to nodes)
+- `/0pflow:compile-workflow` - Update workflow implementation from embedded descriptions
 - `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
 - `/0pflow:cli` - Reference for 0pflow CLI commands (list, run, history)
 
@@ -31,9 +30,10 @@ claude --plugin-dir /path/to/0pflow
 
 ## Architecture Overview
 
-- **Workflow specs** (markdown) → **Compiler** (Claude Code) → **Generated TypeScript** → **DBOS runtime**
-- Users write specs, compiler generates code, runtime executes durably
-- Specs and generated code stay in sync
+- **Workflow code with embedded descriptions** → **Compiler** (Claude Code) → **Updated implementation** → **DBOS runtime**
+- Descriptions embedded in code as `description` fields (workflow-level for flow, node-level for details)
+- Agent specs (`specs/agents/`) remain as separate files for runtime system prompts
+- No separate spec files for workflows — the code IS the spec
 
 ## Reference: 0perator Project
 

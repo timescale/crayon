@@ -285,7 +285,7 @@ Final:
 
 Before running workflows:
 
-1. **Compile workflows** - Run `/0pflow:compile-workflow` to generate TypeScript from specs
+1. **Compile workflows** - Run `/0pflow:compile-workflow` to generate the workflow implementation
 2. **Database connection** - Ensure `DATABASE_URL` is set in `.env`
 3. **Build the project** - Run `npm run build` if using TypeScript
 
@@ -295,14 +295,14 @@ Before running workflows:
 
 **"No workflows found"**
 - Check that `generated/workflows/` contains compiled workflow files
-- Run `/0pflow:compile-workflow` to compile specs
+- Run `/0pflow:compile-workflow` to compile workflows
 
 **"No nodes found"**
 - Check that `src/nodes/` contains node files
 - Ensure nodes export using `Node.create()`
 
 **"Invalid workflow/node input"**
-- Check the workflow's input schema in `specs/workflows/<name>.md`
+- Check the workflow's input schema in `generated/workflows/<name>.ts`
 - Or check the node's `inputSchema` in `src/nodes/<name>.ts`
 - Ensure JSON input matches the expected types
 

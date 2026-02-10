@@ -1,77 +1,76 @@
 ---
 name: compile-workflow
-description: Compile workflow specs from markdown to TypeScript. Use this after creating or modifying workflow specs.
+description: Update workflow implementation from its embedded description. Use this after modifying workflow or node descriptions.
 ---
 
 # Compile Workflow
 
-Compiles workflow specifications from `specs/workflows/*.md` into executable TypeScript in `generated/workflows/*.ts`.
+Updates the `run()` method of a workflow in `generated/workflows/*.ts` based on its embedded `description` field and the `description` fields in referenced nodes/agents.
 
-**Announce at start:** "I'm using the compile-workflow skill to generate TypeScript from the workflow spec."
+**Announce at start:** "I'm using the compile-workflow skill to update the workflow implementation from its description."
 
 ---
 
 ## Pre-Flight Checks
 
-1. **Verify directories exist:**
-   - `specs/workflows/` must exist with at least one `.md` file
-   - Create `generated/workflows/` if it doesn't exist
+1. **Verify workflow files exist:**
+   - `generated/workflows/` must exist with at least one `.ts` file
+   - If no `.ts` files found, tell user to run `/0pflow:create-workflow` first
 
 2. **If no workflow name provided:**
-   - List all specs in `specs/workflows/`
+   - List all workflows in `generated/workflows/`
    - Ask user to select which one to compile
 
 3. **If workflow name provided:**
-   - Verify `specs/workflows/<name>.md` exists
-   - If not, list available specs and ask user to choose
+   - Verify `generated/workflows/<name>.ts` exists
+   - If not, list available workflows and ask user to choose
 
 ---
 
-## Spec Parsing
+## Description Parsing
 
-### Required Sections
+### Workflow Description
 
-- **Frontmatter:** `name` (required), `version` (defaults to 1)
-- **`## Inputs`** - at least one input parameter
-- **`## Tasks`** - at least one task (reject `## Steps` - tell user to rename)
+Read the `description` field from the `Workflow.create()` call in `generated/workflows/<name>.ts`. The description contains flow-level information:
 
-### Optional Sections
+- **Summary** — first line/paragraph
+- **`## Tasks`** — ordered list of tasks with:
+  - `**Node:**` references (name + type)
+  - `**Condition:**` / `**If true:**` / `**If false:**` for decisions
+  - `**Loop:**` for iteration
+  - `**Return:**` for terminal tasks
 
-- **`## Outputs`** - if omitted, workflow returns `void`
-- Title and description after frontmatter (for humans, ignored by compiler)
+### Node/Agent Descriptions
 
-### Input Syntax
+For each task's `**Node:**` reference, read the `description` field from the node/agent file to get:
 
-```
-- param_name: type (required|optional, defaults to X) - Description
-```
-
-Types:
-- Simple: `string`, `number`, `boolean`
-- Union: `"value1" | "value2"`
-- Nullable: `string | null`
-- Object: `{ field1: type, field2?: type }` (? = optional)
-- Array: `string[]` or `{ id: number }[]`
+- **What the node does** — first paragraph
+- `**Input Description:**` — plain language inputs
+- `**Output Description:**` — plain language outputs
+- `**Input:**` — typed schema (if refined)
+- `**Output:**` — typed schema (if refined)
 
 ### Task Formats
 
 **Standard task:**
 ```markdown
 ### N. Task Name
-
-Description of what this task does.
-
 **Node:** `node-name` (agent|node)
-**Input:** var1, var2.field, inputs.field
-**Output:** `var_name: type`
+```
+
+Node file contains:
+```markdown
+<Description>
+
+**Input Description:** what it needs
+**Output Description:** what it produces
+**Input:** `var1, var2.field, inputs.field` (added by refine-node)
+**Output:** `var_name: type` (added by refine-node)
 ```
 
 **Decision task** (no Node):
 ```markdown
 ### N. Decision Name
-
-Description.
-
 **Condition:** `expression`
 **If true:** continue to task M
 **If false:** return:
@@ -104,7 +103,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 ### Resolution Steps
 
-1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)`
+1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)` in the workflow description
 
 2. **For builtin nodes:**
    - Check if it's a built-in node (`web_read`, etc.)
@@ -112,10 +111,12 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 3. **For user-defined nodes:**
    - Look for `src/nodes/<name>.ts`
+   - Read its `description` field for Input/Output info
    - If missing: ask user to create it (nodes require user implementation)
 
 4. **For agents:**
-   - Look for `specs/agents/<name>.md`
+   - Look for `agents/<name>.ts`
+   - Read its `description` field for Input/Output info
    - If missing but task has enough context: create agent stub (see Stub Generation)
    - If missing and context is insufficient: ask clarifying questions
 
@@ -123,7 +124,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 ## Stub Generation
 
-When an agent is referenced but doesn't exist, generate a stub using the enriched task description.
+When an agent is referenced but doesn't exist, generate a stub using the workflow description context.
 
 ### Tool Types
 
@@ -135,24 +136,22 @@ There are three types of tools that can be used in agents:
 | **Built-in nodes** | Nodes that ship with 0pflow | `import { webRead } from "0pflow"` | `webRead` |
 | **User nodes** | Custom nodes implemented in `src/nodes/` | `import { myNode } from "../../src/nodes/my-node.js"` | `myNode` |
 
-### Enriched Task Format (from spec-author)
+### Enriched Node Description (from refine-node)
 
-Tasks for new agents include extra fields used to generate the agent executable. The spec will explicitly specify which tools to use (no mapping required):
+After refinement, node descriptions include extra fields used to generate the agent executable:
 
 ```markdown
-### N. Task Name
-
-Description of what the agent does.
+<What the agent does.>
 
 **Tools needed:**
   - webRead (builtin)
   - openai.tools.webSearch() (provider)
   - myCustomNode (user node)
-**Guidelines:** specific guidelines for the agent (becomes part of system prompt)
-**Output fields:** field names and types (used for outputSchema)
+**Guidelines:** specific guidelines for the agent
 
-**Node:** `agent-name` (agent)
-**Input:** ...
+**Input Description:** what it needs
+**Input:** `{ field: type }`
+**Output Description:** what it produces
 **Output:** `var: type`
 ```
 
@@ -192,7 +191,7 @@ maxSteps: 10          # optional
 ## Output Format
 
 Return a JSON object with:
-<From **Output fields:** or parsed from **Output:** type>
+<From **Output:** type or parsed from output schema>
 ```
 
 #### Executable File (`agents/<name>.ts`)
@@ -218,14 +217,19 @@ const openai = createOpenAI({});
 
 export const <camelCaseName> = Agent.create({
   name: "<name>",
-  description: "<brief description for when this agent is used as a tool>",
+  description: `
+<What this agent does.>
+
+**Input Description:** <plain language>
+**Output Description:** <plain language>
+`,
   inputSchema: z.object({
-    // ... from task **Input:**
+    // ... from **Input:** type
   }),
   outputSchema: z.object({
-    // ... from task **Output:** type
+    // ... from **Output:** type
   }),
-  // Tools from **Tools needed:** - only include what the spec specifies
+  // Tools from **Tools needed:** - only include what the description specifies
   tools: {
     web_read: webRead,                     // (builtin)
     web_search: openai.tools.webSearch(),  // (provider)
@@ -237,9 +241,9 @@ export const <camelCaseName> = Agent.create({
 
 The `path.resolve(__dirname, ...)` pattern ensures the spec file is found relative to the executable file's location, not the current working directory.
 
-#### Generating Tools from Spec
+#### Generating Tools from Description
 
-The `**Tools needed:**` section explicitly specifies each tool with its type. Generate imports and tools record directly:
+The `**Tools needed:**` section in the node description explicitly specifies each tool with its type. Generate imports and tools record directly:
 
 ```markdown
 **Tools needed:**
@@ -267,9 +271,9 @@ tools: {
 
 ### When Context Is Insufficient
 
-If the task lacks `**Tools needed:**`, `**Guidelines:**`, or clear output type, ask:
+If the node description lacks `**Tools needed:**`, `**Guidelines:**`, or clear output type, ask:
 
-"Task N references `<agent-name>` agent but the task description is missing details:
+"Task N references `<agent-name>` agent but the description is missing details:
 - Tools needed: [missing/present]
 - Guidelines: [missing/present]
 - Output format: [missing/present]
@@ -296,77 +300,30 @@ When task logic is unclear, ask for clarification before generating code.
 1. Identify the ambiguity
 2. Ask ONE specific question
 3. Wait for user response
-4. Update the spec file with the clarified information
+4. Update the description field in the workflow or node file with the clarified information
 5. Continue compilation
-
-### Example
-
-Spec says:
-```markdown
-### 3. Check Quality
-See if the data is good enough.
-**Condition:** ???
-```
-
-Ask:
-"Task 3 'Check Quality' needs a concrete condition. What makes data 'good enough'?
-- A) A specific field value (e.g., `data.score >= 80`)
-- B) Presence of required fields
-- C) Other criteria (please describe)"
-
-After user answers, update the spec:
-```markdown
-### 3. Check Quality
-Verify the data meets minimum quality threshold.
-**Condition:** `data.score >= 80`
-```
 
 ---
 
 ## Code Generation
 
-Generate TypeScript file at `generated/workflows/<name>.ts`.
+Update the `run()` method in the existing `generated/workflows/<name>.ts` file. Do not regenerate the entire file — preserve the `description`, schemas, and imports, and update only what changed.
 
-### File Structure
+### Generated run() Structure
 
 ```typescript
-// generated/workflows/<name>.ts
-// Auto-generated by compile-workflow skill - do not edit directly
-import { z } from "zod";
-import { Workflow } from "0pflow";
-// ... node/tool imports ...
+async run(ctx, inputs: <Name>Input): Promise<<Name>Output> {
+  // Task 1: <Task Name>
+  // <task description as comment>
+  const <output_var> = await ctx.run(<nodeRef>, { <inputs> });
 
-// Input schema
-const <Name>InputSchema = z.object({
-  // ... from ## Inputs
-});
-type <Name>Input = z.infer<typeof <Name>InputSchema>;
+  // Task 2: <Decision or next task>
+  if (<condition>) {
+    // ...
+  }
 
-// Output schema (if ## Outputs exists)
-const <Name>OutputSchema = z.object({
-  // ... from ## Outputs
-});
-type <Name>Output = z.infer<typeof <Name>OutputSchema>;
-
-export const <camelCaseName> = Workflow.create({
-  name: "<kebab-case-name>",
-  version: <version>,
-  inputSchema: <Name>InputSchema,
-  outputSchema: <Name>OutputSchema, // omit if no outputs
-
-  async run(ctx, inputs: <Name>Input): Promise<<Name>Output> {
-    // Task 1: <Task Name>
-    // <task description as comment>
-    const <output_var> = await ctx.run(<nodeRef>, { <inputs> });
-
-    // Task 2: <Decision or next task>
-    if (<condition>) {
-      // ...
-    }
-
-    return { <output fields> };
-  },
-});
+  return { <output fields> };
+},
 ```
 
 ### Type Mapping
@@ -393,23 +350,23 @@ export const <camelCaseName> = Workflow.create({
 
 Follow these steps in order:
 
-### Step 1: Read and Parse Spec
+### Step 1: Read Workflow and Node Descriptions
 
-1. Read `specs/workflows/<name>.md`
-2. Parse frontmatter with gray-matter (name, version)
-3. Extract sections: Inputs, Tasks, Outputs (optional)
-4. If `## Steps` found instead of `## Tasks`, stop and ask user to rename it
+1. Read `generated/workflows/<name>.ts`
+2. Extract the `description` field from `Workflow.create()`
+3. Parse tasks from the description's `## Tasks` section
+4. For each task with a `**Node:**` reference, read the node/agent file and extract its `description` field
 
 ### Step 2: Validate Structure
 
-1. Verify required sections exist
-2. Check all tasks have required fields (Node or Condition)
+1. Verify tasks have required fields (Node or Condition)
+2. Check that referenced node/agent files exist
 3. List any missing or ambiguous elements
 
 ### Step 3: Resolve All Nodes
 
 For each task with a `**Node:**` reference:
-1. Determine node type (agent/function/tool)
+1. Determine node type (agent/node/builtin)
 2. Verify node exists or create stub
 3. Build import statement
 
@@ -417,45 +374,28 @@ For each task with a `**Node:**` reference:
 
 If any ambiguities found:
 1. Ask ONE question at a time
-2. Update spec with answer
+2. Update the relevant description field with answer
 3. Repeat until all ambiguities resolved
 
-### Step 5: Generate Code
+### Step 5: Update Code
 
-1. Create `generated/workflows/` directory if needed
-2. Generate TypeScript file
-3. Write to `generated/workflows/<name>.ts`
+1. Update imports in the workflow file as needed
+2. Regenerate the `run()` method based on descriptions
+3. Update schemas if typed **Input:**/**Output:** fields exist in node descriptions
 
 ### Step 6: Report Results
 
 Tell user:
-1. "Generated `generated/workflows/<name>.ts`"
-2. If stubs created: "Created agent stub(s): `specs/agents/<name>.md`"
+1. "Updated `generated/workflows/<name>.ts`"
+2. If stubs created: "Created agent stub(s): `agents/<name>.ts` + `specs/agents/<name>.md`"
 3. If function nodes missing: "Missing function node(s) that you need to implement: `src/nodes/<name>.ts`"
-
----
-
-## Example Compilation
-
-**Input:** `specs/workflows/url-summarizer.md`
-
-**Process:**
-1. Parse spec - found: name=url-summarizer, version=1, 1 input, 3 tasks, 4 outputs
-2. Resolve nodes:
-   - Task 1: `web_read` (node) - built-in ✓
-   - Task 2: Decision - no node needed
-   - Task 3: `page-summarizer` (agent) - check specs/agents/... found ✓
-3. No ambiguities
-4. Generate code
-
-**Output:** `generated/workflows/url-summarizer.ts`
 
 ---
 
 ## Compiler Principles
 
-1. **No invention** - Only emit code that directly maps to spec
+1. **No invention** - Only emit code that directly maps to descriptions
 2. **Fail closed** - Missing info → ask, don't guess
-3. **Deterministic** - Same spec → same output
+3. **Deterministic** - Same descriptions → same output
 4. **Readable output** - Generated code should be understandable
-5. **Update specs** - When clarifying, update the spec file so it stays canonical
+5. **Update descriptions** - When clarifying, update the description field so it stays canonical

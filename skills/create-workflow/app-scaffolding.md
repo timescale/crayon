@@ -74,8 +74,7 @@ The tools scaffold a T3 Stack application with 0pflow directories:
 │   ├── trpc/              # tRPC client setup
 │   └── nodes/             # Custom node implementations
 ├── specs/
-│   ├── workflows/         # Workflow specifications
-│   └── agents/            # Agent definitions
+│   └── agents/            # Agent runtime specs (system prompts)
 ├── generated/
 │   └── workflows/         # Compiled TypeScript workflows
 ├── agents/                # Agent implementations

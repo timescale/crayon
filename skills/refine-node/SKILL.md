@@ -1,11 +1,11 @@
 ---
 name: refine-node
-description: Refine node definitions in a workflow spec - determines HOW each node is implemented (SDKs, libraries, input/output structures, tools, guidelines).
+description: Refine node definitions - determines HOW each node is implemented (SDKs, libraries, input/output structures, tools, guidelines).
 ---
 
 # Refine Node
 
-Refine node definitions in an existing workflow spec. While create-workflow determines **WHAT** each node does, this phase determines **HOW**:
+Refine node definitions in existing node and agent files. While create-workflow determines **WHAT** each node does, this phase determines **HOW**:
 
 - **Input/Output structures** - Exact typed schemas (field names, types)
 - **Implementation approach** - Which SDKs, libraries, or APIs to use
@@ -21,7 +21,7 @@ Refine node definitions in an existing workflow spec. While create-workflow dete
 /0pflow:refine-node <workflow-name> <node-name>
 ```
 
-- With just workflow name: refines all unrefined nodes
+- With just workflow name: refines all unrefined nodes in the workflow
 - With node name: refines only that specific node
 
 ---
@@ -30,9 +30,9 @@ Refine node definitions in an existing workflow spec. While create-workflow dete
 
 ### Step 1: Load and Assess
 
-Read `specs/workflows/<workflow-name>.md` and identify nodes needing refinement.
+Read `generated/workflows/<workflow-name>.ts` and parse its `description` field to find all task nodes. Then read each referenced node/agent file and check its `description` field.
 
-A node **needs refinement** if it has `**Input Description:**` / `**Output Description:**` (plain language) but is missing `**Input:**` / `**Output:**` (typed schemas).
+A node **needs refinement** if its `description` has `**Input Description:**` / `**Output Description:**` (plain language) but is missing typed `**Input:**` / `**Output:**` fields, and its `inputSchema` / `outputSchema` are empty `z.object({})`.
 
 ### Step 2: Research Implementation Approaches
 
@@ -52,7 +52,7 @@ Before drafting, gather the information needed:
 
 ### Step 3: Draft All Refinements
 
-Draft the complete refined definition for **every node that needs it**, then update the spec file with all refinements at once.
+Draft the complete refined definition for **every node that needs it**, then update all files at once.
 
 For each node, determine:
 
@@ -81,12 +81,26 @@ Common mappings:
 | Run Python code | `openai.tools.codeInterpreter()` | provider |
 | Domain-specific (CRM, email) | User must implement | user node |
 
-### Refined Spec Format
+### What to Update in Node Files
 
-**Agent nodes:**
+For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
+
+1. **The `description` field** — add typed schemas and (for agents) tools/guidelines:
+
+**Refined node description:**
 ```markdown
-### N. Task Name
+<Expanded description>
 
+**Implementation:** <SDK, library, or approach>
+
+**Input Description:** <original from create-workflow>
+**Input:** `{ field: type, field2: type }`
+**Output Description:** <original from create-workflow>
+**Output:** `var_name: { field: type, field2?: type }`
+```
+
+**Refined agent description:**
+```markdown
 <Expanded description>
 
 **Implementation:** <SDK, library, or approach>
@@ -96,26 +110,17 @@ Common mappings:
   - myCustomNode (user node in src/nodes/my-custom-node.ts)
 **Guidelines:** <specific guidelines>
 
-**Node:** `node-name` (agent)
 **Input Description:** <original from create-workflow>
-**Input:** `var_name: type` or `{ field: type, field2: type }`
+**Input:** `{ field: type, field2: type }`
 **Output Description:** <original from create-workflow>
 **Output:** `var_name: { field: type, field2?: type }`
 ```
 
-**Function/node nodes:**
-```markdown
-### N. Task Name
+2. **The `inputSchema` and `outputSchema`** — replace empty `z.object({})` with proper Zod types
 
-<Description>
+3. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
 
-**Implementation:** <SDK, library, or approach>
-**Node:** `node-name` (node)
-**Input Description:** <original>
-**Input:** `var_name: type` or `{ field: type }`
-**Output Description:** <original>
-**Output:** `var_name: { field: type, field2?: type }`
-```
+4. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines and output format sections
 
 ### Type Syntax
 
@@ -126,10 +131,10 @@ Common mappings:
 
 ### Step 4: Write and Continue
 
-After writing all refinements to the spec:
+After writing all refinements:
 
-- Tell the user the spec has been updated
-- Invoke `/0pflow:compile-workflow` to generate TypeScript
+- Tell the user the node files have been updated
+- Invoke `/0pflow:compile-workflow` to regenerate the workflow's `run()` method with proper types
 
 ---
 
