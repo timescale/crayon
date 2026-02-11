@@ -132,6 +132,15 @@ export function configureWorkflowRuntime(sql: pg.Pool | null): void {
 }
 
 /**
+ * Return type for createNodeWrapper — the executable plus a setter
+ * to override the workflow name used for connection resolution.
+ */
+export interface NodeWrapper<TInput = unknown, TOutput = unknown> {
+  executable: WorkflowExecutable<TInput, TOutput>;
+  setParentWorkflowName: (name: string | undefined) => void;
+}
+
+/**
  * Factory for creating workflow executables
  */
 export const Workflow = {
@@ -161,6 +170,48 @@ export const Workflow = {
       outputSchema: definition.outputSchema,
       // execute ignores the ctx param and uses DBOS context instead
       execute: (_ctx: WorkflowContext, inputs: TInput) => durableWorkflow(inputs),
+    };
+  },
+
+  /**
+   * Create a wrapper workflow for running a node standalone.
+   * Uses the same _parentWorkflowName pattern as Agent.create() so
+   * connection resolution uses the real workflow name instead of the
+   * synthetic `_node_<name>` wrapper name.
+   */
+  createNodeWrapper<TInput, TOutput>(
+    nodeName: string,
+    node: Executable<TInput, TOutput>,
+  ): NodeWrapper<TInput, TOutput> {
+    const wrapperName = `_node_${nodeName}`;
+
+    // Parent workflow name for connection resolution (same pattern as Agent)
+    let _parentWorkflowName: string | undefined;
+
+    async function wrapperImpl(inputs: TInput): Promise<TOutput> {
+      const ctx = createDurableContext({
+        sql: getWorkflowPool(),
+        workflowName: _parentWorkflowName ?? wrapperName,
+      });
+      _parentWorkflowName = undefined;
+      return ctx.run(node, inputs);
+    }
+
+    const durableWrapper = DBOS.registerWorkflow(wrapperImpl, {
+      name: wrapperName,
+    });
+
+    return {
+      executable: {
+        name: wrapperName,
+        type: "workflow",
+        description: `Wrapper workflow for node ${nodeName}`,
+        version: 1,
+        inputSchema: node.inputSchema,
+        outputSchema: node.outputSchema,
+        execute: (_ctx: WorkflowContext, inputs: TInput) => durableWrapper(inputs),
+      },
+      setParentWorkflowName: (name) => { _parentWorkflowName = name; },
     };
   },
 };

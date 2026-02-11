@@ -283,8 +283,9 @@ node
   .command("run <name>")
   .description("Run a node (wrapped in workflow for durability)")
   .option("-i, --input <json>", "JSON input for the node", "{}")
+  .option("-w, --workflow <name>", "Workflow name for connection resolution")
   .option("--json", "Output result as JSON")
-  .action(async (nodeName: string, options: { input: string; json?: boolean }) => {
+  .action(async (nodeName: string, options: { input: string; workflow?: string; json?: boolean }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment
@@ -344,7 +345,7 @@ node
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          pflow.triggerNode(nodeName, inputs),
+          pflow.triggerNode(nodeName, inputs, { workflowName: options.workflow }),
         );
 
         if (writeJson) {

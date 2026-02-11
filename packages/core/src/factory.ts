@@ -4,7 +4,7 @@ import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
-import { Workflow, configureWorkflowRuntime } from "./workflow.js";
+import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow.js";
 import { initNango, ensureConnectionsTable } from "./connections/index.js";
 import pg from "pg";
 
@@ -21,19 +21,11 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
 
   // Pre-create wrapper workflows for all nodes BEFORE DBOS.launch()
   // This is required because DBOS doesn't allow registering workflows after launch
-  const nodeWrapperCache = new Map<string, ReturnType<typeof Workflow.create>>();
+  const nodeWrapperCache = new Map<string, NodeWrapper>();
   for (const nodeName of registry.listNodes()) {
     const node = registry.getNode(nodeName);
     if (node) {
-      const wrapper = Workflow.create({
-        name: `_node_${nodeName}`,
-        description: `Wrapper workflow for node ${nodeName}`,
-        version: 1,
-        inputSchema: node.inputSchema,
-        outputSchema: node.outputSchema,
-        run: async (ctx, nodeInputs) => ctx.run(node, nodeInputs),
-      });
-      nodeWrapperCache.set(nodeName, wrapper);
+      nodeWrapperCache.set(nodeName, Workflow.createNodeWrapper(nodeName, node));
     }
   }
 
@@ -94,7 +86,8 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
 
     triggerNode: async <T = unknown>(
       name: string,
-      inputs: unknown
+      inputs: unknown,
+      options?: { workflowName?: string },
     ): Promise<T> => {
       const node = registry.getNode(name);
       if (!node) {
@@ -107,9 +100,14 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
         throw new Error(`No wrapper workflow found for node "${name}"`);
       }
 
+      // Set parent workflow name for connection resolution (same pattern as Agent)
+      if (options?.workflowName) {
+        wrapper.setParentWorkflowName(options.workflowName);
+      }
+
       // Validate inputs and execute via wrapper workflow
       const validated = node.inputSchema.parse(inputs);
-      return wrapper.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+      return wrapper.executable.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
     },
 
     shutdown: async () => {

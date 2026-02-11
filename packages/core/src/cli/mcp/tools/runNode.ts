@@ -16,6 +16,10 @@ const execFileAsync = promisify(execFile);
 
 const inputSchema = {
   node_name: z.string().describe("Name of the node to run"),
+  workflow_name: z
+    .string()
+    .optional()
+    .describe("Workflow name for connection resolution (uses the workflow's configured connections)"),
   input: z
     .record(z.string(), z.unknown())
     .optional()
@@ -53,17 +57,21 @@ export const runNodeFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ node_name, input }): Promise<OutputSchema> => {
+    fn: async ({ node_name, workflow_name, input }): Promise<OutputSchema> => {
       const [runtime, script] = process.argv;
 
       try {
-        const { stdout } = await execFileAsync(runtime, [
+        const args = [
           ...process.execArgv,
           script,
           "node", "run", node_name,
           "--json",
           "-i", JSON.stringify(input),
-        ], { cwd: process.cwd() });
+        ];
+        if (workflow_name) {
+          args.push("-w", workflow_name);
+        }
+        const { stdout } = await execFileAsync(runtime, args, { cwd: process.cwd() });
 
         return JSON.parse(stdout) as OutputSchema;
       } catch (err: unknown) {

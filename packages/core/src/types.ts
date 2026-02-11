@@ -85,7 +85,7 @@ export interface Pflow {
   /** Get a node by name */
   getNode: (name: string) => AnyExecutable | undefined;
   /** Trigger a node by name (wrapped in workflow for durability) */
-  triggerNode: <T = unknown>(name: string, inputs: unknown) => Promise<T>;
+  triggerNode: <T = unknown>(name: string, inputs: unknown, options?: { workflowName?: string }) => Promise<T>;
   /** Shutdown the 0pflow instance and DBOS */
   shutdown: () => Promise<void>;
 }
