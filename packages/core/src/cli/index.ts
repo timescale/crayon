@@ -3,8 +3,10 @@ import { Command } from "commander";
 import pc from "picocolors";
 import Table from "cli-table3";
 import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import { create0pflow } from "../index.js";
 import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
@@ -67,6 +69,17 @@ function formatOutput(output: unknown): string {
   }
 }
 
+/**
+ * Redirect stdout to stderr so dependency noise (DBOS logger, dotenv, etc.)
+ * doesn't pollute JSON output. Returns a function that writes directly to
+ * the real stdout for the final JSON result.
+ */
+function captureStdout(): (data: string) => void {
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = process.stderr.write.bind(process.stderr) as typeof process.stdout.write;
+  return (data: string) => { originalWrite(data + "\n"); };
+}
+
 const program = new Command();
 
 program
@@ -125,6 +138,7 @@ workflow
   .option("-i, --input <json>", "JSON input for the workflow", "{}")
   .option("--json", "Output result as JSON")
   .action(async (workflowName: string, options: { input: string; json?: boolean }) => {
+    const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment (all .env vars into process.env)
       resolveEnv();
@@ -192,11 +206,15 @@ workflow
       });
 
       try {
-        const result = await pflow.triggerWorkflow(wf.name, inputs);
+        const runId = randomUUID();
+        const result = await DBOS.withNextWorkflowID(runId, () =>
+          pflow.triggerWorkflow(wf.name, inputs),
+        );
 
-        if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
+        if (writeJson) {
+          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result }));
         } else {
+          console.log(pc.dim(`Run ID: ${runId}`));
           console.log(pc.green("\nResult:"));
           console.log(JSON.stringify(result, null, 2));
         }
@@ -204,7 +222,12 @@ workflow
         await pflow.shutdown();
       }
     } catch (err) {
-      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      const msg = err instanceof Error ? err.message : String(err);
+      if (writeJson) {
+        writeJson(JSON.stringify({ status: "ERROR", error: msg }));
+      } else {
+        console.error(pc.red(`Error: ${msg}`));
+      }
       process.exit(1);
     }
   });
@@ -262,6 +285,7 @@ node
   .option("-i, --input <json>", "JSON input for the node", "{}")
   .option("--json", "Output result as JSON")
   .action(async (nodeName: string, options: { input: string; json?: boolean }) => {
+    const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment
       resolveEnv();
@@ -318,11 +342,15 @@ node
       });
 
       try {
-        const result = await pflow.triggerNode(nodeName, inputs);
+        const runId = randomUUID();
+        const result = await DBOS.withNextWorkflowID(runId, () =>
+          pflow.triggerNode(nodeName, inputs),
+        );
 
-        if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
+        if (writeJson) {
+          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result }));
         } else {
+          console.log(pc.dim(`Run ID: ${runId}`));
           console.log(pc.green("\nResult:"));
           console.log(JSON.stringify(result, null, 2));
         }
@@ -330,7 +358,12 @@ node
         await pflow.shutdown();
       }
     } catch (err) {
-      console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
+      const msg = err instanceof Error ? err.message : String(err);
+      if (writeJson) {
+        writeJson(JSON.stringify({ status: "ERROR", error: msg }));
+      } else {
+        console.error(pc.red(`Error: ${msg}`));
+      }
       process.exit(1);
     }
   });

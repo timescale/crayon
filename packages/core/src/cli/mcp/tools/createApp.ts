@@ -1,6 +1,6 @@
 import { exec } from "node:child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import { packageRoot, version } from "../config.js";
@@ -26,6 +26,11 @@ const execAsync = (cmd: string, cwd?: string) =>
 
 const inputSchema = {
   app_name: z.string().describe("Application name (lowercase with hyphens, e.g., 'lead-scoring-app')"),
+  directory: z
+    .string()
+    .optional()
+    .default(".")
+    .describe("Directory to create the app in, relative to cwd (default: current directory). Created if it doesn't exist."),
   install_deps: z
     .boolean()
     .default(true)
@@ -60,10 +65,16 @@ export const createAppFactory: ApiFactory<
     },
     fn: async ({
       app_name,
+      directory,
       install_deps,
     }): Promise<OutputSchema> => {
       const appName = app_name;
-      const appPath = process.cwd();
+      const appPath = resolve(process.cwd(), directory);
+
+      // Ensure target directory exists
+      if (!existsSync(appPath)) {
+        mkdirSync(appPath, { recursive: true });
+      }
 
       try {
         // Copy app template with Handlebars substitution

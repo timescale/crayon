@@ -12,9 +12,11 @@ import type { ServerContext } from "../types.js";
 const execAsync = promisify(exec);
 
 const inputSchema = {
-  application_directory: z
+  directory: z
     .string()
-    .describe("Path to the application directory"),
+    .optional()
+    .default(".")
+    .describe("Directory of the application, relative to cwd (default: current working directory)"),
   service_id: z.string().describe("Tiger Cloud service ID for the database"),
   app_name: z
     .string()
@@ -80,11 +82,11 @@ export const setupAppSchemaFactory: ApiFactory<
       outputSchema,
     },
     fn: async ({
-      application_directory,
+      directory,
       service_id,
       app_name,
     }): Promise<OutputSchema> => {
-      const appDir = resolve(process.cwd(), application_directory);
+      const appDir = resolve(process.cwd(), directory);
       const envPath = join(appDir, ".env");
 
       // Check if we've already run this tool (DATABASE_SCHEMA is only set by us)
@@ -142,7 +144,6 @@ export const setupAppSchemaFactory: ApiFactory<
         );
 
         if (existingUser.rows.length > 0) {
-          await pool.end();
           return {
             success: false,
             message: `User '${app_name}' already exists. Choose a different app name or delete the existing user.`,
@@ -203,8 +204,6 @@ export const setupAppSchemaFactory: ApiFactory<
           );
         }
 
-        await pool.end();
-
         // Build app connection string
         const appDatabaseUrl = buildConnectionString(
           adminConnectionString,
@@ -237,12 +236,13 @@ export const setupAppSchemaFactory: ApiFactory<
 
         await writeFile(envPath, `${newEnvContent}\n`);
       } catch (err) {
-        await pool.end();
         const error = err as Error;
         return {
           success: false,
           message: `Failed to set up app schema: ${error.message}`,
         };
+      } finally {
+        await pool.end();
       }
 
       return {

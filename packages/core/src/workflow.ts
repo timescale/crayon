@@ -111,17 +111,24 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
 }
 
 /**
- * Module-level runtime config, set by factory
+ * Runtime pool stored on globalThis so it's shared across module instances.
+ * This is necessary because jiti-loaded workflow files may import a different
+ * copy of this module than the compiled MCP server code that calls
+ * configureWorkflowRuntime().
  * @internal
  */
-let workflowRuntimeSql: pg.Pool | null = null;
+const POOL_KEY = Symbol.for("opflow.getWorkflowPool()");
+
+function getWorkflowPool(): pg.Pool | null {
+  return (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] ?? null;
+}
 
 /**
  * Configure the workflow runtime SQL connection (called by factory)
  * @internal
  */
 export function configureWorkflowRuntime(sql: pg.Pool | null): void {
-  workflowRuntimeSql = sql;
+  (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] = sql;
 }
 
 /**
@@ -134,7 +141,7 @@ export const Workflow = {
     // Create the DBOS-registered workflow function
     async function workflowImpl(inputs: TInput): Promise<TOutput> {
       const ctx = createDurableContext({
-        sql: workflowRuntimeSql,
+        sql: getWorkflowPool(),
         workflowName: definition.name,
       });
       return definition.run(ctx, inputs);

@@ -21,7 +21,7 @@ claude --plugin-dir /path/to/0pflow
 - `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, typed schemas to nodes)
 - `/0pflow:compile-workflow` - Update workflow implementation from embedded descriptions
 - `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
-- `/0pflow:cli` - Reference for 0pflow CLI commands (list, run, history)
+
 
 ## Key Documents
 

@@ -4,9 +4,13 @@ When starting a new 0pflow project from scratch, use the `mcp__plugin_0pflow_0pf
 
 ## Pre-Flight Check
 
-Before scaffolding, verify:
-1. The target directory is empty or doesn't exist yet
-2. Ask the user for an app name (lowercase, hyphens, e.g., `lead-scoring-app`)
+Before scaffolding:
+1. Ask the user for an app name (lowercase, hyphens, e.g., `lead-scoring-app`)
+2. Determine the `directory` parameter:
+   - **Empty directory:** Omit `directory` (defaults to `"."` = cwd)
+   - **Existing non-0pflow directory:** Set `directory` to the app name (e.g., `"lead-scoring-app"`)
+
+Use this same `directory` value consistently in both `create_app` and `setup_app_schema` below.
 
 ## Step 1: Database Setup
 
@@ -26,43 +30,33 @@ Store the returned `service_id` - you'll need it later for database migrations a
 
 Ask for the `service_id` of the existing Tiger Cloud database. You can list available databases with `mcp__tiger__service_list` if the user needs help finding it.
 
-## Step 2: Create App with mcp__plugin_0pflow_0pflow-local-tools__create_app Tool
+## Step 2: Create App with create_app Tool
 
-Call the `mcp__plugin_0pflow_0pflow-local-tools__create_app` MCP tool with the following parameters:
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `app_name` | Yes | Application name (lowercase with hyphens, guess from the directory name or ask the user) |
-| `install_deps` | No | Run npm install (default: true) |
-
-**Example:**
 ```
-mcp__plugin_0pflow_0pflow-local-tools__create_app(
-  app_name: "lead-scoring-app",
-  install_deps: true
+create_app(
+  app_name: "<app-name>",
+  directory: "<directory>"
 )
 ```
 
 ## Step 3: Setup Database Schema
 
-Once the database is ready (poll with `mcp__tiger__service_get` if needed), use `mcp__plugin_0pflow_0pflow-local-tools__setup_app_schema` to configure the database connection:
+Once the database is ready (poll with `mcp__tiger__service_get` if needed), use `setup_app_schema` to configure the database connection.
 
 ```
-mcp__plugin_0pflow_0pflow-local-tools__setup_app_schema(
-  application_directory: "<app_name>",
+setup_app_schema(
+  directory: "<directory>",
   service_id: "<service_id from step 1>",
   app_name: "<app_name with underscores, e.g., lead_scoring_app>"
 )
 ```
 
-**IMPORTANT:** The `application_directory` must be the **name of the newly created app subdirectory** (e.g., `"lead-scoring-app"`), NOT the parent directory you ran `create_app` from. If you're in `/Users/me/projects` and created app `my-app`, pass `"my-app"` — not `/Users/me/projects`.
+**Note:** The `app_name` parameter must be lowercase with underscores (not hyphens) for PostgreSQL compatibility.
 
 This tool:
 - Creates a PostgreSQL user and schema named after the app
 - Writes `DATABASE_URL` and `DATABASE_SCHEMA` to the app's `.env` file
 - Sets up proper permissions and search paths
-
-**Note:** The `app_name` parameter must be lowercase with underscores (not hyphens) for PostgreSQL compatibility.
 
 ## What the Tools Create
 

@@ -47,14 +47,18 @@ interface AgentRuntimeConfig {
   pool: pg.Pool | null;
 }
 
-let agentRuntimeConfig: AgentRuntimeConfig | null = null;
+const AGENT_CONFIG_KEY = Symbol.for("opflow.getAgentRuntimeConfig()");
+
+function getAgentRuntimeConfig(): AgentRuntimeConfig | null {
+  return (globalThis as Record<symbol, AgentRuntimeConfig | null>)[AGENT_CONFIG_KEY] ?? null;
+}
 
 /**
  * Configure the agent runtime (called by factory)
  * @internal
  */
 export function configureAgentRuntime(config: AgentRuntimeConfig): void {
-  agentRuntimeConfig = config;
+  (globalThis as Record<symbol, AgentRuntimeConfig | null>)[AGENT_CONFIG_KEY] = config;
 }
 
 /**
@@ -94,7 +98,8 @@ function createAgentContext(
     },
 
     getConnection: async (integrationId: string): Promise<ConnectionCredentials> => {
-      if (!agentRuntimeConfig?.pool) {
+      const runtimeConfig = getAgentRuntimeConfig();
+      if (!runtimeConfig?.pool) {
         throw new Error(
           "Connection management not configured. Set NANGO_SECRET_KEY and DATABASE_URL.",
         );
@@ -118,7 +123,7 @@ function createAgentContext(
       const resolveNode = parentNodeName ?? _currentNodeName;
 
       const connectionId = await resolveConnectionId(
-        agentRuntimeConfig.pool,
+        runtimeConfig.pool,
         resolveWorkflow,
         resolveNode,
         integrationId,
@@ -158,7 +163,8 @@ export const Agent = {
 
     // Create the DBOS-registered workflow function for this agent
     async function agentWorkflowImpl(inputs: TInput): Promise<TOutput> {
-      if (!agentRuntimeConfig) {
+      const runtimeConfig = getAgentRuntimeConfig();
+      if (!runtimeConfig) {
         throw new Error(
           "Agent runtime not configured. Make sure to use create0pflow() before executing agents."
         );
@@ -184,8 +190,8 @@ export const Agent = {
         spec,
         userMessage,
         tools,
-        nodeRegistry: agentRuntimeConfig.nodeRegistry,
-        modelConfig: agentRuntimeConfig.modelConfig,
+        nodeRegistry: runtimeConfig.nodeRegistry,
+        modelConfig: runtimeConfig.modelConfig,
         outputSchema: definition.outputSchema,
         integrations: definition.integrations,
       });

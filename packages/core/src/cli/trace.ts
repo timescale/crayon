@@ -151,7 +151,7 @@ function formatDuration(ms: number | null): string {
  * Parse and unwrap DBOS/superjson output format
  * Handles: raw values, JSON strings, and {"json": ..., "__dbos_serializer": "superjson"} wrappers
  */
-function parseOutput(output: unknown): unknown {
+export function parseOutput(output: unknown): unknown {
   if (output === null || output === undefined) return null;
   try {
     const parsed = typeof output === "string" ? JSON.parse(output) : output;

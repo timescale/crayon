@@ -15,10 +15,10 @@ const inputSchema = {
     ),
   workflow_name: z
     .string()
-    .describe("Workflow name for scoped lookup, or '*' for global default. Falls back to '*' if no exact match."),
+    .describe("Workflow name for connection lookup. Used to resolve workflow/node-scoped connections, with fallback to global default."),
   node_name: z
     .string()
-    .describe("Node name for scoped lookup, or '*' for global default. Falls back to '*' if no exact match."),
+    .describe("Node name for connection lookup. Used to resolve workflow/node-scoped connections, with fallback to global default."),
 } as const;
 
 const outputSchema = {

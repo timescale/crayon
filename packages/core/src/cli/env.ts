@@ -33,7 +33,7 @@ export function findEnvFile(startDir: string): string | null {
  * Throws if DATABASE_URL is not set (required for 0pflow)
  */
 export function loadEnv(envPath: string): void {
-  const result = dotenv.config({ path: envPath });
+  const result = dotenv.config({ path: envPath, quiet: true });
 
   if (result.error) {
     throw new Error(`Failed to load .env: ${result.error.message}`);
