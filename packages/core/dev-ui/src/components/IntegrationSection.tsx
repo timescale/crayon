@@ -15,7 +15,7 @@ export function IntegrationSection({
   nodeName,
   connectionsApi,
 }: IntegrationSectionProps) {
-  const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId);
+  const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId, connectionsApi.mutationVersion);
   const [connecting, setConnecting] = useState(false);
 
   const current = connectionsApi.getForNode(workflowName, nodeName, integrationId);
@@ -49,8 +49,24 @@ export function IntegrationSection({
       const nango = new Nango();
       nango.openConnectUI({
         sessionToken: token,
-        onEvent: (event: { type: string }) => {
-          if (event.type === "close" || event.type === "connect") {
+        onEvent: async (event) => {
+          if (event.type === "connect") {
+            refetch();
+            // Auto-assign the newly created connection to this node
+            const connectionId = event.payload.connectionId;
+            if (connectionId) {
+              await handleSelect(connectionId);
+              // Also set global default when connecting from a node-specific context
+              if (workflowName !== "*") {
+                await connectionsApi.upsert({
+                  workflow_name: "*",
+                  node_name: "*",
+                  integration_id: integrationId,
+                  connection_id: connectionId,
+                });
+              }
+            }
+          } else if (event.type === "close") {
             refetch();
           }
         },
@@ -60,7 +76,7 @@ export function IntegrationSection({
     } finally {
       setConnecting(false);
     }
-  }, [integrationId, refetch]);
+  }, [integrationId, refetch, handleSelect, workflowName, connectionsApi]);
 
   return (
     <div className="flex flex-col gap-1.5">

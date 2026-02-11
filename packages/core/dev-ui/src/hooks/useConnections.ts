@@ -18,6 +18,7 @@ export interface NangoConnection {
 export function useConnections() {
   const [connections, setConnections] = useState<ConnectionMapping[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mutationVersion, setMutationVersion] = useState(0);
 
   const fetchConnections = useCallback(async () => {
     try {
@@ -44,6 +45,7 @@ export function useConnections() {
         body: JSON.stringify(mapping),
       });
       await fetchConnections();
+      setMutationVersion((v) => v + 1);
     },
     [fetchConnections],
   );
@@ -60,6 +62,7 @@ export function useConnections() {
         }),
       });
       await fetchConnections();
+      setMutationVersion((v) => v + 1);
     },
     [fetchConnections],
   );
@@ -86,7 +89,7 @@ export function useConnections() {
     [connections],
   );
 
-  return { connections, loading, upsert, remove, getForNode, refetch: fetchConnections };
+  return { connections, loading, upsert, remove, getForNode, refetch: fetchConnections, mutationVersion };
 }
 
 export interface NangoIntegration {
@@ -116,28 +119,31 @@ export function useNangoIntegrations() {
   return { integrations, loading };
 }
 
-export function useNangoConnections(integrationId: string | null) {
+export function useNangoConnections(integrationId: string | null, mutationVersion = 0) {
   const [nangoConnections, setNangoConnections] = useState<NangoConnection[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchNangoConnections = useCallback(async () => {
-    if (!integrationId) return;
+  const fetchNangoConnections = useCallback(async (): Promise<NangoConnection[]> => {
+    if (!integrationId) return [];
     setLoading(true);
     try {
       const res = await fetch(`/api/nango/connections/${encodeURIComponent(integrationId)}`);
       if (res.ok) {
-        setNangoConnections(await res.json());
+        const data: NangoConnection[] = await res.json();
+        setNangoConnections(data);
+        return data;
       }
     } catch {
       // API may not be available
     } finally {
       setLoading(false);
     }
+    return [];
   }, [integrationId]);
 
   useEffect(() => {
     fetchNangoConnections();
-  }, [fetchNangoConnections]);
+  }, [fetchNangoConnections, mutationVersion]);
 
   return { nangoConnections, loading, refetch: fetchNangoConnections };
 }

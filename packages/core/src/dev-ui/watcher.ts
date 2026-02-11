@@ -52,7 +52,14 @@ export function createWatcher(options: WatcherOptions) {
             if (importFile.endsWith(".js")) {
               importFile = importFile.slice(0, -3) + ".ts";
             }
-            const resolvedPath = resolve(dirname(absPath), importFile);
+            let resolvedPath = resolve(dirname(absPath), importFile);
+            if (!existsSync(resolvedPath)) {
+              // Fallback: try resolving relative to project root
+              // Handles cases where generated workflow imports use paths
+              // relative to project root (e.g. "../src/nodes/..." from generated/workflows/)
+              const stripped = importFile.replace(/^(\.\.\/)+/, "");
+              resolvedPath = resolve(projectRoot, stripped);
+            }
             if (!existsSync(resolvedPath)) continue;
             const nodeSource = readFileSync(resolvedPath, "utf-8");
             const name = await extractNodeName(nodeSource);
