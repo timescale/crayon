@@ -42,6 +42,7 @@ Before drafting, gather the information needed:
    - Invoke `/0pflow:integrations` to determine which SDK/library/API to use
    - For listed integrations: read the specific file (e.g., `salesforce.md`)
    - For unlisted systems: read `unlisted.md` and research the best option
+   - **CRITICAL — Connection Gate:** Call `get_connection_info` for each integration the node needs. **If the call fails** (no connection configured), you MUST stop immediately. Do NOT create SDK files, client code, integration directories, or any implementation that depends on a live connection. Tell the user which connections are missing and ask them to set them up in the Dev UI, then say "continue" when ready.
 
 2. **For agent nodes**, check AI SDK provider docs for available tools:
    - **OpenAI:** https://ai-sdk.dev/providers/ai-sdk-providers/openai

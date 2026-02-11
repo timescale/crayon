@@ -76,12 +76,16 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
 
 ### Step-by-step
 
-1. **Write the workflow file** — create `generated/workflows/<name>.ts` with the scaffold template below, including a flow-only `description` field and an empty `run()` method.
+**IMPORTANT: Write one node at a time, not all at once.** The Dev UI watches for file changes — each save updates the graph live. Batch-writing all nodes defeats this and gives the user no chance to see the workflow take shape.
 
-2. **For each task in order:**
-   a. Add the task to the workflow's `description` field
-   b. Create the node/agent stub file with its own `description` field (see Node Stub Creation below)
-   c. Add the `ctx.run()` call to the workflow's `run()` method — the Dev UI graph gains a new node immediately
+1. **Write the workflow file** — create `generated/workflows/<name>.ts` with the scaffold template below, including a flow-only `description` field and an empty `run()` method. Import nothing yet.
+
+2. **For each task in order** (one at a time — save the workflow file after each):
+   a. Create the node/agent stub file with its own `description` field (see Node Stub Creation below)
+   b. Add the import to the workflow file
+   c. Add the task to the workflow's `description` field
+   d. Add the `ctx.run()` call to the workflow's `run()` method
+   e. **Save the workflow file** — the Dev UI graph gains a new node immediately
 
 3. After all tasks are written, invoke `/0pflow:refine-node` to add typed schemas and implementation details.
        

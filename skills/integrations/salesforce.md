@@ -4,6 +4,12 @@ Guide for generating typed Salesforce query nodes using GraphQL with `graphql-re
 
 ---
 
+## CRITICAL: Connection Required
+
+**This entire setup requires a live Salesforce connection via Nango.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce in the Dev UI, then say "continue" when ready.
+
+---
+
 ## Important: Schema-Driven Development
 
 **Never guess at Salesforce field names or object structures.** Every Salesforce org has different custom fields, objects, and configurations.
@@ -15,9 +21,9 @@ During **node refinement** (`/0pflow:refine-node`), when a workflow needs Salesf
 3. The schema is saved to `src/integrations/salesforce/schemas/schema-clean.json`
 4. Read this file to see available objects, fields, and their types
 5. Define the node's output schema in the spec based on available fields
-6. **STOP HERE during refinement** - do not proceed to codegen or creating the actual node
+6. **STOP HERE during refinement** — do not proceed to codegen or creating the actual node. The actual GraphQL operations and node code are created later during `/0pflow:compile-workflow`.
 
-The actual GraphQL operations and node code are created later during `/0pflow:compile-workflow`. Refinement is only about understanding what's available and defining the spec.
+Refinement is only about understanding what's available and defining the spec.
 
 ---
 

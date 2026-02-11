@@ -55,6 +55,8 @@ mcp__plugin_0pflow_0pflow-local-tools__setup_app_schema(
 )
 ```
 
+**IMPORTANT:** The `application_directory` must be the **name of the newly created app subdirectory** (e.g., `"lead-scoring-app"`), NOT the parent directory you ran `create_app` from. If you're in `/Users/me/projects` and created app `my-app`, pass `"my-app"` — not `/Users/me/projects`.
+
 This tool:
 - Creates a PostgreSQL user and schema named after the app
 - Writes `DATABASE_URL` and `DATABASE_SCHEMA` to the app's `.env` file
