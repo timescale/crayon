@@ -4,7 +4,7 @@ import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import * as dotenv from "dotenv";
 import type { ServerContext } from "../types.js";
-import type { IntegrationProvider } from "../../../connections/integration-provider.js";
+import { createIntegrationProvider } from "../../../connections/integration-provider.js";
 
 const inputSchema = {} as const;
 
@@ -27,7 +27,7 @@ type OutputSchema = {
  * Create an IntegrationProvider based on available env vars.
  * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
  */
-async function createProvider(): Promise<IntegrationProvider> {
+async function createProvider() {
   // Check .env file for NANGO_SECRET_KEY
   const envPath = join(process.cwd(), ".env");
   let nangoSecretKey: string | undefined;
@@ -36,15 +36,7 @@ async function createProvider(): Promise<IntegrationProvider> {
     const env = dotenv.parse(content);
     nangoSecretKey = env.NANGO_SECRET_KEY;
   }
-  nangoSecretKey = nangoSecretKey ?? process.env.NANGO_SECRET_KEY;
-
-  if (nangoSecretKey) {
-    const { createLocalIntegrationProvider } = await import("../../../connections/local-integration-provider.js");
-    return createLocalIntegrationProvider(nangoSecretKey);
-  } else {
-    const { CloudIntegrationProvider } = await import("../../../connections/cloud-integration-provider.js");
-    return new CloudIntegrationProvider();
-  }
+  return createIntegrationProvider(nangoSecretKey);
 }
 
 export const listIntegrationsFactory: ApiFactory<

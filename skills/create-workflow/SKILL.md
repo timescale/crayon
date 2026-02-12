@@ -28,17 +28,11 @@ Check the current working directory and handle one of three cases:
 
 **IMPORTANT** Do this step only after step 1 (scaffolding) is done.
 
-Call `mcp__plugin_0pflow_0pflow-local-tools__list_integrations` to see what external integrations are available (Salesforce, Slack, HubSpot, etc.). This reads the project's `NANGO_SECRET_KEY` from `.env` and queries Nango.
+Call `mcp__plugin_0pflow_0pflow-local-tools__list_integrations` to see what external integrations are available (Salesforce, Slack, HubSpot, etc.). This authenticates via 0pflow cloud and may open a browser for login if not yet authenticated.
 
-**CRITICAL: If the tool returns an error about a missing `NANGO_SECRET_KEY`, you MUST stop immediately. Do NOT continue with any further steps. Do NOT offer to create the workflow without integrations. Do NOT skip this step.**
+**CRITICAL: If the tool returns an error (authentication failure, empty response, etc.), you MUST stop immediately. Do NOT continue with any further steps. Do NOT offer to create the workflow without integrations. Do NOT skip this step.**
 
-Tell the user:
-
-> Nango is required for 0pflow workflows. Please set it up before we continue:
-> 1. Create a Nango account at https://nango.dev
-> 2. Add `NANGO_SECRET_KEY=<key>` to this project's `.env` file
-> 3. Configure the integrations you need in the Nango dashboard
-> 4. Then run `/0pflow:create-workflow` again.
+Tell the user the `list_integrations` call failed and suggest they try running `0pflow login` from their terminal if the automatic browser auth didn't work, then run `/0pflow:create-workflow` again.
 
 Then stop. Do not proceed to any subsequent steps.
 

@@ -8,6 +8,7 @@ export {
 export type { ConnectionMapping } from "./resolver.js";
 export { initNango, getNango, fetchCredentials } from "./nango-client.js";
 export type { IntegrationProvider } from "./integration-provider.js";
+export { createIntegrationProvider } from "./integration-provider.js";
 export { LocalIntegrationProvider, createLocalIntegrationProvider } from "./local-integration-provider.js";
 export { CloudIntegrationProvider } from "./cloud-integration-provider.js";
 export {

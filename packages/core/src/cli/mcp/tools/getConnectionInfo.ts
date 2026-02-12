@@ -5,7 +5,7 @@ import { z } from "zod";
 import * as dotenv from "dotenv";
 import pg from "pg";
 import type { ServerContext } from "../types.js";
-import type { IntegrationProvider } from "../../../connections/integration-provider.js";
+import { createIntegrationProvider } from "../../../connections/integration-provider.js";
 
 const inputSchema = {
   integration_id: z
@@ -63,16 +63,9 @@ function loadEnv(): Record<string, string> {
  * Create an IntegrationProvider based on available env vars.
  * NANGO_SECRET_KEY → local, otherwise → cloud (auto-auth).
  */
-async function createProvider(env: Record<string, string>): Promise<IntegrationProvider> {
-  const nangoSecretKey = env.NANGO_SECRET_KEY ?? process.env.NANGO_SECRET_KEY;
-
-  if (nangoSecretKey) {
-    const { createLocalIntegrationProvider } = await import("../../../connections/local-integration-provider.js");
-    return createLocalIntegrationProvider(nangoSecretKey);
-  } else {
-    const { CloudIntegrationProvider } = await import("../../../connections/cloud-integration-provider.js");
-    return new CloudIntegrationProvider();
-  }
+async function createProvider(env: Record<string, string>) {
+  const nangoSecretKey = env.NANGO_SECRET_KEY ?? undefined;
+  return createIntegrationProvider(nangoSecretKey);
 }
 
 export const getConnectionInfoFactory: ApiFactory<

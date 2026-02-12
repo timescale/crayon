@@ -6,7 +6,7 @@ Guide for generating typed Salesforce query nodes using GraphQL with `graphql-re
 
 ## CRITICAL: Connection Required
 
-**This entire setup requires a live Salesforce connection via Nango.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce in the Dev UI, then say "continue" when ready.
+**This entire setup requires a live Salesforce connection.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured or authentication error), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce in the Dev UI, then say "continue" when ready.
 
 ---
 
@@ -35,7 +35,7 @@ Look for `src/integrations/salesforce/generated/graphql.ts`. If it exists, the t
 
 If not: "I don't see a Salesforce SDK in your project. Would you like me to set it up?"
 
-### 2. Get Credentials from Nango
+### 2. Get Credentials
 
 **Use the `get_connection_info` tool** to look up the Salesforce connection:
 
@@ -44,17 +44,14 @@ get_connection_info({ integration_id: "salesforce", workflow_name: "lead-enrichm
 ```
 
 This returns:
-- `connection_id` → pass to fetch-schema via `--nango-connection-id`
+- `connection_id` → pass to fetch-schema via `--connection-id`
 - `connection_config.instance_url` → confirms the Salesforce instance
+- `access_token` → used by the fetch-schema script
 
-**Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly by the fetch-schema script via Nango.
+**Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly via the integration provider.
 
-**If `get_connection_info` fails** (no connection configured), tell the user:
+**If `get_connection_info` fails** (no connection configured or authentication error), tell the user:
 "No Salesforce connection found. Use the Dev UI to connect your Salesforce account first, then re-run this."
-
-**Fallback (no Nango):** If NANGO_SECRET_KEY is not set, fall back to asking for credentials manually:
-- `SALESFORCE_DOMAIN` (e.g., `https://yourcompany.my.salesforce.com`)
-- `SALESFORCE_ACCESS_TOKEN` or `SALESFORCE_CLIENT_ID` + `SALESFORCE_CLIENT_SECRET`
 
 ### 3. Check for Dependencies
 
@@ -112,7 +109,7 @@ mkdir -p src/integrations/salesforce/{scripts,schemas,graphql/operations,generat
 Copy from this skill's `scripts/fetch-schema.ts` to `src/integrations/salesforce/scripts/fetch-schema.ts`.
 
 This single script handles everything:
-1. Authenticates via Nango connection (`--nango-connection-id`), direct token, or client credentials
+1. Authenticates via connection (`--connection-id`), direct token, or client credentials
 2. Fetches the full GraphQL schema via introspection
 3. Decodes HTML entities (`&quot;` → `"`, etc.)
 4. Fixes empty enums that break codegen
@@ -131,7 +128,7 @@ Use the `connection_id` from `get_connection_info` in the fetch-schema command:
 ```json
 {
   "scripts": {
-    "salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts --nango-connection-id <CONNECTION_ID> --output src/integrations/salesforce/schemas/schema-clean.json",
+    "salesforce:fetch-schema": "npx tsx src/integrations/salesforce/scripts/fetch-schema.ts --connection-id <CONNECTION_ID> --output src/integrations/salesforce/schemas/schema-clean.json",
     "salesforce:codegen": "graphql-codegen --config src/integrations/salesforce/scripts/codegen.ts",
     "salesforce:refresh": "npm run salesforce:fetch-schema && npm run salesforce:codegen"
   }
@@ -140,7 +137,7 @@ Use the `connection_id` from `get_connection_info` in the fetch-schema command:
 
 Replace `<CONNECTION_ID>` with the actual `connection_id` returned by `get_connection_info`.
 
-For projects without Nango, use `--domain` instead:
+For projects with no known connection ID, use `--domain` instead:
 ```json
 "salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts --domain https://yourcompany.my.salesforce.com --output src/integrations/salesforce/schemas/schema-clean.json"
 ```

@@ -2,13 +2,13 @@
 // Fetches and cleans the Salesforce GraphQL schema
 //
 // Two modes:
-//   1. Nango: --nango-connection-id <id> (fetches domain + token from Nango automatically)
+//   1. Connection: --connection-id <id> (fetches domain + token via IntegrationProvider)
 //   2. Manual: --domain <url> (uses SALESFORCE_ACCESS_TOKEN or client credentials from .env)
 //
 // Both modes require --output <path> for the cleaned schema file.
 //
 // Usage:
-//   npx tsx fetch-schema.ts --nango-connection-id <id> --output <path>
+//   npx tsx fetch-schema.ts --connection-id <id> --output <path>
 //   npx tsx fetch-schema.ts --domain <url> --output <path>
 
 import { config } from "dotenv";
@@ -29,7 +29,7 @@ if (envPath) {
 // --- Arg parsing ---
 
 interface Args {
-  nangoConnectionId?: string;
+  connectionId?: string;
   domain?: string;
   output: string;
 }
@@ -38,8 +38,8 @@ function parseArgs(): Args {
   const args: Partial<Args> = {};
   for (let i = 2; i < process.argv.length; i++) {
     switch (process.argv[i]) {
-      case "--nango-connection-id":
-        args.nangoConnectionId = process.argv[++i];
+      case "--connection-id":
+        args.connectionId = process.argv[++i];
         break;
       case "--domain":
         args.domain = process.argv[++i];
@@ -60,14 +60,14 @@ function parseArgs(): Args {
     process.exit(1);
   }
 
-  if (!args.nangoConnectionId && !args.domain && !process.env.SALESFORCE_DOMAIN) {
-    console.error("Error: either --nango-connection-id or --domain is required");
+  if (!args.connectionId && !args.domain && !process.env.SALESFORCE_DOMAIN) {
+    console.error("Error: either --connection-id or --domain is required");
     printUsage();
     process.exit(1);
   }
 
   // Fall back to env var for domain
-  if (!args.nangoConnectionId && !args.domain) {
+  if (!args.connectionId && !args.domain) {
     args.domain = process.env.SALESFORCE_DOMAIN;
   }
 
@@ -77,13 +77,13 @@ function parseArgs(): Args {
 function printUsage(): void {
   console.error(`
 Usage:
-  npx tsx fetch-schema.ts --nango-connection-id <id> --output <path>
+  npx tsx fetch-schema.ts --connection-id <id> --output <path>
   npx tsx fetch-schema.ts --domain <url> --output <path>
 
 Options:
-  --nango-connection-id <id>  Fetch domain and token from Nango (preferred)
-  --domain <url>              Salesforce instance URL (for non-Nango auth)
-  --output <path>             Output path for cleaned schema JSON (required)
+  --connection-id <id>  Fetch domain and token via IntegrationProvider (preferred)
+  --domain <url>        Salesforce instance URL (for manual auth)
+  --output <path>       Output path for cleaned schema JSON (required)
 
 Environment variables (for --domain mode):
   SALESFORCE_DOMAIN            Fallback if --domain not provided
@@ -143,26 +143,19 @@ function fixEmptyEnums(schema: { data: { __schema: { types: SchemaType[] } } }):
 
 // --- Auth methods ---
 
-async function getCredentialsFromNango(connectionId: string): Promise<{ accessToken: string; instanceUrl: string }> {
-  const nangoSecretKey = process.env.NANGO_SECRET_KEY;
-  if (!nangoSecretKey) {
-    throw new Error("NANGO_SECRET_KEY not found in .env. Required when using --nango-connection-id.");
-  }
+async function getCredentialsFromProvider(connectionId: string): Promise<{ accessToken: string; instanceUrl: string }> {
+  const { createIntegrationProvider } = await import("0pflow");
+  const provider = await createIntegrationProvider();
+  const credentials = await provider.fetchCredentials("salesforce", connectionId);
 
-  const { Nango } = await import("@nangohq/node");
-  const nango = new Nango({ secretKey: nangoSecretKey });
-  const connection = await nango.getConnection("salesforce", connectionId);
-
-  const creds = (connection.credentials ?? {}) as Record<string, unknown>;
-  const accessToken = (creds.access_token ?? creds.api_key ?? creds.token) as string | undefined;
-  const connConfig = (connection.connection_config ?? {}) as Record<string, unknown>;
-  const instanceUrl = connConfig.instance_url as string | undefined;
+  const accessToken = credentials.token;
+  const instanceUrl = (credentials.connectionConfig?.instance_url as string) ?? undefined;
 
   if (!accessToken) {
-    throw new Error("No access token found in Nango connection credentials.");
+    throw new Error("No access token found in connection credentials.");
   }
   if (!instanceUrl) {
-    throw new Error("No instance_url found in Nango connection config.");
+    throw new Error("No instance_url found in connection config.");
   }
 
   return { accessToken, instanceUrl };
@@ -175,7 +168,7 @@ async function getAccessTokenViaClientCredentials(domain: string): Promise<{ acc
   if (!clientId || !clientSecret) {
     throw new Error(
       "No authentication method available.\n" +
-      "Configure a Salesforce connection in the Dev UI (Nango), or\n" +
+      "Use --connection-id to fetch credentials via IntegrationProvider, or\n" +
       "Set SALESFORCE_ACCESS_TOKEN for direct token auth, or\n" +
       "Set SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET for client credentials flow."
     );
@@ -204,10 +197,10 @@ async function getAccessTokenViaClientCredentials(domain: string): Promise<{ acc
 }
 
 async function getAccessToken(args: Args): Promise<{ accessToken: string; instanceUrl: string }> {
-  // Mode 1: Nango
-  if (args.nangoConnectionId) {
-    console.log(`Fetching credentials from Nango (connection: ${args.nangoConnectionId})...`);
-    return getCredentialsFromNango(args.nangoConnectionId);
+  // Mode 1: Via IntegrationProvider (auto-detects local Nango or cloud)
+  if (args.connectionId) {
+    console.log(`Fetching credentials via IntegrationProvider (connection: ${args.connectionId})...`);
+    return getCredentialsFromProvider(args.connectionId);
   }
 
   // Mode 2: Manual — direct token
@@ -220,7 +213,7 @@ async function getAccessToken(args: Args): Promise<{ accessToken: string; instan
     };
   }
 
-  // Mode 2: Manual — client credentials
+  // Mode 3: Manual — client credentials
   return getAccessTokenViaClientCredentials(args.domain!);
 }
 

@@ -199,7 +199,7 @@ Return a JSON object with:
 **IMPORTANT:**
 - Always use absolute path resolution for `specPath` to ensure the agent works regardless of the current working directory
 - Tools are defined as a record in `Agent.create()`, not in the spec file
-- **Agents must declare their AI model provider in `integrations`** (e.g. `["openai"]`) so the framework fetches the API key from Nango at runtime. Do NOT rely on env vars like `OPENAI_API_KEY`.
+- **Agents must declare their AI model provider in `integrations`** (e.g. `["openai"]`) so the framework fetches the API key at runtime via `ctx.getConnection()`. Do NOT rely on env vars like `OPENAI_API_KEY`.
 
 ```typescript
 // agents/<name>.ts
@@ -218,7 +218,7 @@ const openai = createOpenAI({});
 
 export const <camelCaseName> = Agent.create({
   name: "<name>",
-  integrations: ["openai"],  // REQUIRED: declares which API keys to fetch from Nango (e.g. "openai", "anthropic", "salesforce")
+  integrations: ["openai"],  // REQUIRED: declares which API keys to fetch at runtime (e.g. "openai", "anthropic", "salesforce")
   description: `
 <What this agent does.>
 

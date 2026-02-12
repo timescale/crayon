@@ -57,8 +57,9 @@ export {
   initNango,
   getNango,
   fetchCredentials,
+  createIntegrationProvider,
 } from "./connections/index.js";
-export type { ConnectionMapping } from "./connections/index.js";
+export type { ConnectionMapping, IntegrationProvider } from "./connections/index.js";
 
 // Types
 export type {

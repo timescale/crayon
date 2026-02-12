@@ -18,9 +18,11 @@ export async function GET(
   try {
     const nango = getNango();
     const result = await nango.listConnections();
+    // Filter by integration AND by end_user to enforce tenant isolation
     const filtered = (result.connections ?? []).filter(
-      (c: { provider_config_key: string }) =>
-        c.provider_config_key === integrationId,
+      (c: { provider_config_key: string; end_user?: { id: string } | null }) =>
+        c.provider_config_key === integrationId &&
+        c.end_user?.id === auth.userId,
     );
 
     return NextResponse.json({ data: filtered });

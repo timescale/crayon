@@ -6,9 +6,7 @@ import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
 import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow.js";
 import { ensureConnectionsTable } from "./connections/index.js";
-import { createLocalIntegrationProvider } from "./connections/local-integration-provider.js";
-import { CloudIntegrationProvider } from "./connections/cloud-integration-provider.js";
-import type { IntegrationProvider } from "./connections/integration-provider.js";
+import { createIntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
 
 /**
@@ -38,13 +36,9 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   // Initialize integration provider:
   // NANGO_SECRET_KEY set → local/self-hosted (direct Nango)
   // Otherwise → cloud mode (proxies through auth server)
-  const nangoSecretKey = config.nangoSecretKey ?? process.env.NANGO_SECRET_KEY;
-  let integrationProvider: IntegrationProvider;
-  if (nangoSecretKey) {
-    integrationProvider = await createLocalIntegrationProvider(nangoSecretKey);
-  } else {
-    integrationProvider = new CloudIntegrationProvider();
-  }
+  const integrationProvider = await createIntegrationProvider(
+    config.nangoSecretKey,
+  );
 
   // Create shared pg pool for connection management (needed for local connection mapping)
   const pool = new pg.Pool({ connectionString: config.databaseUrl });
