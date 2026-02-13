@@ -80,10 +80,11 @@ const WELCOME_PROMPT =
   "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
 
 async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean } = {}): Promise<void> {
-  // Load .env for DATABASE_URL and NANGO_SECRET_KEY
+  // Load .env from the app directory (not process.cwd(), which may be a parent)
   try {
-    const { resolveEnv } = await import("./env.js");
-    resolveEnv();
+    const { findEnvFile, loadEnv } = await import("./env.js");
+    const envPath = findEnvFile(cwd);
+    if (envPath) loadEnv(envPath);
   } catch {
     // Dev UI can work without env
   }
