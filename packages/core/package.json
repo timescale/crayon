@@ -22,7 +22,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsc --build && vite build dev-ui && chmod +x dist/cli/index.js",
+    "build": "node scripts/generate-version.js && tsc --build && vite build dev-ui && chmod +x dist/cli/index.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

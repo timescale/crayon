@@ -1,23 +1,30 @@
 #!/usr/bin/env node
 const { spawn } = require("child_process");
-const { existsSync, readFileSync } = require("fs");
+const { readFileSync } = require("fs");
 const { join, dirname } = require("path");
 
-const settingsFile = join(process.env.HOME, ".config/0pflow/settings.json");
+// Detect if running from Claude Code's plugin cache (production)
+// vs --plugin-dir (development)
+const scriptDir = __dirname;
+const isPluginCache = scriptDir.includes('.claude/plugins/cache/');
 
-let cmd = ["npx", "-y", "0pflow@latest", "mcp", "start"];
+let cmd;
 
-if (existsSync(settingsFile)) {
-  try {
-    const settings = JSON.parse(readFileSync(settingsFile, "utf-8"));
-    if (settings.mcpCommand?.length) {
-      cmd = settings.mcpCommand;
-    }
-  } catch {}
+if (isPluginCache) {
+  // Production mode: running from installed plugin
+  // Read version from our own package.json and use npx
+  const packageJsonPath = join(scriptDir, '..', 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+  const version = packageJson.version;
+  cmd = ['npx', '-y', `0pflow@${version}`, 'mcp', 'start'];
+} else {
+  // Development mode: running from --plugin-dir
+  // Use npx tsx with local source
+  const cliPath = join(scriptDir, '..', 'packages', 'core', 'src', 'cli', 'index.ts');
+  cmd = ['npx', 'tsx', cliPath, 'mcp', 'start'];
 }
 
-// Ensure the node/npm bin directory is in PATH (Claude Code may launch
-// this via sh which doesn't inherit nvm/fnm PATH entries)
+// Ensure node/npm bin directory is in PATH
 const env = { ...process.env };
 const nodeBinDir = dirname(process.execPath);
 if (!env.PATH?.includes(nodeBinDir)) {

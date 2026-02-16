@@ -14,7 +14,6 @@ import { listRuns, getRun } from "./runs.js";
 import { getTrace, printTrace } from "./trace.js";
 import { getAppName, getAppSchema } from "./app.js";
 import { startMcpServer } from "./mcp/server.js";
-import { runInstall, runUninstall } from "./install.js";
 import { runRun } from "./run.js";
 
 // Read version from package.json
@@ -546,24 +545,6 @@ mcp
   .description("Start the MCP server for Claude Code")
   .action(async () => {
     await startMcpServer();
-  });
-
-// ============ Install/Uninstall commands ============
-program
-  .command("install")
-  .description("Install 0pflow plugin to Claude Code")
-  .option("-f, --force", "Force reinstall even if already installed")
-  .option("-v, --verbose", "Show detailed output")
-  .action(async (options: { force?: boolean; verbose?: boolean }) => {
-    await runInstall({ force: options.force, verbose: options.verbose });
-  });
-
-program
-  .command("uninstall")
-  .description("Uninstall 0pflow plugin from Claude Code")
-  .option("-v, --verbose", "Show detailed output")
-  .action(async (options: { verbose?: boolean }) => {
-    await runUninstall({ verbose: options.verbose });
   });
 
 // ============ Auth commands ============

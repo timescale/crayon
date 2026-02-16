@@ -49,6 +49,41 @@ function buildConnectionString(
   return parsed.toString();
 }
 
+function isProductionMode(): boolean {
+  const scriptPath = process.argv[1];
+  // Production: running from npx cache or node_modules
+  return scriptPath?.includes('.npm/_npx') || scriptPath?.includes('node_modules/0pflow') || false;
+}
+
+async function writeClaudeSettings(appPath: string): Promise<void> {
+  const claudeDir = join(appPath, '.claude');
+  mkdirSync(claudeDir, { recursive: true });
+
+  // Get git commit SHA from auto-generated version.ts
+  // This pins the marketplace to the exact same commit as the MCP server
+  const { BUILD_INFO } = await import('../../../version.js');
+  const ref = BUILD_INFO.commit || 'main';
+
+  await writeFile(
+    join(claudeDir, 'settings.json'),
+    JSON.stringify({
+      "$schema": "https://json.schemastore.org/claude-code-settings.json",
+      "extraKnownMarketplaces": {
+        "0pflow": {
+          "source": {
+            "source": "github",
+            "repo": "timescale/0pflow",
+            "ref": ref  // Pin to exact commit SHA from version.ts
+          }
+        }
+      },
+      "enabledPlugins": {
+        "0pflow@0pflow": true
+      }
+    }, null, 2) + '\n'
+  );
+}
+
 // ── scaffoldApp ──────────────────────────────────────────────────────────
 
 export interface ScaffoldAppOpts {
@@ -81,6 +116,11 @@ export async function scaffoldApp({
     });
 
     await create0pflowDirectories(appPath);
+
+    // Only create .claude/settings.json in production mode
+    if (isProductionMode()) {
+      await writeClaudeSettings(appPath);
+    }
 
     // In dev mode, link local 0pflow packages
     if (isDevMode()) {
