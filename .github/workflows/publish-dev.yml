@@ -6,6 +6,12 @@ on:
     paths:
       - 'packages/core/**'
   workflow_dispatch:
+    inputs:
+      npm_tag:
+        description: 'NPM tag to publish to (e.g., dev, beta, next)'
+        required: true
+        default: 'dev'
+        type: string
 
 jobs:
   publish:
@@ -36,6 +42,7 @@ jobs:
         working-directory: packages/core
         run: |
           BASE_VERSION=$(node -p "require('./package.json').version")
-          DEV_VERSION="${BASE_VERSION}-dev.${GITHUB_SHA::7}"
+          NPM_TAG="${{ inputs.npm_tag || 'dev' }}"
+          DEV_VERSION="${BASE_VERSION}-${NPM_TAG}.${GITHUB_SHA::7}"
           pnpm version "$DEV_VERSION" --no-git-tag-version
-          npm publish --tag dev --access public --provenance
+          npm publish --tag "$NPM_TAG" --access public --provenance
