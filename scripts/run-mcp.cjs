@@ -12,8 +12,8 @@ let cmd;
 
 if (isPluginCache) {
   // Production mode: running from installed plugin
-  // Read version from our own package.json and use npx
-  const packageJsonPath = join(scriptDir, '..', 'package.json');
+  // Read version from packages/core/package.json (monorepo structure)
+  const packageJsonPath = join(scriptDir, '..', 'packages', 'core', 'package.json');
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const version = packageJson.version;
   cmd = ['npx', '-y', `0pflow@${version}`, 'mcp', 'start'];
