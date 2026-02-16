@@ -51,7 +51,7 @@ async function waitForDatabase(
       });
       const info = JSON.parse(stdout) as { status?: string };
       // Only return true when database is actually ready
-      if (info.status === "ready") {
+      if (info.status?.toLowerCase() === "ready") {
         return true;
       }
     } catch (error) {
@@ -103,8 +103,10 @@ function startDatabaseIfNeeded(serviceId: string, noWait = false): string {
       return "not_found";
     }
 
+    const status = info.status.toLowerCase();
+
     // If database is paused or stopped, start it
-    if (info.status === "paused" || info.status === "stopped") {
+    if (status === "paused" || status === "stopped") {
       execSync(`tiger service start ${serviceId}${noWait ? " --no-wait" : ""}`, {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
@@ -112,7 +114,7 @@ function startDatabaseIfNeeded(serviceId: string, noWait = false): string {
       return "started";
     }
 
-    if (info.status === "creating") {
+    if (status === "creating") {
       return "creating";
     }
 
