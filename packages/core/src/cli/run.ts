@@ -1,7 +1,8 @@
 import { exec, execSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { promisify } from "node:util";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import * as dotenv from "dotenv";
@@ -10,6 +11,13 @@ import {
   createDatabase,
   setupAppSchema,
 } from "./mcp/lib/scaffolding.js";
+import {
+  readSettings,
+  buildMcpCommand,
+  writeSettings,
+  addMarketplace,
+  installPlugin,
+} from "./install.js";
 
 function isClaudeAvailable(): boolean {
   try {
@@ -17,16 +25,6 @@ function isClaudeAvailable(): boolean {
     return true;
   } catch {
     return false;
-  }
-}
-
-function isCwdEmpty(): boolean {
-  try {
-    const entries = readdirSync(process.cwd());
-    // Ignore dotfiles like .git
-    return entries.filter((e) => !e.startsWith(".")).length === 0;
-  } catch {
-    return true;
   }
 }
 
@@ -126,6 +124,37 @@ function startDatabaseIfNeeded(serviceId: string, noWait = false): string {
   }
 }
 
+/**
+ * Check if Tiger CLI is installed and authenticated.
+ * If not authenticated, triggers interactive login (opens browser).
+ */
+function ensureTigerAuth(): void {
+  // Check if tiger CLI is available
+  try {
+    execSync("tiger version", { stdio: "ignore" });
+  } catch {
+    p.log.error("Tiger CLI not found. Install it: curl -fsSL https://cli.tigerdata.com | sh");
+    process.exit(1);
+  }
+
+  // Check if authenticated
+  try {
+    const stdout = execSync("tiger auth status -o json", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    JSON.parse(stdout); // Will throw if not valid JSON (not authenticated)
+  } catch {
+    p.log.info("Tiger Cloud authentication required. Opening browser...");
+    try {
+      execSync("tiger auth login", { stdio: "inherit" });
+    } catch {
+      p.log.error("Tiger Cloud login failed. Try running 'tiger auth login' manually.");
+      process.exit(1);
+    }
+  }
+}
+
 function isExisting0pflow(): boolean {
   try {
     const pkgPath = join(process.cwd(), "package.json");
@@ -188,6 +217,24 @@ export async function runRun(): Promise<void> {
     process.exit(1);
   }
 
+  // ── Auto-install plugin if needed ──────────────────────────────────
+  if (!readSettings()) {
+    const s = p.spinner();
+    s.start("Installing 0pflow plugin for Claude Code...");
+    const mcpResult = buildMcpCommand();
+    writeSettings({
+      mcpCommand: mcpResult.command,
+      installedAt: new Date().toISOString(),
+    });
+    addMarketplace(mcpResult, "ignore");
+    const result = installPlugin("ignore");
+    if (result.success) {
+      s.stop(pc.green("Plugin installed"));
+    } else {
+      s.stop(pc.yellow("Plugin install skipped (can retry with '0pflow install')"));
+    }
+  }
+
   // ── Existing project → launch ───────────────────────────────────────
   if (isExisting0pflow()) {
     // Check if database is paused and start it if needed
@@ -237,16 +284,10 @@ export async function runRun(): Promise<void> {
     return;
   }
 
-  const cwdEmpty = isCwdEmpty();
-
   // ── Project name ────────────────────────────────────────────────────
-  // Default to current directory name if it looks like a valid project name
-  const dirName = basename(process.cwd()).toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  const defaultName = cwdEmpty && /^[a-z][a-z0-9-]*$/.test(dirName) ? dirName : undefined;
-
   const projectName = await p.text({
     message: "Project name",
-    ...(defaultName ? { initialValue: defaultName } : { placeholder: "my-app" }),
+    placeholder: "my-app",
     validate(value) {
       if (!value) return "Project name is required";
       if (!/^[a-z][a-z0-9-]*$/.test(value)) {
@@ -260,53 +301,11 @@ export async function runRun(): Promise<void> {
     process.exit(0);
   }
 
-  // ── Directory ───────────────────────────────────────────────────────
-  const cwd = process.cwd();
-  const defaultDir = cwdEmpty ? "." : `./${projectName}`;
-  const defaultLabel = cwdEmpty
-    ? `${cwd} (current directory)`
-    : `./${projectName}`;
+  // ── Directory (always ~/0pflow/<name>) ────────────────────────────
+  const directory = join(homedir(), "0pflow", projectName);
 
-  const useDirectory = await p.select({
-    message: "Where should we create it?",
-    options: cwdEmpty
-      ? [
-          { value: "default" as const, label: `Here — ${cwd}` },
-          { value: "custom" as const, label: "Other directory" },
-        ]
-      : [
-          { value: "default" as const, label: `./${projectName}` },
-          { value: "custom" as const, label: "Other directory" },
-        ],
-  });
-
-  if (p.isCancel(useDirectory)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
-  }
-
-  let directory: string;
-  if (useDirectory === "custom") {
-    const customDir = await p.text({
-      message: "Directory path",
-      placeholder: `./${projectName}`,
-      validate(value) {
-        if (!value) return "Directory is required";
-      },
-    });
-    if (p.isCancel(customDir)) {
-      p.cancel("Cancelled.");
-      process.exit(0);
-    }
-    directory = customDir;
-  } else {
-    directory = defaultDir;
-  }
-
-  if (p.isCancel(directory)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
-  }
+  // ── Tiger auth ────────────────────────────────────────────────────
+  ensureTigerAuth();
 
   // ── Database ────────────────────────────────────────────────────────
   const dbChoice = await p.select({
@@ -439,7 +438,7 @@ export async function runRun(): Promise<void> {
   s.start("Installing dependencies...");
   try {
     const execAsync = promisify(exec);
-    await execAsync("npm install", { cwd: appPath });
+    await execAsync("npm install --loglevel=error", { cwd: appPath });
     s.stop(pc.green("Installed dependencies"));
   } catch (err) {
     s.stop(pc.yellow("npm install failed (you can retry manually)"));
@@ -515,11 +514,9 @@ export async function runRun(): Promise<void> {
   }
 
   // ── Done ────────────────────────────────────────────────────────────
-  const cdCmd = directory === "." ? "" : `cd ${directory} && `;
-
-  p.outro(pc.green("Project created!"));
+  p.outro(pc.green(`Project created at ${directory}`));
   console.log();
   console.log(pc.bold("  To launch later:"));
-  console.log(pc.cyan(`  ${cdCmd}0pflow run`));
+  console.log(pc.cyan(`  cd ${directory} && 0pflow run`));
   console.log();
 }
