@@ -168,7 +168,7 @@ install_0pflow() {
 # ── Shell alias ──────────────────────────────────────────────────────────────
 
 setup_alias() {
-  local alias_line="alias 0pflow='npx -y --prefer-online 0pflow@dev run'"
+  local alias_line="alias 0pflow='npx -y --prefer-online 0pflow@dev'"
   local alias_comment="# 0pflow CLI alias"
   local added_to=""
 
@@ -239,7 +239,7 @@ main() {
   printf "\n"
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
-  printf "${CYAN}    source ${rc_file} && 0pflow${RESET}\n\n" >&2
+  printf "${CYAN}    source ${rc_file} && 0pflow run${RESET}\n\n" >&2
 }
 
 main "$@"

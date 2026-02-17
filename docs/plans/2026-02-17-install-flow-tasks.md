@@ -30,7 +30,7 @@ curl -fsSL https://0pflow.com/install | bash
 
 Create a shell alias so users can just type `0pflow run`:
 ```bash
-alias 0pflow='npx -y --prefer-online 0pflow@dev run'
+alias 0pflow='npx -y --prefer-online 0pflow@dev'
 ```
 Use `--prefer-online` to ensure npx always re-resolves the `@dev` tag and pulls the latest build. For production, switch to `@latest` once we have a stable release channel.
 
@@ -133,7 +133,7 @@ The `npx` command shown to users after install doesn't suppress warnings. Change
 
 ### 13. ~~Consider global CLI install~~ — Decided against
 
-We want "always fresh" — every invocation should pull the latest dev build. The bash script sets up a shell alias (`alias 0pflow='npx -y --prefer-online 0pflow@dev run'`) which handles this. A global install would require explicit `npm update -g` to get new versions.
+We want "always fresh" — every invocation should pull the latest dev build. The bash script sets up a shell alias (`alias 0pflow='npx -y --prefer-online 0pflow@dev'`) which handles this. A global install would require explicit `npm update -g` to get new versions.
 
 ## Implementation Order
 

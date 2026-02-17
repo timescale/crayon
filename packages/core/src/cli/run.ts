@@ -217,10 +217,10 @@ export async function runRun(): Promise<void> {
     process.exit(1);
   }
 
-  // ── Auto-install plugin if needed ──────────────────────────────────
-  if (!readSettings()) {
+  // ── Always install/update plugin ────────────────────────────────────
+  {
     const s = p.spinner();
-    s.start("Installing 0pflow plugin for Claude Code...");
+    s.start("Updating 0pflow plugin...");
     const mcpResult = buildMcpCommand();
     writeSettings({
       mcpCommand: mcpResult.command,
@@ -229,9 +229,9 @@ export async function runRun(): Promise<void> {
     addMarketplace(mcpResult, "ignore");
     const result = installPlugin("ignore");
     if (result.success) {
-      s.stop(pc.green("Plugin installed"));
+      s.stop(pc.green("Plugin up to date"));
     } else {
-      s.stop(pc.yellow("Plugin install skipped (can retry with '0pflow install')"));
+      s.stop(pc.yellow("Plugin update skipped (can retry with '0pflow install --force')"));
     }
   }
 
