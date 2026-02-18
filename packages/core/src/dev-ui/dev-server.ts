@@ -7,6 +7,7 @@ import { createWSServer, type WSClientMessage } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
+import { handleDeployRequest } from "./deploy-api.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { getSchemaName } from "../dbos.js";
 import { getAppSchema } from "../cli/app.js";
@@ -75,6 +76,18 @@ export async function startDevServer(options: DevServerOptions) {
     if (req.headers.upgrade) return;
 
     const url = (req.url ?? "/").split("?")[0];
+
+    // Deploy endpoint works without local database (uses auth-server)
+    if (url === "/api/deploy") {
+      try {
+        const handled = await handleDeployRequest(req, res, projectRoot);
+        if (handled) return;
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Deploy error" }));
+        return;
+      }
+    }
 
     // Route /api/* to API handler
     if (url.startsWith("/api/") && hasApi && pool) {

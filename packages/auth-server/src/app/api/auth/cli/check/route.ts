@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getPool } from "@/lib/db";
+import { getReadyPool } from "@/lib/db";
 
 /**
  * GET /api/auth/cli/check?code=X&secret=Y
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const db = getPool();
+  const db = await getReadyPool();
 
   const result = await db.query(
     `SELECT status, session_token, secret, expires_at

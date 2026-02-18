@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getPool } from "@/lib/db";
+import { getReadyPool } from "@/lib/db";
 import { randomHex } from "@/lib/auth";
 
 /**
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     email: string | null;
   };
 
-  const db = getPool();
+  const db = await getReadyPool();
 
   // Upsert user
   const userResult = await db.query(

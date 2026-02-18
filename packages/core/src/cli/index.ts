@@ -96,6 +96,16 @@ program
     await runRun();
   });
 
+// ============ Deploy command ============
+program
+  .command("deploy")
+  .description("Deploy app to the cloud")
+  .option("--verbose", "Show detailed output")
+  .action(async (options: { verbose?: boolean }) => {
+    const { runDeploy } = await import("./deploy.js");
+    await runDeploy(options);
+  });
+
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");
 

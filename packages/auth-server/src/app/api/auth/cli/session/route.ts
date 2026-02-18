@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPool } from "@/lib/db";
+import { getReadyPool } from "@/lib/db";
 import { randomHex } from "@/lib/auth";
 
 /**
@@ -7,7 +7,7 @@ import { randomHex } from "@/lib/auth";
  * Create a new CLI auth session. Returns {code, secret} for the CLI to poll.
  */
 export async function POST() {
-  const db = getPool();
+  const db = await getReadyPool();
 
   const code = randomHex(4); // 8-char hex
   const secret = randomHex(16); // 32-char hex

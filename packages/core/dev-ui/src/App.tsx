@@ -4,6 +4,7 @@ import { useDAGSocket } from "./hooks/useDAGSocket";
 import { useConnections } from "./hooks/useConnections";
 import { useRunHistory } from "./hooks/useRunHistory";
 import { useTerminal } from "./hooks/useTerminal";
+import { useDeploy } from "./hooks/useDeploy";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { WorkflowSelector } from "./components/WorkflowSelector";
 import { ConnectionsPanel } from "./components/ConnectionsPanel";
@@ -15,6 +16,7 @@ export function App() {
   const { state, connected, sendMessage, ptyEvents } = useDAGSocket();
   const terminal = useTerminal({ sendMessage, ptyEvents });
   const connectionsApi = useConnections();
+  const deployApi = useDeploy();
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
 
@@ -89,6 +91,61 @@ export function App() {
             workflows={state.workflows}
             connectionsApi={connectionsApi}
           />
+
+          {/* Deploy button */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <button
+              onClick={deployApi.startDeploy}
+              disabled={deployApi.deploying}
+              className="w-full px-3 py-2 bg-foreground text-background text-sm rounded-md hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {deployApi.deploying ? (
+                <>
+                  <span className="inline-block w-3 h-3 border-2 border-background/30 border-t-background rounded-full animate-spin" />
+                  {deployApi.stepLabel}
+                </>
+              ) : (
+                "Deploy"
+              )}
+            </button>
+
+            {deployApi.deployedUrl && (
+              <div className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded-md text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-green-400">Deployed</span>
+                  <button
+                    onClick={deployApi.dismissUrl}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    x
+                  </button>
+                </div>
+                <a
+                  href={deployApi.deployedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-400 underline break-all"
+                >
+                  {deployApi.deployedUrl}
+                </a>
+              </div>
+            )}
+
+            {deployApi.error && (
+              <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-md text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-red-400">Deploy failed</span>
+                  <button
+                    onClick={deployApi.dismissError}
+                    className="text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    x
+                  </button>
+                </div>
+                <p className="text-red-400 mt-1">{deployApi.error}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

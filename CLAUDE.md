@@ -31,7 +31,6 @@ claude --plugin-dir /path/to/0pflow
 - `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, typed Zod schemas to nodes)
 - `/0pflow:compile-workflow` - Update workflow implementation from embedded descriptions
 - `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
-- `/0pflow:deploy` - Deploy app to DBOS Cloud (generates lockfile, links database, imports env vars)
 
 ### MCP Tools
 
@@ -67,8 +66,7 @@ my-app/
 ├── src/nodes/              # User-defined function nodes
 ├── agents/                 # Agent TypeScript files
 ├── specs/agents/           # Agent markdown specs (system prompts)
-├── src/lib/pflow.ts        # 0pflow singleton
-└── dbos-config.yaml        # DBOS Cloud config
+└── src/lib/pflow.ts        # 0pflow singleton
 ```
 
 ## Key Source Paths (packages/core/src/)
@@ -122,6 +120,7 @@ my-app/
 | `0pflow history [run-id]` | List runs or get details |
 | `0pflow trace <run-id>` | Show execution trace |
 | `0pflow install` / `uninstall` | Install/remove Claude Code plugin |
+| `0pflow deploy` | Deploy app to DBOS Cloud (via auth-server) |
 | `0pflow login` / `logout` | Authenticate with 0pflow cloud |
 | `0pflow mcp start` | Start MCP server |
 

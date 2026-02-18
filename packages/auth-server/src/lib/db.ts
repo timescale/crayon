@@ -1,8 +1,9 @@
 import pg from "pg";
 
 let pool: pg.Pool | null = null;
+let schemaReady: Promise<void> | null = null;
 
-export function getPool(): pg.Pool {
+function getPool(): pg.Pool {
   if (!pool) {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
@@ -14,9 +15,25 @@ export function getPool(): pg.Pool {
 }
 
 /**
- * Create the required tables if they don't exist.
+ * Ensure database schema exists. Runs once per process (cached).
+ * Called automatically by getReadyPool().
  */
 export async function ensureSchema(): Promise<void> {
+  if (schemaReady) return schemaReady;
+  schemaReady = _ensureSchema();
+  return schemaReady;
+}
+
+/**
+ * Returns a pool after ensuring the schema is ready.
+ * Preferred over calling getPool() + ensureSchema() separately.
+ */
+export async function getReadyPool(): Promise<pg.Pool> {
+  await ensureSchema();
+  return getPool();
+}
+
+async function _ensureSchema(): Promise<void> {
   const db = getPool();
 
   await db.query(`
@@ -48,5 +65,23 @@ export async function ensureSchema(): Promise<void> {
   `);
   await db.query(`
     CREATE INDEX IF NOT EXISTS idx_cli_sessions_token ON cli_auth_sessions(session_token)
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS deployments (
+      id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      app_name TEXT NOT NULL,
+      dbos_app_name TEXT NOT NULL UNIQUE,
+      dbos_db_name TEXT NOT NULL UNIQUE,
+      app_url TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(user_id, app_name)
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_deployments_user ON deployments(user_id)
   `);
 }

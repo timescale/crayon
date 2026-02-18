@@ -255,6 +255,10 @@ export async function setupAppSchema({
     await pool.query(`GRANT ${appName} TO tsdbadmin WITH INHERIT TRUE`);
 
     await pool.query(
+      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public`,
+    );
+
+    await pool.query(
       `CREATE SCHEMA IF NOT EXISTS ${appName} AUTHORIZATION ${appName}`,
     );
     await pool.query(

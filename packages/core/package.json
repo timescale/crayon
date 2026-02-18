@@ -42,18 +42,22 @@
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
     "jiti": "^2.6.1",
+    "jszip": "^3.10.1",
     "linkedom": "^0.18.12",
-    "node-pty": "1.2.0-beta.11",
     "pg": "^8.17.2",
     "picocolors": "^1.1.1",
-    "tree-sitter-typescript": "^0.23.2",
-    "web-tree-sitter": "^0.24.7",
     "ws": "^8.18.0",
     "zod": "^4.3.5"
+  },
+  "optionalDependencies": {
+    "node-pty": "1.2.0-beta.11",
+    "tree-sitter-typescript": "^0.23.2",
+    "web-tree-sitter": "^0.24.7"
   },
   "devDependencies": {
     "@nangohq/frontend": "^0.69.0",
     "@tailwindcss/vite": "^4.0.0",
+    "@types/jszip": "^3.4.1",
     "@types/pg": "^8.16.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

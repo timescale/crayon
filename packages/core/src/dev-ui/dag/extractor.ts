@@ -25,32 +25,27 @@ type SyntaxNode = {
   parent: SyntaxNode | null;
 };
 
-let parserReady: Promise<Parser> | null = null;
+let parserReady: Promise<Parser | null> | null = null;
 
-async function getParser(): Promise<Parser> {
+async function getParser(): Promise<Parser | null> {
   if (parserReady) return parserReady;
 
   parserReady = (async () => {
-    const TreeSitter = (await import("web-tree-sitter")).default;
-    await TreeSitter.init();
-
-    // Locate the .wasm file from the tree-sitter-typescript package
-    // Use createRequire so Node's module resolution handles hoisted packages correctly
-    const require = createRequire(import.meta.url);
-    let wasmPath: string;
     try {
-      const tsPkgJson = require.resolve("tree-sitter-typescript/package.json");
-      wasmPath = resolve(dirname(tsPkgJson), "tree-sitter-typescript.wasm");
-    } catch {
-      throw new Error(
-        "Could not find tree-sitter-typescript.wasm. Make sure tree-sitter-typescript is installed."
-      );
-    }
+      const TreeSitter = (await import("web-tree-sitter")).default;
+      await TreeSitter.init();
 
-    const TypeScript = await TreeSitter.Language.load(wasmPath);
-    const parser = new TreeSitter();
-    parser.setLanguage(TypeScript);
-    return parser as unknown as Parser;
+      const require = createRequire(import.meta.url);
+      const tsPkgJson = require.resolve("tree-sitter-typescript/package.json");
+      const wasmPath = resolve(dirname(tsPkgJson), "tree-sitter-typescript.wasm");
+
+      const TypeScript = await TreeSitter.Language.load(wasmPath);
+      const parser = new TreeSitter();
+      parser.setLanguage(TypeScript);
+      return parser as unknown as Parser;
+    } catch {
+      return null;
+    }
   })();
 
   return parserReady;
@@ -131,6 +126,7 @@ function extractStringArrayProperty(obj: SyntaxNode, propName: string): string[]
  */
 export async function extractNodeIntegrations(source: string): Promise<string[] | undefined> {
   const parser = await getParser();
+  if (!parser) return undefined;
   const tree = parser.parse(source);
   const root = tree.rootNode;
 
@@ -159,6 +155,7 @@ export async function extractNodeIntegrations(source: string): Promise<string[] 
  */
 export async function extractNodeName(source: string): Promise<string | undefined> {
   const parser = await getParser();
+  if (!parser) return undefined;
   const tree = parser.parse(source);
   const root = tree.rootNode;
 
@@ -187,6 +184,7 @@ export async function extractNodeName(source: string): Promise<string | undefine
  */
 export async function extractNodeDescription(source: string): Promise<string | undefined> {
   const parser = await getParser();
+  if (!parser) return undefined;
   const tree = parser.parse(source);
   const root = tree.rootNode;
 
@@ -574,6 +572,7 @@ export async function extractDAGs(
   source: string,
 ): Promise<WorkflowDAG[]> {
   const parser = await getParser();
+  if (!parser) return [];
   const tree = parser.parse(source);
   const root = tree.rootNode;
 

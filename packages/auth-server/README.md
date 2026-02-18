@@ -34,17 +34,7 @@ GITHUB_CLIENT_SECRET=<from step 1>
 NEXT_PUBLIC_GITHUB_CLIENT_ID=<same Client ID — needed for the browser page>
 ```
 
-### 3. Set up the database
-
-The auth server needs a PostgreSQL database for users and auth sessions. You can use Tiger Cloud or any PostgreSQL instance.
-
-Run the setup script (reads `DATABASE_URL` from `.env.local`):
-
-```bash
-./setup-db.sh
-```
-
-### 4. Install and run
+### 3. Install and run
 
 ```bash
 pnpm install
@@ -103,6 +93,24 @@ After deploying, update your GitHub OAuth App at https://github.com/settings/dev
 | `/api/integrations/{id}/connections` | GET | Bearer | List connections for an integration |
 | `/api/credentials/{integrationId}` | GET | Bearer | Fetch credentials (`?connection_id=X`) |
 | `/api/nango/connect-session` | POST | Bearer | Create Nango Connect session for OAuth setup |
+| `/api/deploy/prepare` | POST | Bearer | Prepare deployment (link DB, register app, set secrets) |
+| `/api/deploy/upload` | POST | Bearer | Upload deployment archive to DBOS Cloud |
+| `/api/deploy/status` | GET | Bearer | Get deployment status (`?appName=X`) |
+| `/api/deploy/logs` | GET | Bearer | Get deployment logs (`?appName=X`) |
+
+## Deployment Proxy (DBOS Cloud)
+
+The auth-server also acts as a white-label proxy for DBOS Cloud deployment. See [DEPLOYMENT.md](./DEPLOYMENT.md) for full documentation.
+
+**Quick setup:**
+
+1. Create a DBOS Cloud account: `npx dbos-cloud login --get-refresh-token`
+2. Add to `.env.local`:
+   ```
+   DBOS_CLOUD_REFRESH_TOKEN=<from ~/.dbos/credentials>
+   DBOS_CLOUD_ORGANIZATION=<from ~/.dbos/credentials>
+   ```
+3. Users deploy with `0pflow deploy` — the auth-server handles all DBOS Cloud interactions.
 
 ## How it connects to the core package
 

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getPool } from "./db";
+import { getReadyPool } from "./db";
 import crypto from "node:crypto";
 
 /**
@@ -25,7 +25,7 @@ export async function authenticateRequest(
   }
 
   const token = authHeader.slice(7);
-  const db = getPool();
+  const db = await getReadyPool();
 
   const result = await db.query(
     `SELECT user_id FROM cli_auth_sessions
