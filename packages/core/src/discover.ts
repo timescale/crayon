@@ -21,11 +21,15 @@ export interface DiscoverResult {
  * Returns the exact shape that create0pflow() expects.
  */
 export async function discover(projectDir: string): Promise<DiscoverResult> {
-  const [wfResult, nodeResult, agentResult] = await Promise.all([
-    discoverWorkflows(projectDir),
+  // Discover agents and nodes first so they're in jiti's module cache.
+  // Workflows import agents/nodes, and if loaded in parallel, the same
+  // agent file gets evaluated twice causing duplicate DBOS registration.
+  const [nodeResult, agentResult] = await Promise.all([
     discoverNodes(projectDir),
     discoverAgents(projectDir),
   ]);
+
+  const wfResult = await discoverWorkflows(projectDir);
 
   // Convert workflows array to Record keyed by name
   const workflows: Record<string, AnyExecutable> = {};
