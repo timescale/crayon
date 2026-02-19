@@ -32,10 +32,10 @@ export interface InstallSettings {
 export function buildMcpCommand(): McpCommandResult {
   const args = [...process.argv];
 
-  // Find and replace "install" with "mcp", "start"
-  const installIndex = args.findIndex(arg => arg === "install");
-  const baseArgs = installIndex !== -1
-    ? args.slice(0, installIndex)
+  // Strip the CLI subcommand (install, run, etc.) to get just [node, script]
+  const subcommandIndex = args.findIndex(arg => arg === "install" || arg === "run");
+  const baseArgs = subcommandIndex !== -1
+    ? args.slice(0, subcommandIndex)
     : args;
 
   const scriptPath = baseArgs[1] || "";
