@@ -13,6 +13,7 @@ export interface NangoConnection {
   connection_id: string;
   provider_config_key: string;
   created_at: string;
+  display_name: string;
 }
 
 export function useConnections() {

@@ -18,3 +18,4 @@ export {
   logout as cloudLogout,
 } from "./cloud-auth.js";
 export { apiCall as cloudApiCall } from "./cloud-client.js";
+export { getConnectionDisplayName } from "./connection-labels.js";

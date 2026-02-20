@@ -24,7 +24,7 @@ export interface IntegrationProvider {
   /** List connections for an integration */
   listConnections(
     integrationId: string,
-  ): Promise<Array<{ connection_id: string; provider_config_key: string }>>;
+  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>>;
 
   /** Create a Connect session for OAuth setup */
   createConnectSession(

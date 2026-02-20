@@ -108,7 +108,7 @@ export function IntegrationSection({
           <option value="">Select a connection...</option>
           {nangoConnections.map((nc) => (
             <option key={nc.connection_id} value={nc.connection_id}>
-              {nc.connection_id}
+              {nc.display_name}
             </option>
           ))}
         </select>

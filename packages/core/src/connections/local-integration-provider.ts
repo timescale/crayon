@@ -1,5 +1,6 @@
 import type { IntegrationProvider } from "./integration-provider.js";
 import type { ConnectionCredentials } from "../types.js";
+import { getConnectionDisplayName } from "./connection-labels.js";
 
 /**
  * IntegrationProvider backed by a direct Nango connection (self-hosted mode).
@@ -47,11 +48,27 @@ export class LocalIntegrationProvider implements IntegrationProvider {
 
   async listConnections(
     integrationId: string,
-  ): Promise<Array<{ connection_id: string; provider_config_key: string }>> {
+  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
     const result = await this.nango.listConnections();
-    return (result.connections ?? []).filter(
+    const filtered = (result.connections ?? []).filter(
       (c: { provider_config_key: string }) =>
         c.provider_config_key === integrationId,
+    );
+    return Promise.all(
+      filtered.map(async (c: { connection_id: string; provider_config_key: string }) => {
+        let displayName = c.connection_id;
+        try {
+          const conn = await this.nango.getConnection(integrationId, c.connection_id);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, conn.credentials);
+        } catch {
+          // Fall back to connection_id if fetch fails
+        }
+        return {
+          connection_id: c.connection_id,
+          provider_config_key: c.provider_config_key,
+          display_name: displayName,
+        };
+      }),
     );
   }
 

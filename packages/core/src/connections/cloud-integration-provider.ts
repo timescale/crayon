@@ -1,6 +1,7 @@
 import type { IntegrationProvider } from "./integration-provider.js";
 import type { ConnectionCredentials } from "../types.js";
 import { apiCall } from "./cloud-client.js";
+import { getConnectionDisplayName } from "./connection-labels.js";
 
 /**
  * IntegrationProvider backed by the 0pflow cloud server (hosted mode).
@@ -29,12 +30,27 @@ export class CloudIntegrationProvider implements IntegrationProvider {
 
   async listConnections(
     integrationId: string,
-  ): Promise<Array<{ connection_id: string; provider_config_key: string }>> {
+  ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
     const data = (await apiCall(
       "GET",
       `/api/integrations/${encodeURIComponent(integrationId)}/connections`,
     )) as Array<{ connection_id: string; provider_config_key: string }>;
-    return data;
+    return Promise.all(
+      data.map(async (c) => {
+        let displayName = c.connection_id;
+        try {
+          const creds = await this.fetchCredentials(integrationId, c.connection_id);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, creds.raw);
+        } catch {
+          // Fall back to connection_id if fetch fails
+        }
+        return {
+          connection_id: c.connection_id,
+          provider_config_key: c.provider_config_key,
+          display_name: displayName,
+        };
+      }),
+    );
   }
 
   async createConnectSession(
