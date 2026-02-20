@@ -4,6 +4,7 @@ import { useDAGSocket } from "./hooks/useDAGSocket";
 import { useConnections } from "./hooks/useConnections";
 import { useRunHistory } from "./hooks/useRunHistory";
 import { useTerminal } from "./hooks/useTerminal";
+import { useResizeX } from "./hooks/useResizeX";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { WorkflowSelector } from "./components/WorkflowSelector";
 import { ConnectionsPanel } from "./components/ConnectionsPanel";
@@ -18,6 +19,10 @@ export function App() {
   const connectionsApi = useConnections();
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
+  const [historySidebarOpen, setHistorySidebarOpen] = useState(false);
+
+  const leftResize = useResizeX({ defaultWidth: 224, minWidth: 160, maxWidth: 400, side: "right" });
+  const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
 
   const runHistory = useRunHistory(selectedWorkflow);
 
@@ -46,32 +51,17 @@ export function App() {
           />
         ),
       },
-      ...(runHistory.available
-        ? [
-            {
-              id: "history",
-              label: "History",
-              content: (
-                <RunHistoryTab
-                  runs={runHistory.runs}
-                  loading={runHistory.loading}
-                  selectedRunId={runHistory.selectedRunId}
-                  trace={runHistory.trace}
-                  traceLoading={runHistory.traceLoading}
-                  selectRun={runHistory.selectRun}
-                  refresh={runHistory.refresh}
-                />
-              ),
-            },
-          ]
-        : []),
     ],
-    [terminal, runHistory],
+    [terminal],
   );
 
   return (
     <div className="h-screen w-screen flex bg-background">
-      <div className="w-56 border-r border-border flex flex-col bg-[#f3ede5]">
+      {/* Left sidebar */}
+      <div
+        className="flex flex-col bg-[#f3ede5] shrink-0 relative"
+        style={{ width: leftResize.width }}
+      >
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <h1 className="text-sm font-bold text-foreground font-serif tracking-wide">0pflow</h1>
           <span
@@ -92,9 +82,15 @@ export function App() {
           />
           <DeployPanel />
         </div>
+        {/* Right-edge drag handle */}
+        <div
+          onMouseDown={leftResize.onDragStart}
+          className="absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-accent z-20"
+        />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 border-x border-border">
         {/* Graph area */}
         <div className="flex-1 relative min-h-0">
           {activeDag ? (
@@ -119,20 +115,34 @@ export function App() {
             </div>
           )}
 
-          {/* Panel toggle — always visible */}
-          <button
-            onClick={() => setBottomPanelOpen(!bottomPanelOpen)}
-            className={`absolute top-3 right-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
-              bottomPanelOpen
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Terminal
-          </button>
+          {/* Toggle buttons */}
+          <div className="absolute top-3 right-3 flex gap-1.5">
+            {runHistory.available && (
+              <button
+                onClick={() => setHistorySidebarOpen(!historySidebarOpen)}
+                className={`bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
+                  historySidebarOpen
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                History
+              </button>
+            )}
+            <button
+              onClick={() => setBottomPanelOpen(!bottomPanelOpen)}
+              className={`bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
+                bottomPanelOpen
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Terminal
+            </button>
+          </div>
         </div>
 
-        {/* Bottom panel */}
+        {/* Bottom panel (terminal only) */}
         {bottomPanelOpen && (
           <BottomPanel
             tabs={bottomTabs}
@@ -141,6 +151,41 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Right sidebar — run history */}
+      {historySidebarOpen && runHistory.available && (
+        <div
+          className="flex flex-col bg-[#f3ede5] shrink-0 relative"
+          style={{ width: rightResize.width }}
+        >
+          {/* Left-edge drag handle */}
+          <div
+            onMouseDown={rightResize.onDragStart}
+            className="absolute top-0 left-0 w-1 h-full cursor-ew-resize hover:bg-accent z-20"
+          />
+          <div className="shrink-0 px-4 py-3 border-b border-border flex items-center justify-between">
+            <span className="text-[12px] font-medium text-foreground tracking-wide">History</span>
+            <button
+              onClick={() => setHistorySidebarOpen(false)}
+              className="text-muted-foreground hover:text-foreground text-sm px-1 cursor-pointer"
+              title="Close"
+            >
+              &times;
+            </button>
+          </div>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <RunHistoryTab
+              runs={runHistory.runs}
+              loading={runHistory.loading}
+              selectedRunId={runHistory.selectedRunId}
+              trace={runHistory.trace}
+              traceLoading={runHistory.traceLoading}
+              selectRun={runHistory.selectRun}
+              refresh={runHistory.refresh}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
