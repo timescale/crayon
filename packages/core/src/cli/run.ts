@@ -17,6 +17,7 @@ import {
   writeSettings,
   addMarketplace,
   installPlugin,
+  uninstallPlugin,
 } from "./install.js";
 
 function isClaudeAvailable(): boolean {
@@ -307,17 +308,30 @@ export async function runRun(): Promise<void> {
   {
     const s = p.spinner();
     s.start("Updating 0pflow plugin...");
-    const mcpResult = buildMcpCommand();
-    writeSettings({
-      mcpCommand: mcpResult.command,
-      installedAt: new Date().toISOString(),
-    });
-    addMarketplace(mcpResult, "ignore");
-    const result = installPlugin("ignore");
-    if (result.success) {
-      s.stop(pc.green("Plugin up to date"));
-    } else {
-      s.stop(pc.yellow("Plugin update skipped (can retry with '0pflow install --force')"));
+    try {
+      const mcpResult = buildMcpCommand();
+      writeSettings({
+        mcpCommand: mcpResult.command,
+        installedAt: new Date().toISOString(),
+      });
+      // In dev mode (local .ts source), skip marketplace/plugin install since
+      // the dev server loads the plugin via --plugin-dir instead.
+      if (mcpResult.isLocal) {
+        // Remove any previously installed marketplace plugin to avoid
+        // duplicates — dev server uses --plugin-dir instead.
+        uninstallPlugin("ignore");
+        s.stop(pc.green("Plugin ready (dev mode)"));
+      } else {
+        addMarketplace(mcpResult, "ignore");
+        const result = installPlugin("ignore");
+        if (result.success) {
+          s.stop(pc.green("Plugin up to date"));
+        } else {
+          s.stop(pc.yellow("Plugin update skipped (can retry with '0pflow install --force')"));
+        }
+      }
+    } catch (err) {
+      s.stop(pc.yellow(`Plugin update failed: ${err instanceof Error ? err.message : String(err)}`));
     }
   }
 

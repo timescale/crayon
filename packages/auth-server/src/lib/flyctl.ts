@@ -89,7 +89,7 @@ export function startDeploy(
     FLY_API_TOKEN: process.env.FLY_API_TOKEN,
   };
 
-  const proc = spawn("flyctl", ["deploy", "--remote-only", "--app", flyAppName], {
+  const proc = spawn("flyctl", ["deploy", "--remote-only", "--ha=false", "--app", flyAppName], {
     cwd,
     env,
     stdio: "pipe",

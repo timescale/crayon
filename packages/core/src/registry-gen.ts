@@ -136,6 +136,10 @@ export function generateRegistry(projectDir: string): string {
 
   const source = buildRegistrySource(workflows, agents, nodes);
 
+  // Strip .js extensions from imports in generated workflow files
+  // (Turbopack can't resolve .js → .ts in production builds)
+  stripJsExtensionsInDir(workflowDir);
+
   // Write the file
   const outDir = path.join(projectDir, "generated");
   if (!fs.existsSync(outDir)) {
@@ -145,6 +149,27 @@ export function generateRegistry(projectDir: string): string {
   fs.writeFileSync(outPath, source);
 
   return outPath;
+}
+
+/**
+ * Strip .js extensions from relative imports in all .ts files in a directory.
+ * Turbopack can't resolve .js → .ts in production builds.
+ */
+function stripJsExtensionsInDir(dir: string): void {
+  if (!fs.existsSync(dir)) return;
+
+  for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".ts"))) {
+    const filePath = path.join(dir, file);
+    const content = fs.readFileSync(filePath, "utf-8");
+    // Replace .js extension in relative imports: from "../../foo.js" → from "../../foo"
+    const updated = content.replace(
+      /(from\s+["']\.\.?\/[^"']*?)\.js(["'])/g,
+      "$1$2",
+    );
+    if (updated !== content) {
+      fs.writeFileSync(filePath, updated);
+    }
+  }
 }
 
 /**

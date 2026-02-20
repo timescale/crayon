@@ -97,6 +97,8 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 **Note:** Agent imports reference the executable file (`agents/<name>.ts`), not the spec file (`specs/agents/<name>.md`). The executable contains the runtime code that loads the spec.
 
+**IMPORTANT:** Never use `.js` extensions in import paths. Use extensionless imports (e.g., `"../../nodes/check-website"` not `"../../nodes/check-website.js"`). Turbopack cannot resolve `.js` → `.ts` in production builds.
+
 ### Resolution Steps
 
 1. **Parse node reference:** Extract name and type from `**Node:** \`name\` (type)` in the workflow description

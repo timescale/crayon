@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import pc from "picocolors";
 import { getNpmVersionForMcp } from "./index.js";
@@ -59,7 +59,6 @@ export function buildMcpCommand(): McpCommandResult {
     } catch {
       // If we can't resolve tsx, try the npx cache directly
       const home = process.env.HOME || "~";
-      const { readdirSync } = require("node:fs");
       try {
         const npxCacheDir = join(home, ".npm", "_npx");
         for (const entry of readdirSync(npxCacheDir)) {
@@ -164,6 +163,22 @@ export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "
       success: false,
       error: err instanceof Error ? err.message : String(err)
     };
+  }
+}
+
+/**
+ * Uninstall the 0pflow plugin and marketplace from Claude Code (if present).
+ */
+export function uninstallPlugin(stdio: "inherit" | "ignore" = "inherit"): void {
+  try {
+    execSync("claude plugin uninstall 0pflow", { stdio });
+  } catch {
+    // Plugin may not be installed — ignore
+  }
+  try {
+    execSync("claude plugin marketplace remove 0pflow", { stdio });
+  } catch {
+    // Marketplace may not be registered — ignore
   }
 }
 
@@ -278,19 +293,8 @@ export async function runUninstall(options: UninstallOptions = {}): Promise<void
 
   // Uninstall plugin and marketplace from Claude
   if (isClaudeCliAvailable()) {
-    try {
-      execSync("claude plugin uninstall 0pflow", { stdio });
-      if (verbose) console.log(pc.green("✓"), "Plugin uninstalled");
-    } catch {
-      if (verbose) console.log(pc.yellow("⚠"), "Could not uninstall plugin");
-    }
-
-    try {
-      execSync("claude plugin marketplace remove 0pflow", { stdio });
-      if (verbose) console.log(pc.green("✓"), "Marketplace removed");
-    } catch {
-      if (verbose) console.log(pc.yellow("⚠"), "Could not remove marketplace");
-    }
+    uninstallPlugin(stdio);
+    if (verbose) console.log(pc.green("✓"), "Plugin uninstalled");
   }
 
   // Remove settings file

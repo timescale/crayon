@@ -77,7 +77,10 @@ export async function scaffoldApp({
   try {
     await writeAppTemplates(appPath, {
       app_name: appName,
-      opflow_version: version,
+      // - Dev mode (monorepo via npm link): "dev" dist-tag
+      // - Installed from 0pflow@dev (e.g. 0.1.0-dev.c6251ba): "dev" dist-tag
+      // - Installed from 0pflow@latest (e.g. 0.1.0): exact version
+      opflow_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
     });
 
     await create0pflowDirectories(appPath);

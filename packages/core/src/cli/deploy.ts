@@ -49,6 +49,7 @@ const EXCLUDE_PATTERNS = [
   "dbos-config.yaml",
   ".env",
   ".env.local",
+  "package-lock.json",
 ];
 
 /**
