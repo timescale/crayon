@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export type DeployStatus = "idle" | "deploying" | "success" | "error";
 
@@ -12,6 +12,18 @@ export interface DeployState {
 
 export function useDeploy() {
   const [state, setState] = useState<DeployState>({ status: "idle" });
+  // Persists across deploy cycles so the URL stays visible in the sidebar
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
+
+  // Fetch existing deploy URL on mount
+  useEffect(() => {
+    fetch("/api/deploy")
+      .then((r) => r.json() as Promise<{ deployed: boolean; url?: string }>)
+      .then((data) => {
+        if (data.deployed && data.url) setDeployedUrl(data.url);
+      })
+      .catch(() => {});
+  }, []);
 
   const startDeploy = useCallback(async () => {
     setState({ status: "deploying", message: "Starting deploy..." });
@@ -57,6 +69,7 @@ export function useDeploy() {
                   message: data.message,
                 });
               } else if (data.type === "done") {
+                if (data.url) setDeployedUrl(data.url);
                 setState({ status: "success", url: data.url });
               } else if (data.type === "error") {
                 setState({ status: "error", error: data.message });
@@ -79,5 +92,5 @@ export function useDeploy() {
     setState({ status: "idle" });
   }, []);
 
-  return { ...state, startDeploy, reset };
+  return { ...state, deployedUrl, startDeploy, reset };
 }

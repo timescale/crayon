@@ -1,5 +1,10 @@
 import { useDeploy } from "../hooks/useDeploy";
 
+/** Strip protocol from URL for compact display */
+function shortUrl(url: string): string {
+  return url.replace(/^https?:\/\//, "");
+}
+
 export function DeployPanel() {
   const deploy = useDeploy();
 
@@ -9,12 +14,28 @@ export function DeployPanel() {
         Deploy
       </p>
 
+      {/* Persistent deploy URL — shown whenever we have one and not mid-deploy */}
+      {deploy.deployedUrl && deploy.status !== "deploying" && deploy.status !== "success" && (
+        <a
+          href={deploy.deployedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-1 mb-2 group transition-colors"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+          <span className="truncate group-hover:underline">{shortUrl(deploy.deployedUrl)}</span>
+          <svg className="w-2.5 h-2.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M3.5 1.5h7v7M10.5 1.5L1.5 10.5" />
+          </svg>
+        </a>
+      )}
+
       {deploy.status === "idle" && (
         <button
           onClick={deploy.startDeploy}
           className="w-full px-3 py-1.5 text-xs bg-foreground text-background rounded hover:opacity-90 transition-opacity cursor-pointer"
         >
-          Deploy to Cloud
+          {deploy.deployedUrl ? "Re-deploy" : "Deploy to Cloud"}
         </button>
       )}
 
@@ -53,12 +74,12 @@ export function DeployPanel() {
               rel="noopener noreferrer"
               className="text-blue-400 underline break-all"
             >
-              {deploy.url}
+              {shortUrl(deploy.url)}
             </a>
           )}
           <button
             onClick={deploy.reset}
-            className="mt-2 block text-muted-foreground hover:text-foreground underline cursor-pointer"
+            className="mt-1 block text-muted-foreground hover:text-foreground underline cursor-pointer"
           >
             Done
           </button>
