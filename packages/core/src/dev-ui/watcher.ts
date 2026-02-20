@@ -51,6 +51,9 @@ export function createWatcher(options: WatcherOptions) {
             // Convert .js extension to .ts for source files
             if (importFile.endsWith(".js")) {
               importFile = importFile.slice(0, -3) + ".ts";
+            } else if (!extname(importFile)) {
+              // Extensionless imports (e.g. from Turbopack/bundler) — try .ts
+              importFile = importFile + ".ts";
             }
             let resolvedPath = resolve(dirname(absPath), importFile);
             if (!existsSync(resolvedPath)) {
@@ -74,8 +77,8 @@ export function createWatcher(options: WatcherOptions) {
             if (integrations) {
               node.integrations = integrations;
             }
-          } catch {
-            // Skip nodes we can't resolve
+          } catch (err) {
+            console.warn(`[watcher] Error resolving node ${node.importPath}:`, err);
           }
         }
       }
