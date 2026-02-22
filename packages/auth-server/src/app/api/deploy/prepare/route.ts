@@ -26,71 +26,46 @@ export async function POST(req: NextRequest) {
     const { appName } = body;
     const db = await getPool();
 
-    // Check for existing deployment
+    // Check for existing deployment with a Fly app already created
     const existing = await db.query(
-      `SELECT id, fly_app_name, app_url FROM deployments
-       WHERE user_id = $1 AND app_name = $2`,
+      `SELECT fly_app_name, app_url FROM deployments
+       WHERE user_id = $1 AND app_name = $2 AND fly_app_name IS NOT NULL`,
       [userId, appName],
     );
 
     if (existing.rows.length > 0) {
-      const row = existing.rows[0];
-      if (row.fly_app_name) {
-        return NextResponse.json({
-          data: {
-            appUrl: row.app_url as string,
-          },
-        });
-      }
+      return NextResponse.json({
+        data: { appUrl: existing.rows[0].app_url as string },
+      });
     }
 
-    // Create new deployment record (or get existing ID for naming)
-    const upsert = await db.query(
-      `INSERT INTO deployments (user_id, app_name)
-       VALUES ($1, $2)
-       ON CONFLICT (user_id, app_name) DO UPDATE SET updated_at = NOW()
-       RETURNING id`,
-      [userId, appName],
-    );
-    const deploymentId = upsert.rows[0].id as number;
+    // Reserve an ID from the sequence (no row inserted yet)
+    const seqResult = await db.query(`SELECT nextval('deployments_id_seq') AS id`);
+    const deploymentId = seqResult.rows[0].id as number;
     const flyAppName = `opflow-${deploymentId}`;
     const appUrl = `https://${flyAppName}.fly.dev`;
 
-    // Create Fly app
+    // Create Fly app first — if this fails, no DB row is left behind
     console.log(`[deploy/prepare] Creating Fly app: ${flyAppName}`);
-    try {
-      flyctlSync(["apps", "create", flyAppName, "--org", FLY_ORG]);
-    } catch (err) {
-      // App might already exist (idempotent)
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes("already exists")) {
-        throw err;
-      }
-      console.log(`[deploy/prepare] App ${flyAppName} already exists`);
-    }
+    flyctlSync(["apps", "create", flyAppName, "--org", FLY_ORG]);
 
     // Allocate shared IPv4
-    console.log(`[deploy/prepare] Allocating shared IPv4 for ${flyAppName}`);
     try {
       flyctlSync(["ips", "allocate-v4", "--shared", "-a", flyAppName]);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.includes("already") && !msg.includes("shared")) {
-        console.log(`[deploy/prepare] IP allocation warning: ${msg}`);
-      }
+      console.log(`[deploy/prepare] IP allocation warning: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    // Update deployment record
+    // Insert complete row only after Fly app is confirmed created
     await db.query(
-      `UPDATE deployments SET fly_app_name = $1, app_url = $2, updated_at = NOW()
-       WHERE id = $3`,
-      [flyAppName, appUrl, deploymentId],
+      `INSERT INTO deployments (id, user_id, app_name, fly_app_name, app_url)
+       OVERRIDING SYSTEM VALUE
+       VALUES ($1, $2, $3, $4, $5)`,
+      [deploymentId, userId, appName, flyAppName, appUrl],
     );
 
     return NextResponse.json({
-      data: {
-        appUrl,
-      },
+      data: { appUrl },
     });
   } catch (err) {
     return NextResponse.json(
