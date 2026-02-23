@@ -99,7 +99,7 @@ export function App() {
                 <WorkflowGraph dag={activeDag} connectionsApi={connectionsApi} />
               </div>
               <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.04)] border border-border">
-                <span className="text-[15px] font-semibold text-foreground font-sketch">
+                <span className="text-[15px] font-semibold text-foreground">
                   {activeDag.workflowName}
                 </span>
                 <span className="text-xs text-muted-foreground ml-2">

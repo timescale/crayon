@@ -5,6 +5,7 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
+  MarkerType,
   useNodesState,
   useEdgesState,
   useReactFlow,
@@ -17,7 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { WorkflowNode } from "./WorkflowNode";
 import { LoopGroupNode } from "./LoopGroupNode";
-import { ScribbyEdge } from "./ScribbyEdge";
+import { CleanEdge } from "./CleanEdge";
 import { NodeDetailPopover } from "./NodeDetailPopover";
 import type { WorkflowDAG, DAGNode } from "../types";
 import { computeLayout, computeGroupLayouts, NODE_WIDTH, NODE_HEIGHT } from "../layout";
@@ -28,7 +29,7 @@ const nodeTypes: NodeTypes = {
 };
 
 const edgeTypes: EdgeTypes = {
-  scribby: ScribbyEdge,
+  clean: CleanEdge,
 };
 
 interface WorkflowGraphProps {
@@ -112,10 +113,16 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
       source: edge.source,
       target: edge.target,
       label: edge.label,
-      type: "scribby",
+      type: "clean",
       animated: false,
-      style: { stroke: "#9e9689", strokeWidth: 1.2, strokeLinecap: "round" as const },
-      labelStyle: { fontSize: 13, fill: "#6b6358", fontFamily: "'Caveat', cursive" },
+      style: { stroke: "#c4b5a0", strokeWidth: 1.5 },
+      labelStyle: { fontSize: 12, fill: "#6b7280" },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 12,
+        height: 12,
+        color: "#c4b5a0",
+      },
     }));
 
     return { flowNodes, flowEdges };
