@@ -50,16 +50,21 @@ export function loadEnv(envPath: string): void {
 }
 
 /**
- * Find .env starting from cwd and load it into process.env
+ * Find .env starting from cwd and load it into process.env.
+ * If DATABASE_URL is already set (e.g. from cloud env vars), .env is optional —
+ * load it if it exists (local overrides) but don't throw if it's missing.
  */
 export function resolveEnv(): void {
   const envPath = findEnvFile(process.cwd());
-  if (!envPath) {
+  if (envPath) {
+    loadEnv(envPath);
+    return;
+  }
+  if (!process.env.DATABASE_URL) {
     throw new Error(
       "No .env file found in current directory or parents\n" +
       "Create a .env file with at least:\n" +
       "  DATABASE_URL=postgresql://user:pass@localhost:5432/dbname"
     );
   }
-  loadEnv(envPath);
 }
