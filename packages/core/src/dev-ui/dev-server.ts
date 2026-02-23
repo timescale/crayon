@@ -95,6 +95,13 @@ export async function startDevServer(options: DevServerOptions) {
 
     const url = (req.url ?? "/").split("?")[0];
 
+    // Claude command hint (no database required)
+    if (url === "/api/claude-command" && req.method === "GET") {
+      res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      res.end(JSON.stringify({ projectRoot }));
+      return;
+    }
+
     // Deploy endpoint (no database required)
     if (url === "/api/deploy") {
       try {
