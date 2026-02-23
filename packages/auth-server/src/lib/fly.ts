@@ -77,6 +77,82 @@ export interface MachineInfo {
   }>;
 }
 
+// ── Machine config types ─────────────────────────────────────────
+
+export interface MachineService {
+  ports: Array<{
+    port: number;
+    handlers: string[];
+  }>;
+  protocol: string;
+  internal_port: number;
+  auto_stop_machines: string;
+  auto_start_machines: boolean;
+}
+
+export interface MachineGuest {
+  cpu_kind: string;
+  cpus: number;
+  memory_mb: number;
+}
+
+export interface CreateMachineConfig {
+  image: string;
+  services?: MachineService[];
+  guest?: MachineGuest;
+  env?: Record<string, string>;
+  mounts?: Array<{
+    volume: string;
+    path: string;
+  }>;
+  auto_destroy?: boolean;
+}
+
+// ── Machine mutations ────────────────────────────────────────────
+
+/**
+ * Create a new machine for a Fly app.
+ */
+export async function createMachine(
+  appName: string,
+  config: CreateMachineConfig,
+): Promise<MachineInfo> {
+  const response = await flyApiCall(
+    "POST",
+    `/v1/apps/${encodeURIComponent(appName)}/machines`,
+    { config },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to create machine for "${appName}" (${response.status}): ${text}`,
+    );
+  }
+
+  return (await response.json()) as MachineInfo;
+}
+
+/**
+ * Stop a specific machine.
+ */
+export async function stopMachine(
+  appName: string,
+  machineId: string,
+): Promise<void> {
+  const response = await flyApiCall(
+    "POST",
+    `/v1/apps/${encodeURIComponent(appName)}/machines/${encodeURIComponent(machineId)}/stop`,
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to stop machine "${machineId}" (${response.status}): ${text}`,
+    );
+  }
+}
+
 // ── Machine queries ───────────────────────────────────────────────
 
 /**

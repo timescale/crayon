@@ -117,6 +117,100 @@ Update your GitHub OAuth App at https://github.com/settings/developers:
 | `/api/deploy/push` | POST | Bearer | Upload code + kick off Docker build via flyctl |
 | `/api/deploy/status` | GET | Bearer | Check build/machine status (`?appName=X`) |
 | `/api/deploy/logs` | GET | Bearer | Get build + runtime logs (`?appName=X`) |
+| `/api/cloud-dev/create` | POST | Bearer | Create cloud dev Fly app + machine |
+| `/api/cloud-dev/status` | GET | Bearer | Check cloud dev machine state (`?appName=X`) |
+| `/api/cloud-dev/stop` | POST | Bearer | Stop cloud dev machine |
+| `/api/cloud-dev/destroy` | POST | Bearer | Destroy cloud dev machine (owner only) |
+
+## Cloud Dev
+
+Cloud dev machines let users run a full 0pflow dev environment (dev UI + embedded Claude Code terminal) on a Fly.io machine with persistent storage.
+
+### Building the Docker image
+
+The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude Code, and 0pflow with pre-cached `node_modules`.
+
+**Development (local build):**
+
+```bash
+# Build 0pflow and pack a tarball into the docker context
+pnpm --filter 0pflow build
+cd packages/core && npm pack --pack-destination docker/
+
+# Build and push with local code
+cd docker
+flyctl deploy --build-only --push --image-label latest --build-arg OPFLOW_SOURCE=local
+```
+
+**Production (npm registry):**
+
+```bash
+# One-time: create a Fly app to host the image
+flyctl apps create opflow-cloud-dev-image --org tiger-data
+
+# Build and push using published 0pflow@dev from npm
+cd packages/core/docker
+flyctl deploy --build-only --push --image-label latest
+```
+
+To use a different registry/tag, set `CLOUD_DEV_IMAGE` on the auth server:
+
+```bash
+flyctl secrets set CLOUD_DEV_IMAGE=registry.fly.io/opflow-cloud-dev-image:latest -a opflow-auth
+```
+
+### Testing cloud dev locally
+
+**Prerequisites:**
+- Tiger CLI installed and authenticated (`tiger auth login`)
+- 0pflow cloud authenticated (`0pflow login`)
+- Claude Code installed and signed in (or `ANTHROPIC_API_KEY` set)
+- Auth server running locally or deployed
+
+```bash
+# Create a cloud dev environment (interactive)
+0pflow cloud-dev
+
+# Check status
+0pflow cloud-dev --status
+
+# Stop the machine (preserves volume data)
+0pflow cloud-dev --stop
+
+# Destroy the machine and Fly app (deletes everything)
+0pflow cloud-dev --destroy
+```
+
+### Testing the Docker image locally
+
+```bash
+# Run the image locally to verify entrypoint behavior
+docker run --rm -it \
+  -e APP_NAME=test-app \
+  -e DEV_USER=user-local \
+  -e DATABASE_URL="postgresql://..." \
+  -e DATABASE_SCHEMA=test-app \
+  -v /tmp/cloud-dev-data:/data \
+  registry.fly.io/opflow-cloud-dev-image:latest
+```
+
+This scaffolds a project into `/tmp/cloud-dev-data/app/` and starts the dev server on port 4173.
+
+### Cloud dev API routes
+
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/cloud-dev/create` | POST | Bearer | Create Fly app + volume + machine |
+| `/api/cloud-dev/status` | GET | Bearer | Check machine state (`?appName=X`) |
+| `/api/cloud-dev/stop` | POST | Bearer | Stop the machine |
+| `/api/cloud-dev/destroy` | POST | Bearer | Destroy Fly app + delete DB rows (owner only) |
+
+### Database tables
+
+- `dev_machines` — One row per cloud dev machine (app name, Fly app name, URL, status)
+- `dev_machine_members` — Many-to-many: users to machines with role (`owner`/`member`) and `linux_user` for OS-level isolation
+
+Tables are auto-created by `ensureSchema()` on first request.
 
 ## How it connects to the core package
 

@@ -72,4 +72,31 @@ async function ensureSchema(): Promise<void> {
   await pool!.query(`
     CREATE INDEX IF NOT EXISTS idx_deployments_user ON deployments(user_id)
   `);
+
+  // Cloud dev machines — shared resource, not tied to a single user
+  await pool!.query(`
+    CREATE TABLE IF NOT EXISTS dev_machines (
+      id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      app_name TEXT NOT NULL UNIQUE,
+      fly_app_name TEXT,
+      app_url TEXT,
+      machine_status TEXT DEFAULT 'idle',
+      machine_error TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Many users can access one machine
+  await pool!.query(`
+    CREATE TABLE IF NOT EXISTS dev_machine_members (
+      machine_id BIGINT NOT NULL REFERENCES dev_machines(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      role TEXT NOT NULL DEFAULT 'member',
+      linux_user TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (machine_id, user_id)
+    )
+  `);
 }

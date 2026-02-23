@@ -116,6 +116,39 @@ program
     await runDeploy(options);
   });
 
+// ============ Init command ============
+program
+  .command("init <name>")
+  .description("Scaffold a new 0pflow project (non-interactive)")
+  .option("-d, --dir <path>", "Directory to scaffold in", ".")
+  .option("--no-install", "Skip npm install")
+  .action(async (name: string, options: { dir: string; install: boolean }) => {
+    const { scaffoldApp } = await import("./mcp/lib/scaffolding.js");
+    const result = await scaffoldApp({
+      appName: name,
+      directory: options.dir,
+      installDeps: options.install,
+    });
+    if (!result.success) {
+      console.error(result.message);
+      process.exit(1);
+    }
+    console.log(result.message);
+  });
+
+// ============ Cloud Dev command ============
+program
+  .command("cloud-dev")
+  .description("Create a cloud dev environment on Fly.io")
+  .option("--stop", "Stop the cloud dev machine")
+  .option("--status", "Check cloud dev machine status")
+  .option("--destroy", "Destroy the cloud dev machine")
+  .option("--verbose", "Show detailed output")
+  .action(async (options: { stop?: boolean; status?: boolean; destroy?: boolean; verbose?: boolean }) => {
+    const { runCloudDev } = await import("./cloud-dev.js");
+    await runCloudDev(options);
+  });
+
 // ============ Workflow commands ============
 const workflow = program.command("workflow").description("Workflow commands");
 

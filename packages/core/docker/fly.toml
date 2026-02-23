@@ -1,0 +1,5 @@
+app = "opflow-cloud-dev-image"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile.cloud-dev"

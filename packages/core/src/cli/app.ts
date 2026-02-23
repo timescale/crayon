@@ -28,6 +28,11 @@ export function getAppName(): string | undefined {
  * @param projectRoot Directory containing the .env file (defaults to cwd)
  */
 export function getAppSchema(projectRoot?: string): string {
+  // Check process.env first (e.g. Fly secrets in cloud-dev)
+  if (process.env.DATABASE_SCHEMA) {
+    return process.env.DATABASE_SCHEMA;
+  }
+
   const envPath = path.join(projectRoot ?? process.cwd(), ".env");
 
   if (!fs.existsSync(envPath)) {

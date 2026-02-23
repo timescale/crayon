@@ -200,6 +200,10 @@ export async function setupAppSchema({
   const appDir = resolve(process.cwd(), directory);
   const envPath = join(appDir, ".env");
 
+  // Sanitize app name into a valid PostgreSQL identifier
+  // (replace hyphens/dots with underscores, strip anything else non-alphanumeric)
+  const pgName = appName.replace(/[-. ]/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
+
   // Check if already run
   if (existsSync(envPath)) {
     const envContent = await readFile(envPath, "utf-8");
@@ -209,8 +213,8 @@ export async function setupAppSchema({
         success: true,
         message:
           "DATABASE_SCHEMA already set in .env. Delete it and re-run if you need to regenerate.",
-        schema_name: appName,
-        user_name: appName,
+        schema_name: pgName,
+        user_name: pgName,
       };
     }
   }
@@ -249,48 +253,48 @@ export async function setupAppSchema({
   try {
     const existingUser = await pool.query(
       `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1`,
-      [appName],
+      [pgName],
     );
 
     if (existingUser.rows.length > 0) {
       return {
         success: false,
-        message: `User '${appName}' already exists. Choose a different app name or delete the existing user.`,
+        message: `User '${pgName}' already exists. Choose a different app name or delete the existing user.`,
       };
     }
 
     const appPassword = generatePassword();
     await pool.query(
-      `CREATE ROLE ${appName} WITH LOGIN PASSWORD '${appPassword}'`,
+      `CREATE ROLE ${pgName} WITH LOGIN PASSWORD '${appPassword}'`,
     );
 
-    await pool.query(`GRANT ${appName} TO tsdbadmin WITH INHERIT TRUE`);
+    await pool.query(`GRANT ${pgName} TO tsdbadmin WITH INHERIT TRUE`);
 
     await pool.query(
-      `CREATE SCHEMA IF NOT EXISTS ${appName} AUTHORIZATION ${appName}`,
+      `CREATE SCHEMA IF NOT EXISTS ${pgName} AUTHORIZATION ${pgName}`,
     );
     await pool.query(
-      `CREATE SCHEMA IF NOT EXISTS ${appName}_dbos AUTHORIZATION ${appName}`,
+      `CREATE SCHEMA IF NOT EXISTS ${pgName}_dbos AUTHORIZATION ${pgName}`,
     );
 
     await pool.query(
-      `GRANT CREATE ON DATABASE tsdb TO ${appName}`,
+      `GRANT CREATE ON DATABASE tsdb TO ${pgName}`,
     );
 
-    await pool.query(`REVOKE CREATE ON SCHEMA public FROM ${appName}`);
-    await pool.query(`GRANT USAGE ON SCHEMA public TO ${appName}`);
+    await pool.query(`REVOKE CREATE ON SCHEMA public FROM ${pgName}`);
+    await pool.query(`GRANT USAGE ON SCHEMA public TO ${pgName}`);
 
     await pool.query(
-      `ALTER ROLE ${appName} SET search_path TO ${appName}, ${appName}_dbos, public`,
+      `ALTER ROLE ${pgName} SET search_path TO ${pgName}, ${pgName}_dbos, public`,
     );
 
     const currentPath = await pool.query(
       `SELECT setting FROM pg_settings WHERE name = 'search_path'`,
     );
     const existingPath = currentPath.rows[0]?.setting ?? "public";
-    if (!existingPath.includes(appName)) {
+    if (!existingPath.includes(pgName)) {
       await pool.query(
-        `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${appName}, ${appName}_dbos`,
+        `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${pgName}, ${pgName}_dbos`,
       );
     }
 
@@ -307,7 +311,7 @@ export async function setupAppSchema({
 
     const appDatabaseUrl = buildConnectionString(
       adminConnectionString,
-      appName,
+      pgName,
       appPassword,
     );
 
@@ -318,7 +322,7 @@ export async function setupAppSchema({
 
     const env = dotenv.parse(envContent);
     env.DATABASE_URL = appDatabaseUrl;
-    env.DATABASE_SCHEMA = appName;
+    env.DATABASE_SCHEMA = pgName;
     if (dbosAdminPassword) {
       env.DBOS_ADMIN_URL = buildConnectionString(
         adminConnectionString,
@@ -334,7 +338,7 @@ export async function setupAppSchema({
     await writeFile(envPath, `${newEnvContent}\n`);
 
     // Create the opflow_connections table so it's ready before the dev UI launches
-    await ensureConnectionsTable(appDatabaseUrl, appName);
+    await ensureConnectionsTable(appDatabaseUrl, pgName);
   } catch (err) {
     const error = err as Error;
     return {
@@ -347,8 +351,8 @@ export async function setupAppSchema({
 
   return {
     success: true,
-    message: `Created schema '${appName}' and user '${appName}'. DATABASE_URL and DATABASE_SCHEMA written to .env.`,
-    schema_name: appName,
-    user_name: appName,
+    message: `Created schema '${pgName}' and user '${pgName}'. DATABASE_URL and DATABASE_SCHEMA written to .env.`,
+    schema_name: pgName,
+    user_name: pgName,
   };
 }

@@ -68,15 +68,18 @@ export async function apiCall(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const responseData = (await response.json()) as Record<string, unknown>;
-
   if (!response.ok) {
-    const errorMessage =
-      (responseData.error as string) ??
-      `HTTP ${response.status}: ${response.statusText}`;
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData = (await response.json()) as { error?: string };
+      if (errorData.error) errorMessage = errorData.error;
+    } catch {
+      // Response wasn't JSON (e.g. HTML error page) — use the status line
+    }
     throw new ApiError(response.status, errorMessage);
   }
 
+  const responseData = (await response.json()) as Record<string, unknown>;
   return responseData.data;
 }
 
