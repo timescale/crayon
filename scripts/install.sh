@@ -174,7 +174,7 @@ setup_alias() {
 
   add_to_rc() {
     local rc_file="$1"
-    if [ -f "$rc_file" ] || [ "$2" = "create" ] 2>/dev/null; then
+    if [ -f "$rc_file" ] || [ "${2:-}" = "create" ]; then
       if grep -qF "alias 0pflow=" "$rc_file" 2>/dev/null; then
         # Replace existing alias (remove old comment + alias lines)
         local tmp
