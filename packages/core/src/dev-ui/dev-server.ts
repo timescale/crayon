@@ -115,6 +115,7 @@ export async function startDevServer(options: DevServerOptions) {
           integrationProvider: integrationProvider!,
           schema: dbosSchema,
           appSchema,
+          projectRoot,
         });
         if (handled) return;
       } catch (err) {

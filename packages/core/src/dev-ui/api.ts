@@ -1,4 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import type pg from "pg";
 import {
   listConnections,
@@ -8,6 +10,8 @@ import {
 import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { parseOutput } from "../cli/trace.js";
 
+const execFileAsync = promisify(execFile);
+
 export interface ApiContext {
   pool: pg.Pool;
   integrationProvider: IntegrationProvider;
@@ -15,6 +19,8 @@ export interface ApiContext {
   schema: string;
   /** App schema where opflow_connections lives (e.g. my_app) */
   appSchema: string;
+  /** Project root directory for CLI subprocess execution */
+  projectRoot: string;
 }
 
 function jsonResponse(res: ServerResponse, status: number, data: unknown): void {
@@ -289,6 +295,40 @@ export async function handleApiRequest(
       }
       return true;
     }
+  }
+
+  // POST /api/workflows/:name/run — execute a workflow via subprocess
+  const runMatch = url.match(/^\/api\/workflows\/([^/]+)\/run$/);
+  if (runMatch && method === "POST") {
+    const workflowName = decodeURIComponent(runMatch[1]);
+    const body = (await parseBody(req)) as { input?: Record<string, unknown> };
+    const input = body.input ?? {};
+
+    const [runtime, script] = process.argv;
+    try {
+      const { stdout } = await execFileAsync(runtime, [
+        ...process.execArgv,
+        script,
+        "workflow", "run", workflowName,
+        "--json",
+        "-i", JSON.stringify(input),
+      ], { cwd: ctx.projectRoot });
+
+      jsonResponse(res, 200, JSON.parse(stdout));
+    } catch (err: unknown) {
+      const execErr = err as { stdout?: string; stderr?: string; message?: string };
+      if (execErr.stdout) {
+        try {
+          jsonResponse(res, 200, JSON.parse(execErr.stdout));
+          return true;
+        } catch { /* fall through */ }
+      }
+      jsonResponse(res, 500, {
+        status: "ERROR",
+        error: execErr.stderr?.trim() || execErr.message || String(err),
+      });
+    }
+    return true;
   }
 
   return false;

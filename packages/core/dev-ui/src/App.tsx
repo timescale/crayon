@@ -11,6 +11,7 @@ import { ConnectionsPanel } from "./components/ConnectionsPanel";
 import { DeployPanel } from "./components/DeployPanel";
 import { BottomPanel } from "./components/BottomPanel";
 import { RunHistoryTab } from "./components/RunHistoryTab";
+import { RunWorkflowModal } from "./components/RunWorkflowModal";
 import { ClaudeTerminal } from "./components/ClaudeTerminal";
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
   const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
   const [historySidebarOpen, setHistorySidebarOpen] = useState(false);
+  const [showRunModal, setShowRunModal] = useState(false);
 
   const leftResize = useResizeX({ defaultWidth: 224, minWidth: 160, maxWidth: 400, side: "right" });
   const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
@@ -98,13 +100,25 @@ export function App() {
               <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.03)]">
                 <WorkflowGraph dag={activeDag} connectionsApi={connectionsApi} />
               </div>
-              <div className="absolute top-3 left-3 bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.04)] border border-border">
-                <span className="text-[15px] font-semibold text-foreground">
-                  {activeDag.workflowName}
-                </span>
-                <span className="text-xs text-muted-foreground ml-2">
-                  v{activeDag.version}
-                </span>
+              <div className="absolute top-3 left-3 flex items-center gap-2">
+                <div className="bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.04)] border border-border">
+                  <span className="text-[15px] font-semibold text-foreground">
+                    {activeDag.workflowName}
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    v{activeDag.version}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowRunModal(true)}
+                  className="bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Run workflow"
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+                    <path d="M2.5 1.5L10 6L2.5 10.5V1.5Z" />
+                  </svg>
+                  Run
+                </button>
               </div>
             </ReactFlowProvider>
           ) : (
@@ -151,6 +165,19 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Run workflow modal */}
+      {showRunModal && activeDag && (
+        <RunWorkflowModal
+          dag={activeDag}
+          onClose={() => setShowRunModal(false)}
+          onSuccess={() => {
+            setShowRunModal(false);
+            setHistorySidebarOpen(true);
+            runHistory.refresh();
+          }}
+        />
+      )}
 
       {/* Right sidebar — run history */}
       {historySidebarOpen && runHistory.available && (
