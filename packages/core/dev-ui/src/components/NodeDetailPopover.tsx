@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Markdown from "react-markdown";
 import type { DAGNode } from "../types";
 import { IntegrationSection } from "./IntegrationSection";
 import type { useConnections } from "../hooks/useConnections";
@@ -132,9 +133,27 @@ export function NodeDetailPopover({ node, position, onClose, workflowName, conne
           Description
         </p>
         {node.description ? (
-          <p className="text-[13px] text-muted-foreground whitespace-pre-line leading-relaxed">
-            {node.description}
-          </p>
+          <div className="text-[13px] text-muted-foreground leading-relaxed prose-sm">
+            <Markdown
+              components={{
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                strong: ({ children }) => <strong className="font-semibold text-popover-foreground">{children}</strong>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-2 border-border pl-2.5 my-2 text-muted-foreground italic">
+                    {children}
+                  </blockquote>
+                ),
+                ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                code: ({ children }) => (
+                  <code className="text-[12px] bg-muted px-1 py-0.5 rounded">{children}</code>
+                ),
+              }}
+            >
+              {node.description}
+            </Markdown>
+          </div>
         ) : (
           <p className="text-[13px] text-[#a8a099] italic">
             No description available

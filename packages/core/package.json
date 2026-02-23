@@ -46,6 +46,7 @@
     "node-pty": "1.2.0-beta.11",
     "pg": "^8.17.2",
     "picocolors": "^1.1.1",
+    "react-markdown": "^10.1.0",
     "roughjs": "^4.6.6",
     "tree-sitter-typescript": "^0.23.2",
     "web-tree-sitter": "^0.24.7",
