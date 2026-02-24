@@ -6,6 +6,10 @@ ARG OPFLOW_SOURCE=npm
 RUN apt-get update && apt-get install -y python3 make g++ git curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Set npm cache to /npm-cache globally so all npm invocations (build + runtime) use it.
+# This means users can run `npm install` without extra flags and still hit the cache.
+RUN npm config set cache /npm-cache --global
+
 # Claude Code CLI (global so PTY manager can find it via `which claude`)
 RUN npm install -g @anthropic-ai/claude-code
 
@@ -24,16 +28,19 @@ RUN if [ "$OPFLOW_SOURCE" = "local" ] && ls /tmp/build/0pflow-*.tgz 1>/dev/null 
 # via standard parent-directory resolution from /data/app (no NODE_PATH needed).
 # The template package.json has Handlebars placeholders (e.g. {{opflow_version}})
 # that must be resolved before npm install can parse it.
-RUN TEMPLATE_DIR="$(npm root -g)/0pflow/templates/app" && \
+RUN GLOBAL_MODULES="$(npm root -g)" && \
+    TEMPLATE_DIR="$GLOBAL_MODULES/0pflow/templates/app" && \
     mkdir -p /tmp/cache-build && cp "$TEMPLATE_DIR/package.json" /tmp/cache-build/ && \
     cd /tmp/cache-build && sed -i 's/{{opflow_version}}/dev/g' package.json && \
     sed -i 's/{{app_name}}/cache-app/g' package.json && \
-    npm install --cache /npm-cache && \
+    npm install && \
     mv node_modules / && \
-    rm -rf /tmp/cache-build
+    rm -rf /tmp/cache-build && \
+    rm -rf /node_modules/0pflow && \
+    ln -s "$GLOBAL_MODULES/0pflow" /node_modules/0pflow
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
-# /npm-cache stores tarballs for fast offline installs when user adds packages.
+# /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
 RUN chmod -R a+rwx /npm-cache
 ENV PATH=/node_modules/.bin:$PATH
 
