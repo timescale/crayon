@@ -97,8 +97,10 @@ export async function startDevServer(options: DevServerOptions) {
 
     // Claude command hint (no database required)
     if (url === "/api/claude-command" && req.method === "GET") {
+      const isCloud = !!process.env.FLY_APP_NAME;
+      const appName = process.env.APP_NAME;
       res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
-      res.end(JSON.stringify({ projectRoot }));
+      res.end(JSON.stringify({ projectRoot, isCloud, appName }));
       return;
     }
 

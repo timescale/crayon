@@ -59,7 +59,9 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
     fetch("/api/claude-command")
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.projectRoot) {
+        if (data?.isCloud) {
+          setClaudeCommand("0pflow cloud claude --continue");
+        } else if (data?.projectRoot) {
           setClaudeCommand(`cd ${data.projectRoot} && claude --continue`);
         }
       })

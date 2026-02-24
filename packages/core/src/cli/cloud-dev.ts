@@ -662,8 +662,8 @@ export async function handleClaude(extraArgs: string[] = []): Promise<void> {
     process.exit(1);
   }
 
-  const claudeArgs = extraArgs.length > 0 ? ` ${extraArgs.join(" ")}` : "";
-  const exitCode = connectSSH(sshInfo, `cd /data/app && exec claude${claudeArgs}`);
+  const allArgs = ["--dangerously-skip-permissions", ...extraArgs];
+  const exitCode = connectSSH(sshInfo, `cd /data/app && exec claude ${allArgs.join(" ")}`);
   process.exit(exitCode);
 }
 

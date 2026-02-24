@@ -153,6 +153,17 @@ if [ -n "$SSH_PUBLIC_KEY" ]; then
   chown "$DEV_USER:devs" "$DEV_HOME/.ssh/authorized_keys"
 fi
 
+# Export Fly secrets to /etc/environment so SSH sessions see them (read by PAM)
+log "Writing environment for SSH sessions..."
+: > /etc/environment
+while IFS='=' read -r key value; do
+  case "$key" in
+    SSH_PUBLIC_KEY|HOSTNAME|HOME|USER|PWD|SHLVL|_) continue ;;
+  esac
+  printf '%s=%s\n' "$key" "$value" >> /etc/environment
+done < <(env)
+printf 'PATH=%s/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n' "$DEV_HOME" >> /etc/environment
+
 # Configure and start sshd (port 2222, key-only auth)
 cat > /etc/ssh/sshd_config.d/cloud-dev.conf <<SSHCFG
 Port 2222
