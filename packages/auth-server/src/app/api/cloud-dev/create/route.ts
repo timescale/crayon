@@ -9,6 +9,81 @@ import { getPool } from "@/lib/db";
 import { flyctlSync } from "@/lib/flyctl";
 import { createMachine, type CreateMachineConfig } from "@/lib/fly";
 
+/**
+ * Generate an Ed25519 SSH keypair using Node.js crypto.
+ * Returns the public key in OpenSSH authorized_keys format
+ * and the private key in OpenSSH format (BEGIN OPENSSH PRIVATE KEY).
+ *
+ * PKCS8 PEM (BEGIN PRIVATE KEY) is NOT used because macOS's SSH client
+ * doesn't support it for Ed25519 keys.
+ */
+function generateSSHKeypair(): { publicKey: string; privateKey: string } {
+  const keypair = crypto.generateKeyPairSync("ed25519");
+
+  // Extract raw 32-byte keys from DER encoding
+  const spkiDer = keypair.publicKey.export({ type: "spki", format: "der" }) as Buffer;
+  const rawPub = spkiDer.subarray(12); // Ed25519 SPKI DER: 12-byte header + 32-byte key
+
+  const pkcs8Der = keypair.privateKey.export({ type: "pkcs8", format: "der" }) as Buffer;
+  const rawSeed = pkcs8Der.subarray(16); // Ed25519 PKCS8 DER: 16-byte header + 32-byte seed
+
+  // Helper: write an SSH wire-format string (uint32 length prefix + data)
+  const sshString = (data: Buffer): Buffer => {
+    const buf = Buffer.alloc(4 + data.length);
+    buf.writeUInt32BE(data.length, 0);
+    data.copy(buf, 4);
+    return buf;
+  };
+  const sshUint32 = (n: number): Buffer => {
+    const buf = Buffer.alloc(4);
+    buf.writeUInt32BE(n, 0);
+    return buf;
+  };
+
+  const keyTypeStr = Buffer.from("ssh-ed25519");
+
+  // Public key in OpenSSH wire format
+  const pubWire = Buffer.concat([sshString(keyTypeStr), sshString(rawPub)]);
+  const publicKey = `ssh-ed25519 ${pubWire.toString("base64")}`;
+
+  // Private key in OpenSSH format
+  const checkInt = crypto.randomBytes(4);
+  const privSection = Buffer.concat([
+    checkInt,                                    // checkint1
+    checkInt,                                    // checkint2 (must match)
+    sshString(keyTypeStr),                       // key type
+    sshString(rawPub),                           // public key (32 bytes)
+    sshString(Buffer.concat([rawSeed, rawPub])), // private key (64 bytes: seed + pub)
+    sshString(Buffer.alloc(0)),                  // comment (empty)
+  ]);
+
+  // Pad to cipher block size (8 for "none")
+  const padLen = (8 - (privSection.length % 8)) % 8;
+  const padding = Buffer.from(Array.from({ length: padLen }, (_, i) => i + 1));
+
+  const none = Buffer.from("none");
+  const fullKey = Buffer.concat([
+    Buffer.from("openssh-key-v1\0"),              // magic
+    sshString(none),                              // ciphername
+    sshString(none),                              // kdfname
+    sshString(Buffer.alloc(0)),                   // kdfoptions
+    sshUint32(1),                                 // number of keys
+    sshString(pubWire),                           // public key
+    sshString(Buffer.concat([privSection, padding])), // private section
+  ]);
+
+  // Wrap base64 to 70-char lines
+  const b64Lines = fullKey.toString("base64").match(/.{1,70}/g) ?? [];
+  const privateKey = [
+    "-----BEGIN OPENSSH PRIVATE KEY-----",
+    ...b64Lines,
+    "-----END OPENSSH PRIVATE KEY-----",
+    "",
+  ].join("\n");
+
+  return { publicKey, privateKey };
+}
+
 const FLY_ORG = process.env.FLY_ORG ?? "tiger-data";
 const FLY_REGION = process.env.FLY_REGION ?? "iad";
 const CLOUD_DEV_IMAGE =
@@ -62,6 +137,9 @@ export async function POST(req: NextRequest) {
     const appUrl = `https://${flyAppName}.fly.dev`;
     const linuxUser = `user-${userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}`;
 
+    // Generate SSH keypair for remote access
+    const sshKeypair = generateSSHKeypair();
+
     console.log(`[cloud-dev/create] Creating Fly app: ${flyAppName}`);
 
     // 1. Create Fly app
@@ -96,13 +174,19 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
-    // 3. Allocate shared IPv4
+    // 3. Allocate dedicated IPv4 (required for raw TCP services like SSH;
+    //    shared IPv4 only supports HTTP/TLS via Fly's Anycast proxy)
     try {
-      flyctlSync(["ips", "allocate-v4", "--shared", "-a", flyAppName]);
+      flyctlSync(["ips", "allocate-v4", "-a", flyAppName, "-y"]);
     } catch (err) {
-      console.log(
-        `[cloud-dev/create] IP allocation warning: ${err instanceof Error ? err.message : String(err)}`,
+      // Clean up Fly app — without an IP the machine is unreachable
+      console.error(
+        `[cloud-dev/create] IPv4 allocation failed: ${err instanceof Error ? err.message : String(err)}`,
       );
+      try {
+        flyctlSync(["apps", "destroy", flyAppName, "-y"]);
+      } catch { /* ignore cleanup errors */ }
+      throw new Error(`IPv4 allocation failed — machine would be unreachable`);
     }
 
     // 4. Set secrets (env vars) — staged so they apply when machine starts
@@ -110,6 +194,7 @@ export async function POST(req: NextRequest) {
       ...envVars,
       APP_NAME: appName,
       DEV_USER: linuxUser,
+      SSH_PUBLIC_KEY: sshKeypair.publicKey,
     };
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
     const secretsContent = Object.entries(secrets)
@@ -149,6 +234,14 @@ export async function POST(req: NextRequest) {
           autostart: true,
           min_machines_running: 0,
         },
+        {
+          ports: [{ port: 2222, handlers: [] }],
+          protocol: "tcp",
+          internal_port: 2222,
+          autostop: "stop",
+          autostart: true,
+          min_machines_running: 0,
+        },
       ],
       guest: {
         cpu_kind: "shared",
@@ -170,10 +263,10 @@ export async function POST(req: NextRequest) {
 
     // 6. Insert into dev_machines + dev_machine_members
     const insertResult = await db.query(
-      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by, ssh_private_key)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [appName, flyAppName, appUrl, userId],
+      [appName, flyAppName, appUrl, userId, sshKeypair.privateKey],
     );
 
     const machineDbId = insertResult.rows[0].id as number;
@@ -185,7 +278,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({
-      data: { appUrl, flyAppName },
+      data: { appUrl, flyAppName, sshPrivateKey: sshKeypair.privateKey },
     });
   } catch (err) {
     console.error(

@@ -3,7 +3,8 @@ FROM node:22-bookworm-slim
 # "local" = install from tarball (dev), "npm" = install from registry (prod)
 ARG OPFLOW_SOURCE=npm
 
-RUN apt-get update && apt-get install -y python3 make g++ git curl \
+RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-server \
+    && mkdir -p /run/sshd \
     && rm -rf /var/lib/apt/lists/*
 
 # Set npm cache to /npm-cache globally so all npm invocations (build + runtime) use it.
@@ -47,5 +48,5 @@ ENV PATH=/node_modules/.bin:$PATH
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-EXPOSE 4173
+EXPOSE 4173 2222
 CMD ["/entrypoint.sh"]

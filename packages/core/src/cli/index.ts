@@ -137,7 +137,7 @@ program
   });
 
 // ============ Cloud commands ============
-const cloud = program.command("cloud").description("Cloud dev environment commands");
+const cloud = program.command("cloud").description("Cloud dev environment commands").enablePositionalOptions();
 
 cloud
   .command("run")
@@ -169,6 +169,25 @@ cloud
   .action(async () => {
     const { handleDestroy } = await import("./cloud-dev.js");
     await handleDestroy();
+  });
+
+cloud
+  .command("claude")
+  .description("SSH into a cloud workspace and start a Claude Code session")
+  .allowUnknownOption()
+  .allowExcessArguments(true)
+  .passThroughOptions()
+  .action(async (_opts, cmd) => {
+    const { handleClaude } = await import("./cloud-dev.js");
+    await handleClaude(cmd.args);
+  });
+
+cloud
+  .command("ssh")
+  .description("SSH into a cloud workspace")
+  .action(async () => {
+    const { handleSSH } = await import("./cloud-dev.js");
+    await handleSSH();
   });
 
 // ============ Workflow commands ============

@@ -131,6 +131,39 @@ su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' claude install" 2>/dev/null || 
 log "Installing 0pflow plugin for $DEV_USER..."
 su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' "$OPFLOW" install" 2>/dev/null || true
 
+# ── SSH server setup ──────────────────────────────────────────
+# Persist host keys on volume so they survive redeployments (avoids "host key changed" warnings)
+if [ ! -f /data/ssh_host_keys/ssh_host_ed25519_key ]; then
+  log "Generating SSH host keys..."
+  mkdir -p /data/ssh_host_keys
+  ssh-keygen -t ed25519 -f /data/ssh_host_keys/ssh_host_ed25519_key -N "" -q
+  ssh-keygen -t rsa -b 4096 -f /data/ssh_host_keys/ssh_host_rsa_key -N "" -q
+fi
+# Point sshd at the persistent keys
+for key in /data/ssh_host_keys/ssh_host_*; do
+  ln -sf "$key" "/etc/ssh/$(basename "$key")"
+done
+
+# Write authorized key for SSH access
+if [ -n "$SSH_PUBLIC_KEY" ]; then
+  log "Setting up SSH authorized key for $DEV_USER..."
+  install -d -m 700 -o "$DEV_USER" -g devs "$DEV_HOME/.ssh"
+  printf '%s\n' "$SSH_PUBLIC_KEY" > "$DEV_HOME/.ssh/authorized_keys"
+  chmod 600 "$DEV_HOME/.ssh/authorized_keys"
+  chown "$DEV_USER:devs" "$DEV_HOME/.ssh/authorized_keys"
+fi
+
+# Configure and start sshd (port 2222, key-only auth)
+cat > /etc/ssh/sshd_config.d/cloud-dev.conf <<SSHCFG
+Port 2222
+PasswordAuthentication no
+PermitRootLogin no
+AllowUsers $DEV_USER
+SSHCFG
+
+log "Starting sshd on port 2222..."
+/usr/sbin/sshd
+
 # ── Start dev server as the user ────────────────────────────────
 log "Starting dev server..."
 cd "$APP_DIR"

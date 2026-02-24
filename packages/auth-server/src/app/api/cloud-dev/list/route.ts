@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const db = await getPool();
     const result = await db.query(
-      `SELECT dm.app_name, dm.fly_app_name, dm.app_url, dmm.role
+      `SELECT dm.app_name, dm.fly_app_name, dm.app_url, dmm.role, dmm.linux_user
        FROM dev_machines dm
        JOIN dev_machine_members dmm ON dm.id = dmm.machine_id
        WHERE dmm.user_id = $1

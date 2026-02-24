@@ -1,5 +1,5 @@
-import { execSync } from "node:child_process";
-import { existsSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { execSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir, userInfo } from "node:os";
 import * as p from "@clack/prompts";
@@ -567,4 +567,123 @@ export async function handleDestroy(): Promise<void> {
   }
 
   p.outro("");
+}
+
+// ── SSH connection helpers ──────────────────────────────────────
+
+interface SSHKeyInfo {
+  privateKey: string;
+  linuxUser: string;
+  host: string;
+  port: number;
+}
+
+const SSH_KEYS_DIR = join(homedir(), ".0pflow", "keys");
+
+function getCachedKeyPath(appName: string): string {
+  return join(SSH_KEYS_DIR, appName);
+}
+
+async function getSSHKey(appName: string): Promise<SSHKeyInfo> {
+  // Try cached key first
+  const keyPath = getCachedKeyPath(appName);
+  if (existsSync(keyPath)) {
+    // Still need connection info from the API — read from cached metadata
+    const metaPath = `${keyPath}.json`;
+    if (existsSync(metaPath)) {
+      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as SSHKeyInfo;
+      meta.privateKey = readFileSync(keyPath, "utf-8");
+      return meta;
+    }
+  }
+
+  // Fetch from API
+  const result = (await apiCall(
+    "GET",
+    `/api/cloud-dev/ssh-key?appName=${encodeURIComponent(appName)}`,
+  )) as SSHKeyInfo;
+
+  // Cache locally
+  mkdirSync(SSH_KEYS_DIR, { recursive: true, mode: 0o700 });
+  writeFileSync(keyPath, result.privateKey, { mode: 0o600 });
+  writeFileSync(
+    `${keyPath}.json`,
+    JSON.stringify({
+      linuxUser: result.linuxUser,
+      host: result.host,
+      port: result.port,
+    }),
+  );
+
+  return result;
+}
+
+function connectSSH(info: SSHKeyInfo, command?: string): number {
+  // Use cached key file, or write a temp one
+  let keyFile = getCachedKeyPath(info.host.replace(/\.fly\.dev$/, ""));
+  if (!existsSync(keyFile)) {
+    mkdirSync(SSH_KEYS_DIR, { recursive: true, mode: 0o700 });
+    keyFile = join(SSH_KEYS_DIR, `tmp-${Date.now()}`);
+    writeFileSync(keyFile, info.privateKey, { mode: 0o600 });
+  }
+
+  const args = [
+    "-i", keyFile,
+    "-t",
+    "-p", String(info.port),
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "UserKnownHostsFile=/dev/null",
+    "-o", "LogLevel=ERROR",
+    `${info.linuxUser}@${info.host}`,
+  ];
+
+  if (command) {
+    args.push(command);
+  }
+
+  const result = spawnSync("ssh", args, { stdio: "inherit" });
+  return result.status ?? 1;
+}
+
+export async function handleClaude(extraArgs: string[] = []): Promise<void> {
+  await ensureAuth();
+  const appName = await selectMachine({ excludeStopped: true });
+
+  const s = p.spinner();
+  s.start("Fetching SSH credentials...");
+
+  let sshInfo: SSHKeyInfo;
+  try {
+    sshInfo = await getSSHKey(appName);
+    s.stop(pc.green(`Connecting to ${appName}`));
+  } catch (err) {
+    s.stop(pc.red("Failed to get SSH key"));
+    p.log.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+
+  const claudeArgs = extraArgs.length > 0 ? ` ${extraArgs.join(" ")}` : "";
+  const exitCode = connectSSH(sshInfo, `cd /data/app && exec claude${claudeArgs}`);
+  process.exit(exitCode);
+}
+
+export async function handleSSH(): Promise<void> {
+  await ensureAuth();
+  const appName = await selectMachine({ excludeStopped: true });
+
+  const s = p.spinner();
+  s.start("Fetching SSH credentials...");
+
+  let sshInfo: SSHKeyInfo;
+  try {
+    sshInfo = await getSSHKey(appName);
+    s.stop(pc.green(`Connecting to ${appName}`));
+  } catch (err) {
+    s.stop(pc.red("Failed to get SSH key"));
+    p.log.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+
+  const exitCode = connectSSH(sshInfo);
+  process.exit(exitCode);
 }

@@ -80,6 +80,7 @@ async function ensureSchema(): Promise<void> {
       app_name TEXT NOT NULL UNIQUE,
       fly_app_name TEXT,
       app_url TEXT,
+      ssh_private_key TEXT,
       created_by TEXT NOT NULL REFERENCES users(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -91,6 +92,12 @@ async function ensureSchema(): Promise<void> {
     ALTER TABLE dev_machines
       DROP COLUMN IF EXISTS machine_status,
       DROP COLUMN IF EXISTS machine_error
+  `);
+
+  // Add SSH private key column (migration for existing tables)
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      ADD COLUMN IF NOT EXISTS ssh_private_key TEXT
   `);
 
   // Many users can access one machine
