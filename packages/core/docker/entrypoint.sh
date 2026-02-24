@@ -123,6 +123,10 @@ mkdir -p "$APP_DIR/node_modules"
 ln -sfn /node_modules/0pflow "$APP_DIR/node_modules/0pflow"
 chown -h "$DEV_USER:devs" "$APP_DIR/node_modules" "$APP_DIR/node_modules/0pflow" 2>/dev/null || true
 
+# ── Complete Claude Code native installer migration (suppresses startup prompt) ──
+log "Completing Claude Code native install for $DEV_USER..."
+su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' claude install" 2>/dev/null || true
+
 # ── Register 0pflow Claude Code plugin for DEV_USER ────────────
 log "Installing 0pflow plugin for $DEV_USER..."
 su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' "$OPFLOW" install" 2>/dev/null || true
@@ -131,4 +135,5 @@ su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' "$OPFLOW" install" 2>/dev/null 
 log "Starting dev server..."
 cd "$APP_DIR"
 export HOME="$(eval echo "~$DEV_USER")"
+export PATH="$DEV_HOME/.local/bin:$PATH"
 exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$OPFLOW" dev --host --dangerously-skip-permissions"
