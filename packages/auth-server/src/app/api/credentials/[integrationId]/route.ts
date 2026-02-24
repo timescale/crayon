@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { getNango } from "@/lib/nango";
+import { verifyWorkspaceMembership } from "@/lib/workspace";
 
 /**
  * GET /api/credentials/{integrationId}?connection_id=X
  * Core proxy: fetch actual credentials from Nango for a connection.
+ * Authorization is based on workspace membership via connection tags.
  * Returns { token, connectionConfig, raw }.
  */
 export async function GET(
@@ -28,10 +30,24 @@ export async function GET(
     const nango = getNango();
     const connection = await nango.getConnection(integrationId, connectionId);
 
-    // Verify the connection belongs to the requesting user
-    const connAny = connection as unknown as { end_user?: { id: string } | null };
-    const endUserId = connAny.end_user?.id;
-    if (endUserId && endUserId !== auth.userId) {
+    // Extract workspace-id from connection tags and verify membership
+    const connAny = connection as unknown as {
+      tags?: Record<string, string>;
+    };
+    const workspaceId = connAny.tags?.["workspace-id"];
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: "Connection not found" },
+        { status: 404 },
+      );
+    }
+
+    const membership = await verifyWorkspaceMembership(
+      auth.userId,
+      workspaceId,
+    );
+    if (!membership) {
       return NextResponse.json(
         { error: "Connection not found" },
         { status: 404 },
@@ -55,7 +71,12 @@ export async function GET(
     });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to fetch credentials" },
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to fetch credentials",
+      },
       { status: 500 },
     );
   }

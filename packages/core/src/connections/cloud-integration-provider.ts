@@ -30,11 +30,24 @@ export class CloudIntegrationProvider implements IntegrationProvider {
 
   async listConnections(
     integrationId: string,
+    workspaceId?: string,
   ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
-    const data = (await apiCall(
-      "GET",
-      `/api/integrations/${encodeURIComponent(integrationId)}/connections`,
-    )) as Array<{ connection_id: string; provider_config_key: string }>;
+    let data: Array<{ connection_id: string; provider_config_key: string }>;
+
+    if (workspaceId) {
+      // Workspace-scoped: use /api/connections and filter by integration client-side
+      const allConnections = (await apiCall(
+        "GET",
+        `/api/connections?workspace_id=${encodeURIComponent(workspaceId)}`,
+      )) as Array<{ connection_id: string; provider_config_key: string }>;
+      data = allConnections.filter(
+        (c) => c.provider_config_key === integrationId,
+      );
+    } else {
+      // No workspace context — return empty (workspace is required for cloud mode)
+      data = [];
+    }
+
     return Promise.all(
       data.map(async (c) => {
         let displayName = c.connection_id;
@@ -55,9 +68,11 @@ export class CloudIntegrationProvider implements IntegrationProvider {
 
   async createConnectSession(
     integrationId: string,
+    workspaceId?: string,
   ): Promise<{ token: string }> {
     const data = (await apiCall("POST", "/api/nango/connect-session", {
       integration_id: integrationId,
+      workspace_id: workspaceId,
     })) as { token: string };
     return data;
   }

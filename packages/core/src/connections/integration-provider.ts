@@ -21,15 +21,16 @@ export interface IntegrationProvider {
     Array<{ id: string; provider: string }>
   >;
 
-  /** List connections for an integration */
+  /** List connections for an integration, optionally scoped to a workspace */
   listConnections(
     integrationId: string,
+    workspaceId?: string,
   ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>>;
 
-  /** Create a Connect session for OAuth setup */
+  /** Create a Connect session for OAuth setup, optionally scoped to a workspace */
   createConnectSession(
     integrationId: string,
-    endUserId?: string,
+    workspaceId?: string,
   ): Promise<{ token: string }>;
 }
 
