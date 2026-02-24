@@ -136,17 +136,39 @@ program
     console.log(result.message);
   });
 
-// ============ Cloud Dev command ============
-program
-  .command("cloud-dev")
+// ============ Cloud commands ============
+const cloud = program.command("cloud").description("Cloud dev environment commands");
+
+cloud
+  .command("run")
   .description("Create a cloud dev environment on Fly.io")
-  .option("--stop", "Stop the cloud dev machine")
-  .option("--status", "Check cloud dev machine status")
-  .option("--destroy", "Destroy the cloud dev machine")
-  .option("--verbose", "Show detailed output")
-  .action(async (options: { stop?: boolean; status?: boolean; destroy?: boolean; verbose?: boolean }) => {
-    const { runCloudDev } = await import("./cloud-dev.js");
-    await runCloudDev(options);
+  .action(async () => {
+    const { runCloudRun } = await import("./cloud-dev.js");
+    await runCloudRun();
+  });
+
+cloud
+  .command("status")
+  .description("Check cloud dev machine status")
+  .action(async () => {
+    const { handleStatus } = await import("./cloud-dev.js");
+    await handleStatus();
+  });
+
+cloud
+  .command("stop")
+  .description("Stop the cloud dev machine")
+  .action(async () => {
+    const { handleStop } = await import("./cloud-dev.js");
+    await handleStop();
+  });
+
+cloud
+  .command("destroy")
+  .description("Destroy the cloud dev machine and its volume")
+  .action(async () => {
+    const { handleDestroy } = await import("./cloud-dev.js");
+    await handleDestroy();
   });
 
 // ============ Workflow commands ============

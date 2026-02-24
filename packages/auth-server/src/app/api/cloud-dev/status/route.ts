@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   try {
     const db = await getPool();
     const result = await db.query(
-      `SELECT dm.fly_app_name, dm.app_url, dm.machine_status, dm.machine_error
+      `SELECT dm.fly_app_name, dm.app_url
        FROM dev_machines dm
        JOIN dev_machine_members dmm ON dm.id = dmm.machine_id
        WHERE dmm.user_id = $1 AND dm.app_name = $2`,
@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
 
     const flyAppName = result.rows[0].fly_app_name as string | null;
     const appUrl = result.rows[0].app_url as string | null;
-    const machineError = result.rows[0].machine_error as string | null;
 
     if (!flyAppName) {
       return NextResponse.json({
@@ -68,12 +67,6 @@ export async function GET(req: NextRequest) {
             signal: AbortSignal.timeout(5000),
           });
           if (resp.ok || resp.status < 500) {
-            // Update DB status
-            await db.query(
-              `UPDATE dev_machines SET machine_status = 'running', updated_at = NOW()
-               WHERE fly_app_name = $1`,
-              [flyAppName],
-            );
             return NextResponse.json({
               data: { status: "running", url: appUrl },
             });
@@ -109,7 +102,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         data: {
           status: "error",
-          error: machineError ?? "Failed to check machine state",
+          error: "Failed to check machine state",
           url: appUrl,
         },
       });

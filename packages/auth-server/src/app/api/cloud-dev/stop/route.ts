@@ -53,12 +53,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await db.query(
-      `UPDATE dev_machines SET machine_status = 'stopped', updated_at = NOW()
-       WHERE fly_app_name = $1`,
-      [flyAppName],
-    );
-
     return NextResponse.json({
       data: { status: "stopped" },
     });

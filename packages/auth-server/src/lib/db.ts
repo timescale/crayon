@@ -80,12 +80,17 @@ async function ensureSchema(): Promise<void> {
       app_name TEXT NOT NULL UNIQUE,
       fly_app_name TEXT,
       app_url TEXT,
-      machine_status TEXT DEFAULT 'idle',
-      machine_error TEXT,
       created_by TEXT NOT NULL REFERENCES users(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  // Drop stale status columns if they exist (one-time migration)
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      DROP COLUMN IF EXISTS machine_status,
+      DROP COLUMN IF EXISTS machine_error
   `);
 
   // Many users can access one machine

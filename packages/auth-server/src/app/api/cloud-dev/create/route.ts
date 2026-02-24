@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Check for existing machine with this app name
     const existing = await db.query(
-      `SELECT dm.fly_app_name, dm.app_url, dm.machine_status
+      `SELECT dm.fly_app_name, dm.app_url
        FROM dev_machines dm
        JOIN dev_machine_members dmm ON dm.id = dmm.machine_id
        WHERE dmm.user_id = $1 AND dm.app_name = $2`,
@@ -52,7 +52,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         data: {
           appUrl: existing.rows[0].app_url as string,
-          status: existing.rows[0].machine_status as string,
         },
       });
     }
@@ -170,8 +169,8 @@ export async function POST(req: NextRequest) {
 
     // 6. Insert into dev_machines + dev_machine_members
     const insertResult = await db.query(
-      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, machine_status, created_by)
-       VALUES ($1, $2, $3, 'creating', $4)
+      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by)
+       VALUES ($1, $2, $3, $4)
        RETURNING id`,
       [appName, flyAppName, appUrl, userId],
     );
@@ -185,7 +184,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({
-      data: { appUrl, flyAppName, status: "creating" },
+      data: { appUrl, flyAppName },
     });
   } catch (err) {
     console.error(

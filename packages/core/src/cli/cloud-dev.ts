@@ -9,6 +9,19 @@ import { apiCall } from "../connections/cloud-client.js";
 import { isAuthenticated, authenticate } from "../connections/cloud-auth.js";
 import { createDatabase, setupAppSchema } from "./mcp/lib/scaffolding.js";
 
+// ── Browser helper ───────────────────────────────────────────────
+
+function openInBrowser(url: string): void {
+  const cmd = process.platform === "darwin" ? "open"
+    : process.platform === "win32" ? "start"
+    : "xdg-open";
+  try {
+    execSync(`${cmd} "${url}"`, { stdio: "ignore" });
+  } catch {
+    // best-effort — ignore if browser can't be opened
+  }
+}
+
 // ── Claude Code credential collection ───────────────────────────
 
 function collectClaudeCredentials(): Record<string, string> {
@@ -124,31 +137,91 @@ async function waitForDatabase(
 
 // ── Main command ────────────────────────────────────────────────
 
-export interface CloudDevOptions {
-  stop?: boolean;
-  status?: boolean;
-  destroy?: boolean;
-  verbose?: boolean;
-}
+export async function runCloudRun(): Promise<void> {
+  p.intro(pc.bold("0pflow cloud run"));
 
-export async function runCloudDev(options: CloudDevOptions): Promise<void> {
-  p.intro(pc.bold("0pflow cloud-dev"));
-
-  // Handle lifecycle subcommands
-  if (options.status) {
-    await handleStatus();
-    return;
-  }
-  if (options.stop) {
-    await handleStop();
-    return;
-  }
-  if (options.destroy) {
-    await handleDestroy();
-    return;
+  // ── Step 1: Authenticate with 0pflow cloud ────────────────────
+  if (!isAuthenticated()) {
+    p.log.info("Authenticating with 0pflow cloud...");
+    await authenticate();
+    if (!isAuthenticated()) {
+      p.log.error("Not authenticated. Run `0pflow login` first.");
+      process.exit(1);
+    }
   }
 
-  // ── Step 1: Collect Claude Code credentials ────────────────────
+  // ── Step 2: Choose existing workspace or create new ───────────
+  let existingSandboxes: DevMachine[] = [];
+  try {
+    existingSandboxes = (await apiCall("GET", "/api/cloud-dev/list")) as DevMachine[];
+  } catch {
+    // ignore — treat as no existing sandboxes
+  }
+
+  let appName: string;
+
+  if (existingSandboxes.length > 0) {
+    const choice = await p.select({
+      message: "Workspace",
+      options: [
+        ...existingSandboxes.map((m) => ({
+          value: m.app_name,
+          label: `${m.app_name} — ${m.fly_state}`,
+        })),
+        { value: "__new__", label: "Create a new workspace" },
+      ],
+    });
+
+    if (p.isCancel(choice)) {
+      p.cancel("Cancelled.");
+      process.exit(0);
+    }
+
+    if (choice !== "__new__") {
+      const existing = existingSandboxes.find((m) => m.app_name === choice);
+      if (existing?.app_url) {
+        p.log.info(`URL: ${pc.cyan(existing.app_url)}`);
+        openInBrowser(existing.app_url);
+      }
+      p.log.info(`Status: ${pc.bold(existing?.fly_state ?? "unknown")}`);
+      p.outro(pc.green("Sandbox ready."));
+      return;
+    }
+
+    const nameInput = await p.text({
+      message: "Workspace name",
+      placeholder: "my-app",
+      validate: (value) => {
+        if (!value) return "Name is required";
+        if (!/^[a-z][a-z0-9-]*$/.test(value))
+          return "Must start with a letter, only lowercase letters, numbers, and hyphens";
+        return undefined;
+      },
+    });
+    if (p.isCancel(nameInput)) {
+      p.cancel("Cancelled.");
+      process.exit(0);
+    }
+    appName = nameInput as string;
+  } else {
+    const nameInput = await p.text({
+      message: "Workspace name",
+      placeholder: "my-app",
+      validate: (value) => {
+        if (!value) return "Name is required";
+        if (!/^[a-z][a-z0-9-]*$/.test(value))
+          return "Must start with a letter, only lowercase letters, numbers, and hyphens";
+        return undefined;
+      },
+    });
+    if (p.isCancel(nameInput)) {
+      p.cancel("Cancelled.");
+      process.exit(0);
+    }
+    appName = nameInput as string;
+  }
+
+  // ── Step 3: Collect Claude Code credentials ───────────────────
   const claudeCreds = collectClaudeCredentials();
   if (Object.keys(claudeCreds).length === 0) {
     p.log.warn(
@@ -160,34 +233,7 @@ export async function runCloudDev(options: CloudDevOptions): Promise<void> {
     p.log.info(`Found Claude Code credentials (${credType})`);
   }
 
-  // ── Step 2: Prompt for project name ────────────────────────────
-  const appName = await p.text({
-    message: "Project name",
-    placeholder: "my-app",
-    validate: (value) => {
-      if (!value) return "Name is required";
-      if (!/^[a-z][a-z0-9-]*$/.test(value))
-        return "Must start with a letter, only lowercase letters, numbers, and hyphens";
-      return undefined;
-    },
-  });
-
-  if (p.isCancel(appName)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
-  }
-
-  // ── Step 3: Authenticate with 0pflow cloud ─────────────────────
   const s = p.spinner();
-
-  if (!isAuthenticated()) {
-    p.log.info("Authenticating with 0pflow cloud...");
-    await authenticate();
-    if (!isAuthenticated()) {
-      p.log.error("Not authenticated. Run `0pflow login` first.");
-      process.exit(1);
-    }
-  }
 
   // ── Step 4: Tiger auth + choose or create database ─────────────
   ensureTigerAuth();
@@ -305,7 +351,7 @@ export async function runCloudDev(options: CloudDevOptions): Promise<void> {
     }
 
     // ── Step 8: Create cloud dev machine via auth-server ─────────
-    s.start("Creating cloud dev machine...");
+    s.start("Creating cloud dev sandbox...");
 
     let createResult: { appUrl: string; status: string };
     try {
@@ -314,15 +360,15 @@ export async function runCloudDev(options: CloudDevOptions): Promise<void> {
         envVars: machineEnvVars,
       })) as { appUrl: string; status: string };
     } catch (err) {
-      s.stop(pc.red("Failed to create cloud dev machine"));
+      s.stop(pc.red("Failed to create cloud dev sandbox"));
       p.log.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
     }
 
-    s.stop(pc.green("Machine created"));
+    s.stop(pc.green("Sandbox created"));
 
-    // ── Step 9: Poll for machine to be running ───────────────────
-    s.start("Waiting for machine to start...");
+    // ── Step 9: Poll for sandbox to be running ───────────────────
+    s.start("Waiting for sandbox to start...");
 
     const pollTimeout = 5 * 60 * 1000;
     const pollInterval = 5000;
@@ -338,28 +384,30 @@ export async function runCloudDev(options: CloudDevOptions): Promise<void> {
         )) as { status: string; url?: string };
 
         if (statusResult.status === "running") {
-          s.stop(pc.green("Machine is running!"));
-          p.log.info(`URL: ${pc.cyan(statusResult.url ?? createResult.appUrl)}`);
+          const url = statusResult.url ?? createResult.appUrl;
+          s.stop(pc.green("Sandbox is running!"));
+          p.log.info(`URL: ${pc.cyan(url)}`);
+          openInBrowser(url);
           p.outro(pc.green("Cloud dev environment is ready!"));
           return;
         }
 
         if (statusResult.status === "error") {
-          s.stop(pc.red("Machine failed to start"));
-          p.log.error("Check logs with: 0pflow cloud-dev --status");
+          s.stop(pc.red("Sandbox failed to start"));
+          p.log.error("Check logs with: 0pflow cloud status");
           process.exit(1);
         }
 
-        s.message(`Machine state: ${statusResult.status}...`);
+        s.message(`Sandbox state: ${statusResult.status}...`);
       } catch {
         // Continue polling on transient errors
       }
     }
 
-    s.stop(pc.yellow("Machine is still starting"));
+    s.stop(pc.yellow("Sandbox is still starting"));
     p.log.info(`URL: ${pc.cyan(createResult.appUrl)}`);
-    p.log.info("Machine is taking longer than expected. Check status with:");
-    p.log.info("  0pflow cloud-dev --status");
+    p.log.info("Sandbox is taking longer than expected. Check status with:");
+    p.log.info("  0pflow cloud status");
     p.outro(pc.yellow("Cloud dev environment is starting..."));
   } finally {
     // Clean up temp dir
@@ -371,29 +419,40 @@ export async function runCloudDev(options: CloudDevOptions): Promise<void> {
   }
 }
 
-// ── Lifecycle subcommands ───────────────────────────────────────
+// ── Lifecycle subcommands (exported for CLI) ────────────────────
 
 interface DevMachine {
   app_name: string;
   fly_app_name: string;
   app_url: string;
-  machine_status: string;
+  fly_state: string;
   role: string;
 }
 
-async function selectMachine(): Promise<string> {
-  let machines: DevMachine[] = [];
+const STOPPED_STATES = new Set(["stopped", "suspended", "destroyed"]);
+
+async function selectMachine(opts?: { excludeStopped?: boolean }): Promise<string> {
+  let all: DevMachine[] = [];
   try {
-    machines = (await apiCall("GET", "/api/cloud-dev/list")) as DevMachine[];
+    all = (await apiCall("GET", "/api/cloud-dev/list")) as DevMachine[];
   } catch (err) {
     p.log.error(
-      `Failed to list machines: ${err instanceof Error ? err.message : String(err)}`,
+      `Failed to list workspaces: ${err instanceof Error ? err.message : String(err)}`,
     );
     process.exit(1);
   }
 
+  const machines = opts?.excludeStopped
+    ? all.filter((m) => !STOPPED_STATES.has(m.fly_state ?? ""))
+    : all;
+
+  if (all.length === 0) {
+    p.log.info("No cloud dev workspaces found.");
+    process.exit(0);
+  }
+
   if (machines.length === 0) {
-    p.log.info("No cloud dev machines found.");
+    p.log.info("No running workspaces found.");
     process.exit(0);
   }
 
@@ -403,10 +462,10 @@ async function selectMachine(): Promise<string> {
   }
 
   const choice = await p.select({
-    message: "Select machine",
+    message: "Select workspace",
     options: machines.map((m) => ({
       value: m.app_name,
-      label: `${m.app_name} — ${m.machine_status}`,
+      label: `${m.app_name} — ${m.fly_state}`,
     })),
   });
 
@@ -428,50 +487,53 @@ async function ensureAuth(): Promise<void> {
   }
 }
 
-async function handleStatus(): Promise<void> {
+export async function handleStatus(): Promise<void> {
   await ensureAuth();
-  const appName = await selectMachine();
 
-  const s = p.spinner();
-  s.start("Checking status...");
+  process.stdout.write("Fetching workspaces...");
 
+  let machines: DevMachine[] = [];
   try {
-    const result = (await apiCall(
-      "GET",
-      `/api/cloud-dev/status?appName=${encodeURIComponent(appName)}`,
-    )) as { status: string; url?: string; error?: string };
-
-    s.stop(pc.green("Done"));
-
-    if (result.status === "not_found") {
-      p.log.info("No cloud dev machine found for this project.");
-    } else {
-      p.log.info(`Status: ${pc.bold(result.status)}`);
-      if (result.url) {
-        p.log.info(`URL: ${pc.cyan(result.url)}`);
-      }
-      if (result.error) {
-        p.log.error(result.error);
-      }
-    }
+    machines = (await apiCall("GET", "/api/cloud-dev/list")) as DevMachine[];
+    process.stdout.write("\r\x1b[K");
   } catch (err) {
-    s.stop(pc.red("Failed"));
-    p.log.error(err instanceof Error ? err.message : String(err));
+    process.stdout.write("\r\x1b[K");
+    console.error(pc.red(err instanceof Error ? err.message : String(err)));
+    return;
   }
 
-  p.outro("");
+  if (machines.length === 0) {
+    console.log("No cloud dev workspaces found.");
+    return;
+  }
+
+  const nameW = Math.max(9, ...machines.map((m) => m.app_name.length));
+  const stateW = Math.max(5, ...machines.map((m) => (m.fly_state ?? "unknown").length));
+  const header = `  ${"WORKSPACE".padEnd(nameW)}  ${"STATE".padEnd(stateW)}  URL`;
+  const divider = `  ${"-".repeat(nameW)}  ${"-".repeat(stateW)}  ${"-".repeat(40)}`;
+
+  console.log(pc.bold(header));
+  console.log(pc.dim(divider));
+  for (const m of machines) {
+    const state = m.fly_state ?? "unknown";
+    const stateColored =
+      state === "started" ? pc.green(state.padEnd(stateW))
+      : state === "stopped" || state === "suspended" ? pc.yellow(state.padEnd(stateW))
+      : pc.dim(state.padEnd(stateW));
+    console.log(`  ${m.app_name.padEnd(nameW)}  ${stateColored}  ${pc.cyan(m.app_url ?? "")}`);
+  }
 }
 
-async function handleStop(): Promise<void> {
+export async function handleStop(): Promise<void> {
   await ensureAuth();
-  const appName = await selectMachine();
+  const appName = await selectMachine({ excludeStopped: true });
 
   const s = p.spinner();
-  s.start("Stopping machine...");
+  s.start("Stopping sandbox...");
 
   try {
     await apiCall("POST", "/api/cloud-dev/stop", { appName });
-    s.stop(pc.green("Machine stopped"));
+    s.stop(pc.green("Sandbox stopped"));
   } catch (err) {
     s.stop(pc.red("Failed"));
     p.log.error(err instanceof Error ? err.message : String(err));
@@ -480,12 +542,12 @@ async function handleStop(): Promise<void> {
   p.outro("");
 }
 
-async function handleDestroy(): Promise<void> {
+export async function handleDestroy(): Promise<void> {
   await ensureAuth();
   const appName = await selectMachine();
 
   const confirm = await p.confirm({
-    message: `Destroy cloud dev machine for "${appName}"? This deletes all data on the volume.`,
+    message: `Destroy workspace "${appName}"? This permanently deletes all workflows, code, and data in the workspace and cannot be undone.`,
   });
 
   if (p.isCancel(confirm) || !confirm) {
@@ -494,11 +556,11 @@ async function handleDestroy(): Promise<void> {
   }
 
   const s = p.spinner();
-  s.start("Destroying machine...");
+  s.start("Destroying workspace...");
 
   try {
     await apiCall("POST", "/api/cloud-dev/destroy", { appName });
-    s.stop(pc.green("Machine destroyed"));
+    s.stop(pc.green("Workspace destroyed"));
   } catch (err) {
     s.stop(pc.red("Failed"));
     p.log.error(err instanceof Error ? err.message : String(err));
