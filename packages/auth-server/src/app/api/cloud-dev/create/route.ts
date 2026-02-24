@@ -145,8 +145,9 @@ export async function POST(req: NextRequest) {
           ],
           protocol: "tcp",
           internal_port: 4173,
-          auto_stop_machines: "stop",
-          auto_start_machines: true,
+          autostop: "stop",
+          autostart: true,
+          min_machines_running: 0,
         },
       ],
       guest: {

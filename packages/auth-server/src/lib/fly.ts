@@ -86,8 +86,9 @@ export interface MachineService {
   }>;
   protocol: string;
   internal_port: number;
-  auto_stop_machines: string;
-  auto_start_machines: boolean;
+  autostop: string;            // "off" | "stop" | "suspend"
+  autostart: boolean;
+  min_machines_running: number;
 }
 
 export interface MachineGuest {
