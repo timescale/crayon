@@ -341,6 +341,7 @@ export async function runCloudRun(): Promise<void> {
       ...claudeCreds,
       DATABASE_URL: envVars.DATABASE_URL ?? "",
       DATABASE_SCHEMA: envVars.DATABASE_SCHEMA ?? "",
+      DBOS_SYSTEM_DATABASE_URL: envVars.DATABASE_URL ?? "",
     };
 
     if (envVars.DBOS_ADMIN_URL) {
