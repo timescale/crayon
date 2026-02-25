@@ -58,7 +58,7 @@ export function SplitScreenHint({ onClose }: SplitScreenHintProps) {
           className="absolute inset-y-0 right-0 w-1/2 flex flex-col items-center justify-center gap-3"
           style={{ animation: "ssh-pane-right 4.5s ease both" }}
         >
-          <div className="w-10 h-10 rounded-lg bg-[#f3ede5] border border-border flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#f5f3f0] border border-border flex items-center justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-foreground">
               <rect x="3" y="3" width="7" height="5" rx="1.5" />
               <rect x="14" y="3" width="7" height="5" rx="1.5" />

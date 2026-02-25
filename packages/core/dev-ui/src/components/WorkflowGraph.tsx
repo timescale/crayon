@@ -115,13 +115,13 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
       label: edge.label,
       type: "clean",
       animated: false,
-      style: { stroke: "#c4b5a0", strokeWidth: 1.5 },
-      labelStyle: { fontSize: 12, fill: "#6b7280" },
+      style: { stroke: "#c4bfb8", strokeWidth: 1.5 },
+      labelStyle: { fontSize: 12, fill: "#787068" },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 12,
         height: 12,
-        color: "#c4b5a0",
+        color: "#c4bfb8",
       },
     }));
 
@@ -180,7 +180,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Cross} color="#d5cdc0" gap={24} size={1.5} />
+        <Background variant={BackgroundVariant.Cross} color="#d4cfc8" gap={24} size={1.5} />
         <Controls showInteractive={false} />
         <MiniMap
           nodeStrokeWidth={3}
