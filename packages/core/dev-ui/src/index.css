@@ -15,17 +15,17 @@
 }
 
 :root {
-  --background: #f7f3ee;
-  --foreground: #111827;
+  --background: #faf9f7;
+  --foreground: #1a1a1a;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --muted: #f0ebe3;
-  --muted-foreground: #6b7280;
-  --accent: #f0fdf4;
-  --accent-foreground: #111827;
-  --border: #e5e7eb;
+  --popover-foreground: #1a1a1a;
+  --muted: #f0ece7;
+  --muted-foreground: #787068;
+  --accent: #f0ece7;
+  --accent-foreground: #1a1a1a;
+  --border: #e8e4df;
 }
 
 @layer base {
@@ -48,13 +48,13 @@
 
 .react-flow__edge-text {
   font-size: 12px;
-  fill: #6b7280;
+  fill: #787068;
 }
 
 .react-flow__minimap {
   border-radius: 10px;
   overflow: hidden;
-  background: #f0ebe3 !important;
+  background: #f0ece7 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -62,19 +62,19 @@
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8e4df;
 }
 
 .react-flow__controls button {
   background: #ffffff;
-  border-color: #e5e7eb;
-  color: #6b7280;
+  border-color: #e8e4df;
+  color: #787068;
 }
 
 .react-flow__controls button:hover {
-  background: #f3f4f6;
+  background: #f0ece7;
 }
 
 .react-flow__controls button svg {
-  fill: #6b7280;
+  fill: #787068;
 }

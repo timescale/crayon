@@ -87,7 +87,7 @@ export function IntegrationSection({
         <button
           onClick={handleConnect}
           disabled={connecting}
-          className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#e0d9cf] text-[#6b6358] hover:bg-[#d5cdc0] transition-colors cursor-pointer disabled:opacity-50"
+          className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#e8e4df] text-[#787068] hover:bg-[#d4cfc8] transition-colors cursor-pointer disabled:opacity-50"
         >
           {connecting ? "..." : "Connect"}
         </button>

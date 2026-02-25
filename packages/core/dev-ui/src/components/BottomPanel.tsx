@@ -99,7 +99,7 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
           >
             {tab.label}
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-3 right-3 h-[1.5px] bg-[#b8ad9e] rounded-full" />
+              <span className="absolute bottom-0 left-3 right-3 h-[1.5px] bg-[#a8a099] rounded-full" />
             )}
           </button>
         ))}

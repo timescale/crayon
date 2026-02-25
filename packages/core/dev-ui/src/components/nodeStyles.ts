@@ -28,8 +28,8 @@ export const TYPE_BORDER_COLORS: Record<NodeType, string> = {
   node: "#d1fae5",
   agent: "#ede9fe",
   workflow: "#d1fae5",
-  input: "#e5e7eb",
-  output: "#e5e7eb",
+  input: "#e8e4df",
+  output: "#e8e4df",
   condition: "#fef3c7",
 };
 
@@ -37,8 +37,8 @@ export const TYPE_ICON_BG: Record<NodeType, string> = {
   node: "#ecfdf5",
   agent: "#f5f3ff",
   workflow: "#ecfdf5",
-  input: "#f3f4f6",
-  output: "#f3f4f6",
+  input: "#f0ece7",
+  output: "#f0ece7",
   condition: "#fffbeb",
 };
 
@@ -46,8 +46,8 @@ export const TYPE_ICON_COLOR: Record<NodeType, string> = {
   node: "#10b981",
   agent: "#8b5cf6",
   workflow: "#10b981",
-  input: "#9ca3af",
-  output: "#9ca3af",
+  input: "#a8a099",
+  output: "#a8a099",
   condition: "#f59e0b",
 };
 
@@ -55,7 +55,7 @@ export const TYPE_LABEL_COLOR: Record<NodeType, string> = {
   node: "#10b981",
   agent: "#8b5cf6",
   workflow: "#10b981",
-  input: "#9ca3af",
-  output: "#9ca3af",
+  input: "#a8a099",
+  output: "#a8a099",
   condition: "#f59e0b",
 };

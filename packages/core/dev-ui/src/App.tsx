@@ -61,7 +61,7 @@ export function App() {
     <div className="h-screen w-screen flex bg-background">
       {/* Left sidebar */}
       <div
-        className="flex flex-col bg-[#f3ede5] shrink-0 relative"
+        className="flex flex-col bg-[#f5f3f0] shrink-0 relative"
         style={{ width: leftResize.width }}
       >
         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
@@ -182,7 +182,7 @@ export function App() {
       {/* Right sidebar — run history */}
       {historySidebarOpen && runHistory.available && (
         <div
-          className="flex flex-col bg-[#f3ede5] shrink-0 relative"
+          className="flex flex-col bg-[#f5f3f0] shrink-0 relative"
           style={{ width: rightResize.width }}
         >
           {/* Left-edge drag handle */}
