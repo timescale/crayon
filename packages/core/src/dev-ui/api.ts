@@ -21,6 +21,8 @@ export interface ApiContext {
   appSchema: string;
   /** Project root directory for CLI subprocess execution */
   projectRoot: string;
+  /** Workspace ID for cloud mode (from WORKSPACE_ID env var) */
+  workspaceId?: string;
 }
 
 function jsonResponse(res: ServerResponse, status: number, data: unknown): void {
@@ -138,7 +140,7 @@ export async function handleApiRequest(
   if (nangoConnectionsMatch && method === "GET") {
     const integrationId = decodeURIComponent(nangoConnectionsMatch[1]);
     try {
-      const connections = await ctx.integrationProvider.listConnections(integrationId);
+      const connections = await ctx.integrationProvider.listConnections(integrationId, ctx.workspaceId);
       jsonResponse(res, 200, connections);
     } catch (err) {
       jsonResponse(res, 500, {
@@ -158,7 +160,7 @@ export async function handleApiRequest(
       return true;
     }
     try {
-      const session = await ctx.integrationProvider.createConnectSession(body.integration_id);
+      const session = await ctx.integrationProvider.createConnectSession(body.integration_id, ctx.workspaceId);
       jsonResponse(res, 200, session);
     } catch (err) {
       jsonResponse(res, 500, {

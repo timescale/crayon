@@ -74,12 +74,23 @@ export class LocalIntegrationProvider implements IntegrationProvider {
 
   async createConnectSession(
     integrationId: string,
-    endUserId?: string,
+    workspaceId?: string,
   ): Promise<{ token: string }> {
-    const session = await this.nango.createConnectSession({
-      end_user: { id: endUserId ?? "dev-ui-user" },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sessionProps: any = {
       allowed_integrations: [integrationId],
-    });
+    };
+
+    if (workspaceId) {
+      sessionProps.tags = {
+        "user-id": "local-dev",
+        "workspace-id": workspaceId,
+      };
+    } else {
+      sessionProps.end_user = { id: "dev-ui-user" };
+    }
+
+    const session = await this.nango.createConnectSession(sessionProps);
     return { token: session.data.token };
   }
 }
