@@ -11,7 +11,7 @@ import type { Page } from "./hooks/useHashRouter";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { BottomPanel } from "./components/BottomPanel";
 import { RunHistoryTab } from "./components/RunHistoryTab";
-import { RunWorkflowModal } from "./components/RunWorkflowModal";
+import { TestSection } from "./components/TestSection";
 import { ClaudeTerminal } from "./components/ClaudeTerminal";
 import { CredentialsPage } from "./components/CredentialsPage";
 import { DashboardPage } from "./components/DashboardPage";
@@ -23,8 +23,8 @@ export function App() {
   const router = useHashRouter();
   const sidebar = useSidebarState();
   const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
-  const [historySidebarOpen, setHistorySidebarOpen] = useState(false);
-  const [showRunModal, setShowRunModal] = useState(false);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [rightTab, setRightTab] = useState<"test" | "runs">("test");
 
   const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
 
@@ -197,7 +197,7 @@ export function App() {
                   <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.03)]">
                     <WorkflowGraph dag={activeDag} connectionsApi={connectionsApi} />
                   </div>
-                  <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <div className="absolute top-3 left-3">
                     <div className="bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-[0_1px_4px_rgba(0,0,0,0.04)] border border-border">
                       <span className="text-[15px] font-semibold text-foreground">
                         {activeDag.workflowName}
@@ -206,16 +206,6 @@ export function App() {
                         v{activeDag.version}
                       </span>
                     </div>
-                    <button
-                      onClick={() => setShowRunModal(true)}
-                      className="bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer flex items-center gap-1.5"
-                      title="Run workflow"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
-                        <path d="M2.5 1.5L10 6L2.5 10.5V1.5Z" />
-                      </svg>
-                      Run
-                    </button>
                   </div>
                 </ReactFlowProvider>
               ) : (
@@ -224,31 +214,31 @@ export function App() {
                 </div>
               )}
 
-              {/* Toggle buttons */}
-              <div className="absolute top-3 right-3 flex gap-1.5">
-                {runHistory.available && (
-                  <button
-                    onClick={() => setHistorySidebarOpen(!historySidebarOpen)}
-                    className={`bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
-                      historySidebarOpen
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    History
-                  </button>
-                )}
+              {/* Right sidebar open toggle (visible when sidebar is closed) */}
+              {activeDag && !rightSidebarOpen && (
                 <button
-                  onClick={() => setBottomPanelOpen(!bottomPanelOpen)}
-                  className={`bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border border-border text-[12px] cursor-pointer transition-colors ${
-                    bottomPanelOpen
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  onClick={() => setRightSidebarOpen(true)}
+                  className="absolute top-1/2 -translate-y-1/2 right-0 w-6 h-12 flex items-center justify-center bg-white border border-[#e8e4df] border-r-0 rounded-l-md shadow-sm cursor-pointer text-[#a8a099] hover:text-[#1a1a1a] transition-colors"
+                  title="Open test panel"
                 >
-                  Terminal
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
                 </button>
-              </div>
+              )}
+
+              {/* Terminal open toggle (visible when bottom panel is closed) */}
+              {!bottomPanelOpen && (
+                <button
+                  onClick={() => setBottomPanelOpen(true)}
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 h-6 w-12 flex items-center justify-center bg-white border border-[#e8e4df] border-b-0 rounded-t-md shadow-sm cursor-pointer text-[#a8a099] hover:text-[#1a1a1a] transition-colors"
+                  title="Open terminal"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Bottom panel (terminal only) */}
@@ -263,23 +253,10 @@ export function App() {
         )}
       </div>
 
-      {/* Run workflow modal */}
-      {showRunModal && activeDag && (
-        <RunWorkflowModal
-          dag={activeDag}
-          onClose={() => setShowRunModal(false)}
-          onSuccess={() => {
-            setShowRunModal(false);
-            setHistorySidebarOpen(true);
-            runHistory.refresh();
-          }}
-        />
-      )}
-
-      {/* Right sidebar — run history */}
-      {historySidebarOpen && runHistory.available && (
+      {/* Right sidebar — tabbed: Test / Runs */}
+      {rightSidebarOpen && activeDag && (
         <div
-          className="flex flex-col bg-[#f5f3f0] shrink-0 relative"
+          className="flex flex-col bg-white shrink-0 relative border-l border-[#e8e4df]"
           style={{ width: rightResize.width }}
         >
           {/* Left-edge drag handle */}
@@ -287,26 +264,59 @@ export function App() {
             onMouseDown={rightResize.onDragStart}
             className="absolute top-0 left-0 w-1 h-full cursor-ew-resize hover:bg-accent z-20"
           />
-          <div className="shrink-0 px-4 py-3 border-b border-border flex items-center justify-between">
-            <span className="text-[12px] font-medium text-foreground tracking-wide">History</span>
+
+          {/* Tab bar */}
+          <div className="shrink-0 px-4 pt-3 pb-0 border-b border-[#e8e4df] flex items-center justify-between">
+            <div className="flex gap-0">
+              {(["test", "runs"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setRightTab(tab)}
+                  className={`relative text-[12px] tracking-wide px-3 pb-2.5 cursor-pointer transition-colors ${
+                    rightTab === tab
+                      ? "text-[#1a1a1a]"
+                      : "text-[#a8a099] hover:text-[#787068]"
+                  }`}
+                >
+                  {tab === "test" ? "Test" : "Runs"}
+                  {rightTab === tab && (
+                    <span className="absolute bottom-0 left-3 right-3 h-[1.5px] bg-[#1a1a1a]" />
+                  )}
+                </button>
+              ))}
+            </div>
             <button
-              onClick={() => setHistorySidebarOpen(false)}
-              className="text-muted-foreground hover:text-foreground text-sm px-1 cursor-pointer"
+              onClick={() => setRightSidebarOpen(false)}
+              className="text-[#a8a099] hover:text-[#1a1a1a] text-sm px-1 pb-2 cursor-pointer transition-colors"
               title="Close"
             >
               &times;
             </button>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <RunHistoryTab
-              runs={runHistory.runs}
-              loading={runHistory.loading}
-              selectedRunId={runHistory.selectedRunId}
-              trace={runHistory.trace}
-              traceLoading={runHistory.traceLoading}
-              selectRun={runHistory.selectRun}
-              refresh={runHistory.refresh}
-            />
+
+          {/* Tab content */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            {rightTab === "test" ? (
+              <div className="p-4">
+                <TestSection
+                  dag={activeDag}
+                  onSuccess={() => {
+                    runHistory.refresh();
+                    setRightTab("runs");
+                  }}
+                />
+              </div>
+            ) : (
+              <RunHistoryTab
+                runs={runHistory.runs}
+                loading={runHistory.loading}
+                selectedRunId={runHistory.selectedRunId}
+                trace={runHistory.trace}
+                traceLoading={runHistory.traceLoading}
+                selectRun={runHistory.selectRun}
+                refresh={runHistory.refresh}
+              />
+            )}
           </div>
         </div>
       )}
