@@ -189,13 +189,34 @@ export async function POST(req: NextRequest) {
       throw new Error(`IPv4 allocation failed — machine would be unreachable`);
     }
 
-    // 4. Set secrets (env vars) — staged so they apply when machine starts
-    const secrets = {
+    // 4. Insert into dev_machines + dev_machine_members (before secrets so we can include WORKSPACE_ID)
+    const insertResult = await db.query(
+      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by, ssh_private_key)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [appName, flyAppName, appUrl, userId, sshKeypair.privateKey],
+    );
+
+    const machineDbId = insertResult.rows[0].id as number;
+
+    await db.query(
+      `INSERT INTO dev_machine_members (machine_id, user_id, role, linux_user)
+       VALUES ($1, $2, 'owner', $3)`,
+      [machineDbId, userId, linuxUser],
+    );
+
+    // 5. Set secrets (env vars) — staged so they apply when machine starts
+    const secrets: Record<string, string> = {
       ...envVars,
       APP_NAME: appName,
       DEV_USER: linuxUser,
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
+      WORKSPACE_ID: String(machineDbId),
     };
+    // Inject auth-server's public URL so the cloud machine calls back to us
+    if (process.env.PUBLIC_URL) {
+      secrets.OPFLOW_SERVER_URL = process.env.PUBLIC_URL;
+    }
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
     const secretsContent = Object.entries(secrets)
       .map(([k, v]) => `${k}=${v}`)
@@ -219,7 +240,7 @@ export async function POST(req: NextRequest) {
       try { unlinkSync(secretsFile); } catch { /* ignore */ }
     }
 
-    // 5. Create machine via Fly Machines API
+    // 6. Create machine via Fly Machines API
     const machineConfig: CreateMachineConfig = {
       image: CLOUD_DEV_IMAGE,
       services: [
@@ -259,22 +280,6 @@ export async function POST(req: NextRequest) {
     const machine = await createMachine(flyAppName, machineConfig);
     console.log(
       `[cloud-dev/create] Machine created: ${machine.id} for ${flyAppName}`,
-    );
-
-    // 6. Insert into dev_machines + dev_machine_members
-    const insertResult = await db.query(
-      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by, ssh_private_key)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [appName, flyAppName, appUrl, userId, sshKeypair.privateKey],
-    );
-
-    const machineDbId = insertResult.rows[0].id as number;
-
-    await db.query(
-      `INSERT INTO dev_machine_members (machine_id, user_id, role, linux_user)
-       VALUES ($1, $2, 'owner', $3)`,
-      [machineDbId, userId, linuxUser],
     );
 
     return NextResponse.json({

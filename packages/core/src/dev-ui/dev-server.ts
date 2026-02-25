@@ -125,6 +125,7 @@ export async function startDevServer(options: DevServerOptions) {
           schema: dbosSchema,
           appSchema,
           projectRoot,
+          workspaceId: process.env.WORKSPACE_ID,
         });
         if (handled) return;
       } catch (err) {
