@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useDAGSocket } from "./hooks/useDAGSocket";
 import { useConnections } from "./hooks/useConnections";
@@ -27,6 +27,13 @@ export function App() {
   const [showRunModal, setShowRunModal] = useState(false);
 
   const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
+
+  // Auto-select most recently changed workflow when on canvas with none selected
+  useEffect(() => {
+    if (router.page === "canvas" && !router.selectedWorkflow && state.workflows.length > 0) {
+      router.selectWorkflow(state.workflows[state.workflows.length - 1].workflowName);
+    }
+  }, [router.page, router.selectedWorkflow, state.workflows, router.selectWorkflow]);
 
   const runHistory = useRunHistory(router.selectedWorkflow);
 
@@ -213,9 +220,7 @@ export function App() {
                 </ReactFlowProvider>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  {state.workflows.length === 0
-                    ? "No workflow files found. Create a workflow to get started."
-                    : "Select a workflow from the sidebar."}
+                  Waiting for workflow files...
                 </div>
               )}
 

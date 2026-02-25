@@ -9,8 +9,11 @@ interface RouterState {
 
 function parseHash(): RouterState {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  if (!hash || hash === "dashboard") {
+  if (hash === "dashboard") {
     return { page: "dashboard", workflow: null };
+  }
+  if (!hash) {
+    return { page: "canvas", workflow: null };
   }
   if (hash === "credentials") {
     return { page: "credentials", workflow: null };
@@ -21,7 +24,7 @@ function parseHash(): RouterState {
   if (hash.startsWith("canvas/")) {
     return { page: "canvas", workflow: decodeURIComponent(hash.slice("canvas/".length)) || null };
   }
-  return { page: "dashboard", workflow: null };
+  return { page: "canvas", workflow: null };
 }
 
 function buildHash(page: Page, workflow: string | null): string {
