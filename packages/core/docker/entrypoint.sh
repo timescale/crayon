@@ -76,35 +76,27 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   log "  Running 0pflow init..."
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$OPFLOW" init '$APP_NAME' --dir . --no-install"
 
-  # Symlink base packages into /data/app/node_modules (one-time, persists on volume).
-  # DISABLED: npm treats symlinks as linked packages and runs their lifecycle scripts,
-  # which fails (e.g. husky not found). Base packages at /node_modules/ are still
-  # found by Node.js via parent-directory resolution from /data/app.
-  # TODO: revisit — either run `npm install` during scaffold or find a symlink-compatible approach.
-  #
-  # log "  Symlinking base packages..."
-  # mkdir -p "$APP_DIR/node_modules/.bin"
-  # for pkg in /node_modules/*; do
-  #   name="$(basename "$pkg")"
-  #   [[ "$name" == .* ]] && continue
-  #   if [[ "$name" == @* ]] && [ -d "$pkg" ]; then
-  #     mkdir -p "$APP_DIR/node_modules/$name"
-  #     for scoped in "$pkg"/*; do
-  #       sname="$(basename "$scoped")"
-  #       [ ! -e "$APP_DIR/node_modules/$name/$sname" ] && \
-  #         ln -s "$scoped" "$APP_DIR/node_modules/$name/$sname"
-  #     done
-  #   else
-  #     [ ! -e "$APP_DIR/node_modules/$name" ] && \
-  #       ln -s "$pkg" "$APP_DIR/node_modules/$name"
-  #   fi
-  # done
-  # for cmd in /node_modules/.bin/*; do
-  #   cname="$(basename "$cmd")"
-  #   [ ! -e "$APP_DIR/node_modules/.bin/$cname" ] && \
-  #     ln -s "$cmd" "$APP_DIR/node_modules/.bin/$cname"
-  # done
-  # chown -R "$DEV_USER:devs" "$APP_DIR/node_modules"
+  # Copy pre-cached /node_modules onto the volume in the background.
+  # -L dereferences symlinks so all files land as real writable files (fixes
+  # npm EPERM when it tries to chmod bin entries on the overlay FS).
+  # Copies to a temp dir first, then renames atomically so if the dev server
+  # starts before the copy finishes, Node.js still resolves packages via
+  # parent-directory lookup to /node_modules.
+  log "  Starting node_modules population in background..."
+  (
+    rm -rf "$APP_DIR/node_modules_temp"
+    cp -r /node_modules/. "$APP_DIR/node_modules_temp/"
+    chown -R "$DEV_USER:devs" "$APP_DIR/node_modules_temp"
+    # mv is atomic on Linux (same filesystem) — either succeeds or fails if
+    # node_modules was created by a concurrent npm install. Either way is safe.
+    if mv "$APP_DIR/node_modules_temp" "$APP_DIR/node_modules" 2>/dev/null; then
+      log "node_modules population complete"
+    else
+      rm -rf "$APP_DIR/node_modules_temp"
+      log "node_modules already exists (concurrent npm), discarding temp copy"
+    fi
+  ) &
+
   log "  Scaffold complete"
 fi
 
@@ -115,12 +107,11 @@ fi
 #   echo "$BAD_FILES"
 # fi
 
-# ── Pin /data/app/node_modules/0pflow → image version (every boot) ────────
-# Ensures the app always uses the 0pflow binary baked into the image,
-# even if the user ran `npm install` which would have written a stale registry copy.
-mkdir -p "$APP_DIR/node_modules"
-ln -sfn /node_modules/0pflow "$APP_DIR/node_modules/0pflow"
-chown -h "$DEV_USER:devs" "$APP_DIR/node_modules" "$APP_DIR/node_modules/0pflow" 2>/dev/null || true
+# ── Pin 0pflow to image version (every boot) ────────────────────────────
+# Remove any local copy so Node.js resolves via parent-directory lookup
+# to /node_modules/0pflow (symlinked to the global install baked into the image).
+# This avoids a symlink in the app's node_modules that npm would try to chmod.
+rm -rf "$APP_DIR/node_modules/0pflow"
 
 # ── SSH server setup ──────────────────────────────────────────
 # Persist host keys on volume so they survive redeployments (avoids "host key changed" warnings)

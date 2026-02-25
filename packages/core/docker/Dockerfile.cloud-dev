@@ -16,7 +16,10 @@ RUN npm config set cache /npm-cache --global
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
 COPY entrypoint.sh 0pflow-*.tgz /tmp/build/
 RUN if [ "$OPFLOW_SOURCE" = "local" ] && ls /tmp/build/0pflow-*.tgz 1>/dev/null 2>&1; then \
-      npm install -g /tmp/build/0pflow-*.tgz; \
+      npm install -g /tmp/build/0pflow-*.tgz && \
+      # Stamp a -dev suffix so scaffolding uses the "dev" dist-tag in package.json
+      GLOBAL_PKG="$(npm root -g)/0pflow/package.json" && \
+      node -e "const f='$GLOBAL_PKG'; const p=JSON.parse(require('fs').readFileSync(f,'utf8')); p.version+='-dev.local'; require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"; \
     else \
       npm install -g 0pflow@dev; \
     fi && \

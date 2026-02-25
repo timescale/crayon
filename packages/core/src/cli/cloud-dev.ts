@@ -635,6 +635,7 @@ function connectSSH(info: SSHKeyInfo, command?: string): number {
     "-o", "StrictHostKeyChecking=no",
     "-o", "UserKnownHostsFile=/dev/null",
     "-o", "LogLevel=ERROR",
+    "-o", "IdentitiesOnly=yes",
     `${info.linuxUser}@${info.host}`,
   ];
 

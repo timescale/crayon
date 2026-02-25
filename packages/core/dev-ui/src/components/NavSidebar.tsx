@@ -65,12 +65,12 @@ export function NavSidebar({
       {/* Logo */}
       <div className={`py-4 flex items-center gap-2 ${collapsed ? "px-3 justify-center" : "px-4"}`}>
         <div className="w-6 h-6 rounded-full bg-foreground text-background flex items-center justify-center text-[10px] font-bold shrink-0">
-          0p
+          M
         </div>
         {!collapsed && (
           <>
             <span className="text-sm font-bold text-foreground font-serif tracking-wide">
-              {appName || "0pflow"}
+              {appName || "Mache"}
             </span>
             <span
               className={`w-2 h-2 rounded-full ml-auto ${connected ? "bg-green-400" : "bg-red-400"}`}
