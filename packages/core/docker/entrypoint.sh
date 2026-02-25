@@ -17,6 +17,11 @@ if ! id "$DEV_USER" &>/dev/null; then
 fi
 DEV_HOME=$(eval echo "~$DEV_USER")
 
+# Fix up plugin paths — skel has __HOMEDIR__ placeholders from build time
+for f in "$DEV_HOME/.claude/plugins/known_marketplaces.json" "$DEV_HOME/.claude/plugins/installed_plugins.json"; do
+  [ -f "$f" ] && sed -i "s|__HOMEDIR__|$DEV_HOME|g" "$f"
+done
+
 # ── Set up Claude Code config + credentials in user's home ────
 log "Setting up credentials..."
 mkdir -p "$DEV_HOME/.claude"
@@ -29,38 +34,33 @@ elif [ -f "$DEV_HOME/.claude/.credentials.json" ]; then
   log "  OAuth credentials already exist, skipping"
 fi
 
-# Write .claude.json on first boot only — Claude Code may update it at runtime
-if [ ! -f "$DEV_HOME/.claude.json" ]; then
-  API_KEY_FIELD=""
-  if [ -n "$CLAUDE_API_KEY" ]; then
-    API_KEY_FIELD="\"primaryApiKey\": \"$CLAUDE_API_KEY\","
-    log "  Including API key in config"
-  fi
-  cat > "$DEV_HOME/.claude.json" <<CJSON
-{
-  $API_KEY_FIELD
-  "numStartups": 1,
-  "installMethod": "npm",
-  "autoUpdates": false,
-  "hasCompletedOnboarding": true,
-  "effortCalloutDismissed": true,
-  "bypassPermissionsModeAccepted": true,
-  "projects": {
-    "$APP_DIR": {
-      "allowedTools": [],
-      "mcpContextUris": [],
-      "mcpServers": {},
-      "enabledMcpjsonServers": [],
-      "disabledMcpjsonServers": [],
-      "hasTrustDialogAccepted": true
-    }
-  }
-}
-CJSON
-  log "  Wrote .claude.json config"
-else
-  log "  .claude.json already exists, skipping"
-fi
+# Merge required fields into .claude.json (skel provides plugin registrations;
+# we overlay credentials, onboarding flags, and project trust on every boot).
+log "Updating .claude.json..."
+node -e "
+  const fs = require('fs');
+  const path = '$DEV_HOME/.claude.json';
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(path, 'utf-8')); } catch {}
+  const apiKey = process.env.CLAUDE_API_KEY || '';
+  if (apiKey) cfg.primaryApiKey = apiKey;
+  Object.assign(cfg, {
+    hasCompletedOnboarding: true,
+    effortCalloutDismissed: true,
+    bypassPermissionsModeAccepted: true,
+  });
+  cfg.projects = cfg.projects || {};
+  cfg.projects['$APP_DIR'] = Object.assign(cfg.projects['$APP_DIR'] || {}, {
+    allowedTools: [],
+    mcpContextUris: [],
+    mcpServers: {},
+    enabledMcpjsonServers: [],
+    disabledMcpjsonServers: [],
+    hasTrustDialogAccepted: true,
+  });
+  fs.writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
+"
+log "  .claude.json updated"
 
 if [ -z "$CLAUDE_OAUTH_CREDENTIALS" ] && [ -z "$CLAUDE_API_KEY" ]; then
   log "  WARNING: No Claude credentials found (CLAUDE_OAUTH_CREDENTIALS / CLAUDE_API_KEY not set)"
@@ -77,35 +77,34 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$OPFLOW" init '$APP_NAME' --dir . --no-install"
 
   # Symlink base packages into /data/app/node_modules (one-time, persists on volume).
-  # npm sees symlinks as installed packages — subsequent `npm install <pkg>` only writes
-  # the new package. Uninstalls remove symlinks and they stay gone (not recreated on boot).
-  # Upgrades: npm replaces symlinks with real dirs as needed.
-  log "  Symlinking base packages..."
-  mkdir -p "$APP_DIR/node_modules/.bin"
-  for pkg in /node_modules/*; do
-    name="$(basename "$pkg")"
-    [[ "$name" == .* ]] && continue  # skip .bin, .package-lock.json, .cache, etc.
-    if [[ "$name" == @* ]] && [ -d "$pkg" ]; then
-      # Scoped package dir (e.g. @scope) — link individual packages so npm can
-      # still add new packages under the same scope without hitting a symlink.
-      mkdir -p "$APP_DIR/node_modules/$name"
-      for scoped in "$pkg"/*; do
-        sname="$(basename "$scoped")"
-        [ ! -e "$APP_DIR/node_modules/$name/$sname" ] && \
-          ln -s "$scoped" "$APP_DIR/node_modules/$name/$sname"
-      done
-    else
-      [ ! -e "$APP_DIR/node_modules/$name" ] && \
-        ln -s "$pkg" "$APP_DIR/node_modules/$name"
-    fi
-  done
-  # Symlink .bin entries so npm scripts work without a local install
-  for cmd in /node_modules/.bin/*; do
-    cname="$(basename "$cmd")"
-    [ ! -e "$APP_DIR/node_modules/.bin/$cname" ] && \
-      ln -s "$cmd" "$APP_DIR/node_modules/.bin/$cname"
-  done
-  chown -R "$DEV_USER:devs" "$APP_DIR/node_modules"
+  # DISABLED: npm treats symlinks as linked packages and runs their lifecycle scripts,
+  # which fails (e.g. husky not found). Base packages at /node_modules/ are still
+  # found by Node.js via parent-directory resolution from /data/app.
+  # TODO: revisit — either run `npm install` during scaffold or find a symlink-compatible approach.
+  #
+  # log "  Symlinking base packages..."
+  # mkdir -p "$APP_DIR/node_modules/.bin"
+  # for pkg in /node_modules/*; do
+  #   name="$(basename "$pkg")"
+  #   [[ "$name" == .* ]] && continue
+  #   if [[ "$name" == @* ]] && [ -d "$pkg" ]; then
+  #     mkdir -p "$APP_DIR/node_modules/$name"
+  #     for scoped in "$pkg"/*; do
+  #       sname="$(basename "$scoped")"
+  #       [ ! -e "$APP_DIR/node_modules/$name/$sname" ] && \
+  #         ln -s "$scoped" "$APP_DIR/node_modules/$name/$sname"
+  #     done
+  #   else
+  #     [ ! -e "$APP_DIR/node_modules/$name" ] && \
+  #       ln -s "$pkg" "$APP_DIR/node_modules/$name"
+  #   fi
+  # done
+  # for cmd in /node_modules/.bin/*; do
+  #   cname="$(basename "$cmd")"
+  #   [ ! -e "$APP_DIR/node_modules/.bin/$cname" ] && \
+  #     ln -s "$cmd" "$APP_DIR/node_modules/.bin/$cname"
+  # done
+  # chown -R "$DEV_USER:devs" "$APP_DIR/node_modules"
   log "  Scaffold complete"
 fi
 
@@ -122,14 +121,6 @@ fi
 mkdir -p "$APP_DIR/node_modules"
 ln -sfn /node_modules/0pflow "$APP_DIR/node_modules/0pflow"
 chown -h "$DEV_USER:devs" "$APP_DIR/node_modules" "$APP_DIR/node_modules/0pflow" 2>/dev/null || true
-
-# ── Complete Claude Code native installer migration (suppresses startup prompt) ──
-log "Completing Claude Code native install for $DEV_USER..."
-su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' claude install" 2>/dev/null || true
-
-# ── Register 0pflow Claude Code plugin for DEV_USER ────────────
-log "Installing 0pflow plugin for $DEV_USER..."
-su -s /bin/bash "$DEV_USER" -c "HOME='$DEV_HOME' "$OPFLOW" install" 2>/dev/null || true
 
 # ── SSH server setup ──────────────────────────────────────────
 # Persist host keys on volume so they survive redeployments (avoids "host key changed" warnings)

@@ -11,9 +11,6 @@ RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-serve
 # This means users can run `npm install` without extra flags and still hit the cache.
 RUN npm config set cache /npm-cache --global
 
-# Claude Code CLI (global so PTY manager can find it via `which claude`)
-RUN npm install -g @anthropic-ai/claude-code
-
 # 0pflow — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
@@ -44,6 +41,24 @@ RUN GLOBAL_MODULES="$(npm root -g)" && \
 # /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
 RUN chmod -R a+rwx /npm-cache
 ENV PATH=/node_modules/.bin:$PATH
+
+# Pre-run claude install + 0pflow install as a temp user, then save to /etc/skel.
+# useradd -m copies /etc/skel into new home dirs, so runtime users get Claude Code
+# + plugin/marketplace registration without the slow setup on every boot.
+RUN groupadd -f devs && \
+    useradd -m -s /bin/bash -g devs _setup && \
+    su -s /bin/bash _setup -c "curl -fsSL https://claude.ai/install.sh | bash" && \
+    ln -sf /home/_setup/.local/bin/claude /usr/local/bin/claude && \
+    OPFLOW="$(npm prefix -g)/bin/0pflow" && \
+    su -s /bin/bash _setup -c "$OPFLOW install --force" && \
+    test -f /home/_setup/.claude/settings.json || { echo "ERROR: 0pflow plugin not registered"; exit 1; } && \
+    cp -a /home/_setup/. /etc/skel/ && \
+    rm -f /etc/skel/.claude/.credentials.json && \
+    sed -i 's|/home/_setup|__HOMEDIR__|g' /etc/skel/.claude/plugins/known_marketplaces.json /etc/skel/.claude/plugins/installed_plugins.json && \
+    CLAUDE_VER=$(basename "$(readlink /etc/skel/.local/bin/claude)") && \
+    ln -sf "../share/claude/versions/$CLAUDE_VER" /etc/skel/.local/bin/claude && \
+    ln -sf /etc/skel/.local/bin/claude /usr/local/bin/claude && \
+    userdel -r _setup 2>/dev/null || true
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

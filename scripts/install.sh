@@ -56,7 +56,7 @@ detect_os() {
 # ── Step 1: Node.js ─────────────────────────────────────────────────────────
 
 install_node() {
-  step "Step 1/4: Node.js"
+  step "Step 1/3: Node.js"
 
   if has_cmd node; then
     local node_version node_major
@@ -92,7 +92,7 @@ install_node() {
 # ── Step 2: Claude Code CLI ─────────────────────────────────────────────────
 
 install_claude() {
-  step "Step 2/4: Claude Code CLI"
+  step "Step 2/3: Claude Code CLI"
 
   if has_cmd claude; then
     success "Claude Code CLI found"
@@ -120,7 +120,7 @@ install_claude() {
 # ── Step 3: Tiger CLI ───────────────────────────────────────────────────────
 
 install_tiger() {
-  step "Step 3/4: Tiger CLI"
+  step "Step 3/3: Tiger CLI"
 
   if has_cmd tiger; then
     success "Tiger CLI found"
@@ -143,26 +143,6 @@ install_tiger() {
   else
     fatal "Tiger CLI installation failed. Install manually: https://cli.tigerdata.com"
   fi
-}
-
-# ── Step 4: 0pflow plugin ───────────────────────────────────────────────────
-
-install_0pflow() {
-  step "Step 4/4: 0pflow plugin"
-
-  if [ -n "${CLAUDECODE:-}" ]; then
-    warn "Running inside a Claude Code session."
-    warn "Please run this install script from a regular terminal instead."
-    fatal "Cannot install 0pflow plugin from inside Claude Code."
-  fi
-
-  info "Installing 0pflow plugin for Claude Code..."
-  # Suppress inner output — our script provides its own progress messages
-  if ! npx --loglevel=error -y --prefer-online 0pflow@dev install --force > /dev/null 2>&1; then
-    fatal "0pflow plugin installation failed. Try running: npx -y 0pflow@dev install --force"
-  fi
-
-  success "0pflow plugin installed"
 }
 
 # ── Shell alias ──────────────────────────────────────────────────────────────
@@ -227,7 +207,6 @@ main() {
   install_node
   install_claude
   install_tiger
-  install_0pflow
   setup_alias
 
   # Determine which rc file to source
@@ -239,7 +218,7 @@ main() {
   printf "\n"
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
-  printf "${CYAN}    source ${rc_file} && 0pflow run${RESET}\n\n" >&2
+  printf "${CYAN}    source ${rc_file} && 0pflow cloud run${RESET}\n\n" >&2
 }
 
 main "$@"
