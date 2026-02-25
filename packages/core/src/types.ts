@@ -16,13 +16,28 @@ export interface Executable<TInput = unknown, TOutput = unknown> {
 }
 
 /**
- * Credentials returned from a Nango connection
+ * Credentials returned from a Nango connection.
+ * Both `token` and `access_token` return the same value.
  */
-export interface ConnectionCredentials {
+export class ConnectionCredentials {
   token: string;
-  /** Provider-specific config (e.g., instance_url for Salesforce) */
-  connectionConfig?: Record<string, unknown>;
-  raw?: Record<string, unknown>;
+  connectionConfig: Record<string, unknown>;
+  raw: Record<string, unknown>;
+
+  constructor(opts: {
+    token: string;
+    connectionConfig?: Record<string, unknown>;
+    raw?: Record<string, unknown>;
+  }) {
+    this.token = opts.token;
+    this.connectionConfig = opts.connectionConfig ?? {};
+    this.raw = opts.raw ?? {};
+  }
+
+  /** Alias for `token` — matches the common OAuth field name */
+  get access_token(): string {
+    return this.token;
+  }
 }
 
 /**

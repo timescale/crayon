@@ -67,8 +67,8 @@ export type { ConnectionMapping, IntegrationProvider } from "./connections/index
 export type {
   Executable,
   WorkflowContext,
-  ConnectionCredentials,
   LogLevel,
   PflowConfig,
   Pflow,
 } from "./types.js";
+export { ConnectionCredentials } from "./types.js";

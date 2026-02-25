@@ -1,5 +1,5 @@
 import type { IntegrationProvider } from "./integration-provider.js";
-import type { ConnectionCredentials } from "../types.js";
+import { ConnectionCredentials } from "../types.js";
 import { getConnectionDisplayName } from "./connection-labels.js";
 
 /**
@@ -29,11 +29,11 @@ export class LocalIntegrationProvider implements IntegrationProvider {
       creds.token ??
       "";
 
-    return {
+    return new ConnectionCredentials({
       token,
       connectionConfig: connection.connection_config ?? {},
       raw: creds,
-    };
+    });
   }
 
   async listIntegrations(): Promise<Array<{ id: string; provider: string }>> {

@@ -1,4 +1,4 @@
-import type { ConnectionCredentials } from "../types.js";
+import { ConnectionCredentials } from "../types.js";
 
 // Use dynamic import to avoid hard dependency when Nango isn't configured.
 // Stored on globalThis so it's shared across module instances (jiti vs compiled).
@@ -57,9 +57,9 @@ export async function fetchCredentials(
     creds.token ??
     "";
 
-  return {
+  return new ConnectionCredentials({
     token,
     connectionConfig: connection.connection_config ?? {},
     raw: creds,
-  };
+  });
 }
