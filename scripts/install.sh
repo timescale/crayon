@@ -148,7 +148,7 @@ install_tiger() {
 # ── Shell alias ──────────────────────────────────────────────────────────────
 
 setup_alias() {
-  local alias_line="alias 0pflow='npx -y --prefer-online 0pflow@dev'"
+  local alias_line="alias 0pflow='npx -y --prefer-online --loglevel=error 0pflow@dev'"
   local alias_comment="# 0pflow CLI alias"
   local added_to=""
 
