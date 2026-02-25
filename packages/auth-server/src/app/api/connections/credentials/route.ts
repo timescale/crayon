@@ -4,20 +4,24 @@ import { getNango } from "@/lib/nango";
 import { verifyWorkspaceMembership } from "@/lib/workspace";
 
 /**
- * GET /api/credentials/{integrationId}?connection_id=X
- * Core proxy: fetch actual credentials from Nango for a connection.
+ * GET /api/connections/credentials?integration_id=X&connection_id=Y
+ * Fetch actual credentials from Nango for a connection.
  * Authorization is based on workspace membership via connection tags.
  * Returns { token, connectionConfig, raw }.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ integrationId: string }> },
-) {
+export async function GET(req: NextRequest) {
   const auth = await authenticateRequest(req);
   if (auth instanceof NextResponse) return auth;
 
-  const { integrationId } = await params;
-  const connectionId = new URL(req.url).searchParams.get("connection_id");
+  const integrationId = req.nextUrl.searchParams.get("integration_id");
+  const connectionId = req.nextUrl.searchParams.get("connection_id");
+
+  if (!integrationId) {
+    return NextResponse.json(
+      { error: "integration_id query parameter is required" },
+      { status: 400 },
+    );
+  }
 
   if (!connectionId) {
     return NextResponse.json(

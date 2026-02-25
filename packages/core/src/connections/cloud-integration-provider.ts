@@ -14,7 +14,7 @@ export class CloudIntegrationProvider implements IntegrationProvider {
   ): Promise<ConnectionCredentials> {
     const data = (await apiCall(
       "GET",
-      `/api/credentials/${encodeURIComponent(integrationId)}?connection_id=${encodeURIComponent(connectionId)}`,
+      `/api/connections/credentials?integration_id=${encodeURIComponent(integrationId)}&connection_id=${encodeURIComponent(connectionId)}`,
     )) as ConnectionCredentials;
 
     return data;
@@ -32,21 +32,18 @@ export class CloudIntegrationProvider implements IntegrationProvider {
     integrationId: string,
     workspaceId?: string,
   ): Promise<Array<{ connection_id: string; provider_config_key: string; display_name: string }>> {
-    let data: Array<{ connection_id: string; provider_config_key: string }>;
-
-    if (workspaceId) {
-      // Workspace-scoped: use /api/connections and filter by integration client-side
-      const allConnections = (await apiCall(
-        "GET",
-        `/api/connections?workspace_id=${encodeURIComponent(workspaceId)}`,
-      )) as Array<{ connection_id: string; provider_config_key: string }>;
-      data = allConnections.filter(
-        (c) => c.provider_config_key === integrationId,
-      );
-    } else {
-      // No workspace context — return empty (workspace is required for cloud mode)
-      data = [];
+    if (!workspaceId) {
+      return [];
     }
+
+    const allConnections = (await apiCall(
+      "GET",
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/connections`,
+    )) as Array<{ connection_id: string; provider_config_key: string }>;
+
+    const data = allConnections.filter(
+      (c) => c.provider_config_key === integrationId,
+    );
 
     return Promise.all(
       data.map(async (c) => {
@@ -70,10 +67,14 @@ export class CloudIntegrationProvider implements IntegrationProvider {
     integrationId: string,
     workspaceId?: string,
   ): Promise<{ token: string }> {
-    const data = (await apiCall("POST", "/api/nango/connect-session", {
-      integration_id: integrationId,
-      workspace_id: workspaceId,
-    })) as { token: string };
+    if (!workspaceId) {
+      throw new Error("workspace_id is required for cloud mode");
+    }
+    const data = (await apiCall(
+      "POST",
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/connections`,
+      { integration_id: integrationId },
+    )) as { token: string };
     return data;
   }
 }
