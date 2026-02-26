@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "0pflow/schema-ops": [
+        "../core/src/cli/mcp/lib/schema-ops.ts"
       ]
     }
   },

@@ -235,12 +235,8 @@ export async function runCloudRun(): Promise<void> {
 
   const s = p.spinner();
 
-  // ── Step 4: Tiger auth + choose or create database ─────────────
-  ensureTigerAuth();
-
-  let serviceId: string;
-
-  // List existing Tiger services
+  // ── Step 4: Choose database ─────────────────────────────────────
+  // List existing Tiger services (best-effort; ignored if Tiger not available)
   interface TigerService {
     service_id: string;
     name: string;
@@ -248,31 +244,41 @@ export async function runCloudRun(): Promise<void> {
   }
   let existingServices: TigerService[] = [];
   try {
+    ensureTigerAuth();
     const listOutput = execSync("tiger service list -o json", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
     });
     existingServices = JSON.parse(listOutput) as TigerService[];
   } catch {
-    // tiger CLI failed — fall through to create new
+    // Tiger CLI not available or not authenticated — managed DB will be the only option
   }
 
-  if (existingServices.length > 0) {
-    const dbChoice = await p.select({
-      message: "Database",
-      options: [
-        { value: "__new__" as const, label: "Create a new database" },
-        ...existingServices.map((svc) => ({
-          value: svc.service_id,
-          label: `${svc.name} (${svc.service_id}) — ${svc.status}`,
-        })),
-      ],
-    });
+  const dbChoice = await p.select({
+    message: "Database",
+    options: [
+      {
+        value: "__managed__" as const,
+        label: "Use managed database (provisioned automatically)",
+      },
+      { value: "__new__" as const, label: "Create a new Tiger database" },
+      ...existingServices.map((svc) => ({
+        value: svc.service_id,
+        label: `${svc.name} (${svc.service_id}) — ${svc.status}`,
+      })),
+    ],
+  });
 
-    if (p.isCancel(dbChoice)) {
-      p.cancel("Cancelled.");
-      process.exit(0);
-    }
+  if (p.isCancel(dbChoice)) {
+    p.cancel("Cancelled.");
+    process.exit(0);
+  }
+
+  // ── Step 5–6: Tiger DB setup (skipped for managed) ─────────────
+  const dbEnvVars: Record<string, string> = {};
+
+  if (dbChoice !== "__managed__") {
+    let serviceId: string;
 
     if (dbChoice === "__new__") {
       s.start("Creating database...");
@@ -288,39 +294,23 @@ export async function runCloudRun(): Promise<void> {
       serviceId = dbChoice as string;
       p.log.info(`Using existing database: ${serviceId}`);
     }
-  } else {
-    s.start("Creating database...");
-    const dbResult = await createDatabase({ name: `${appName}-db` });
-    if (!dbResult.success || !dbResult.service_id) {
-      s.stop(pc.red("Failed to create database"));
-      p.log.error(dbResult.error ?? "Unknown error");
+
+    s.start("Waiting for database to be ready...");
+    const ready = await waitForDatabase(serviceId);
+    if (!ready) {
+      s.stop(pc.red("Database timeout"));
+      p.log.error("Database took too long to become ready.");
       process.exit(1);
     }
-    serviceId = dbResult.service_id;
-    s.stop(pc.green(`Database created (${serviceId})`));
-  }
+    s.stop(pc.green("Database is ready"));
 
-  // ── Step 5: Wait for database to be ready ──────────────────────
-  s.start("Waiting for database to be ready...");
-  const ready = await waitForDatabase(serviceId);
-  if (!ready) {
-    s.stop(pc.red("Database timeout"));
-    p.log.error("Database took too long to become ready.");
-    process.exit(1);
-  }
-  s.stop(pc.green("Database is ready"));
-
-  // ── Step 6: Setup app schema (to temp dir for env vars) ────────
-  s.start("Setting up database schema...");
-
-  const tmpDir = mkdtempSync(join(tmpdir(), "opflow-cloud-dev-"));
-  try {
+    s.start("Setting up database schema...");
+    const tmpDir = mkdtempSync(join(tmpdir(), "opflow-cloud-dev-"));
     const schemaResult = await setupAppSchema({
       directory: tmpDir,
       serviceId,
       appName: appName as string,
     });
-
     if (!schemaResult.success) {
       s.stop(pc.red("Schema setup failed"));
       p.log.error(schemaResult.message);
@@ -328,25 +318,26 @@ export async function runCloudRun(): Promise<void> {
     }
     s.stop(pc.green("Database schema configured"));
 
-    // Read env vars from the generated .env
     const envPath = join(tmpDir, ".env");
     const envContent = readFileSync(envPath, "utf-8");
-    const envVars = dotenv.parse(envContent);
+    const parsed = dotenv.parse(envContent);
+    dbEnvVars.DATABASE_URL = parsed.DATABASE_URL ?? "";
+    dbEnvVars.DATABASE_SCHEMA = parsed.DATABASE_SCHEMA ?? "";
+    dbEnvVars.DBOS_SYSTEM_DATABASE_URL = parsed.DATABASE_URL ?? "";
 
-    // ── Step 7: Collect all env vars for the machine ─────────────
-    const { getToken } = await import("../connections/cloud-auth.js");
-    const opflowToken = getToken();
+    // Clean up temp dir now that we have the env vars
+    try { rmSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
+  }
 
-    const machineEnvVars: Record<string, string> = {
+  // ── Step 7: Collect all env vars for the machine ─────────────
+  const { getToken } = await import("../connections/cloud-auth.js");
+  const opflowToken = getToken();
+
+  const machineEnvVars: Record<string, string> = {
       ...claudeCreds,
-      DATABASE_URL: envVars.DATABASE_URL ?? "",
-      DATABASE_SCHEMA: envVars.DATABASE_SCHEMA ?? "",
-      DBOS_SYSTEM_DATABASE_URL: envVars.DATABASE_URL ?? "",
+      ...dbEnvVars,
     };
 
-    if (envVars.DBOS_ADMIN_URL) {
-      machineEnvVars.DBOS_ADMIN_URL = envVars.DBOS_ADMIN_URL;
-    }
     if (opflowToken) {
       machineEnvVars.OPFLOW_TOKEN = opflowToken;
     }
@@ -410,14 +401,6 @@ export async function runCloudRun(): Promise<void> {
     p.log.info("Sandbox is taking longer than expected. Check status with:");
     p.log.info("  0pflow cloud status");
     p.outro(pc.yellow("Cloud dev environment is starting..."));
-  } finally {
-    // Clean up temp dir
-    try {
-      rmSync(tmpDir, { recursive: true });
-    } catch {
-      /* ignore */
-    }
-  }
 }
 
 // ── Lifecycle subcommands (exported for CLI) ────────────────────

@@ -28,7 +28,8 @@ cp .env.example .env.local
 
 ```env
 NANGO_SECRET_KEY=<your Nango secret key>
-DATABASE_URL=<PostgreSQL connection string>
+DATABASE_URL=<PostgreSQL connection string — auth server's own metadata DB>
+DATABASE_DATA_URL=<admin connection string for shared TimescaleDB — see below>
 GITHUB_CLIENT_ID=<from step 1>
 GITHUB_CLIENT_SECRET=<from step 1>
 NEXT_PUBLIC_GITHUB_CLIENT_ID=<same Client ID — needed for the browser page>
@@ -39,6 +40,19 @@ FLY_ORG=personal
 ### 3. Set up the database
 
 The auth server needs a PostgreSQL database for users and auth sessions. You can use Tiger Cloud or any PostgreSQL instance. Tables are created automatically on first request.
+
+#### `DATABASE_DATA_URL` — shared workspace database (optional)
+
+When set, users running `0pflow cloud run` can choose **"Use managed database"** instead of providing their own Tiger database. The auth server will automatically provision a dedicated PostgreSQL schema and role in this shared database for each new workspace.
+
+- Must be an admin connection string (e.g. `tsdbadmin` on TimescaleDB Cloud)
+- Each workspace gets an isolated schema named after its Fly app (e.g. `opflow_dev_a1b2c3d4`)
+- The provisioned `DATABASE_URL` and `DATABASE_SCHEMA` are injected directly as Fly secrets on the workspace machine — the credentials are never stored on the auth server
+
+```bash
+# Set on the deployed auth server
+flyctl secrets set DATABASE_DATA_URL="postgresql://tsdbadmin:...@host/tsdb" -a opflow-auth
+```
 
 ### 4. Install and run
 
@@ -207,7 +221,7 @@ This scaffolds a project into `/tmp/cloud-dev-data/app/` and starts the dev serv
 
 ### Database tables
 
-- `dev_machines` — One row per cloud dev machine (app name, Fly app name, URL, status)
+- `dev_machines` — One row per cloud dev machine (app name, Fly app name, URL, SSH key, and optionally `shared_db_schema`/`shared_db_hostname` when the auth server provisioned the DB)
 - `dev_machine_members` — Many-to-many: users to machines with role (`owner`/`member`) and `linux_user` for OS-level isolation
 
 Tables are auto-created by `ensureSchema()` on first request.

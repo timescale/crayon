@@ -77,14 +77,26 @@ async function ensureSchema(): Promise<void> {
   await pool!.query(`
     CREATE TABLE IF NOT EXISTS dev_machines (
       id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-      app_name TEXT NOT NULL UNIQUE,
-      fly_app_name TEXT,
+      app_name TEXT NOT NULL,
+      fly_app_name TEXT NOT NULL UNIQUE,
       app_url TEXT,
       ssh_private_key TEXT,
+      shared_db_schema TEXT,
+      shared_db_hostname TEXT,
       created_by TEXT NOT NULL REFERENCES users(id),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  // Columns for server-provisioned shared DB schemas
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      ADD COLUMN IF NOT EXISTS shared_db_schema TEXT
+  `);
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      ADD COLUMN IF NOT EXISTS shared_db_hostname TEXT
   `);
 
   // Drop stale status columns if they exist (one-time migration)
@@ -98,6 +110,19 @@ async function ensureSchema(): Promise<void> {
   await pool!.query(`
     ALTER TABLE dev_machines
       ADD COLUMN IF NOT EXISTS ssh_private_key TEXT
+  `);
+
+  // Drop incorrect global unique on app_name; enforce NOT NULL + unique on fly_app_name
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      DROP CONSTRAINT IF EXISTS dev_machines_app_name_key
+  `);
+  await pool!.query(`
+    ALTER TABLE dev_machines
+      ALTER COLUMN fly_app_name SET NOT NULL
+  `);
+  await pool!.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS dev_machines_fly_app_name_key ON dev_machines(fly_app_name)
   `);
 
   // Many users can access one machine

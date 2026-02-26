@@ -4,9 +4,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import * as dotenv from "dotenv";
-import pg from "pg";
 import { packageRoot, version } from "../config.js";
 import { writeAppTemplates, create0pflowDirectories } from "../lib/templates.js";
+import { setupSchemaFromUrl } from "./schema-ops.js";
 import { ensureConnectionsTable } from "../../../connections/schema.js";
 
 const execAsync = (cmd: string, cwd?: string) =>
@@ -23,30 +23,6 @@ const monorepoRoot = join(packageRoot, "..", "..");
 function isDevMode(): boolean {
   const corePath = join(monorepoRoot, "packages", "core");
   return existsSync(corePath);
-}
-
-function generatePassword(length = 24): string {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
-function buildConnectionString(
-  originalUrl: string,
-  user: string,
-  password: string,
-): string {
-  const parsed = new URL(originalUrl);
-  parsed.username = user;
-  parsed.password = encodeURIComponent(password);
-  if (!parsed.searchParams.has("uselibpqcompat")) {
-    parsed.searchParams.set("uselibpqcompat", "true");
-  }
-  return parsed.toString();
 }
 
 // ── scaffoldApp ──────────────────────────────────────────────────────────
@@ -248,110 +224,37 @@ export async function setupAppSchema({
     };
   }
 
-  const pool = new pg.Pool({ connectionString: adminConnectionString, max: 1 });
-
+  let creds: { DATABASE_URL: string; DATABASE_SCHEMA: string };
   try {
-    const existingUser = await pool.query(
-      `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1`,
-      [pgName],
-    );
-
-    if (existingUser.rows.length > 0) {
-      return {
-        success: false,
-        message: `User '${pgName}' already exists. Choose a different app name or delete the existing user.`,
-      };
-    }
-
-    const appPassword = generatePassword();
-    await pool.query(
-      `CREATE ROLE ${pgName} WITH LOGIN PASSWORD '${appPassword}'`,
-    );
-
-    await pool.query(`GRANT ${pgName} TO tsdbadmin WITH INHERIT TRUE`);
-
-    await pool.query(
-      `CREATE SCHEMA IF NOT EXISTS ${pgName} AUTHORIZATION ${pgName}`,
-    );
-    await pool.query(
-      `CREATE SCHEMA IF NOT EXISTS ${pgName}_dbos AUTHORIZATION ${pgName}`,
-    );
-
-    await pool.query(
-      `GRANT CREATE ON DATABASE tsdb TO ${pgName}`,
-    );
-
-    await pool.query(
-      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public`,
-    );
-
-    await pool.query(`REVOKE CREATE ON SCHEMA public FROM ${pgName}`);
-    await pool.query(`GRANT USAGE ON SCHEMA public TO ${pgName}`);
-
-    await pool.query(
-      `ALTER ROLE ${pgName} SET search_path TO ${pgName}, ${pgName}_dbos, public`,
-    );
-
-    const currentPath = await pool.query(
-      `SELECT setting FROM pg_settings WHERE name = 'search_path'`,
-    );
-    const existingPath = currentPath.rows[0]?.setting ?? "public";
-    if (!existingPath.includes(pgName)) {
-      await pool.query(
-        `ALTER ROLE tsdbadmin SET search_path TO ${existingPath}, ${pgName}, ${pgName}_dbos`,
-      );
-    }
-
-    const existingAdmin = await pool.query(
-      `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'dbosadmin'`,
-    );
-    let dbosAdminPassword: string | undefined;
-    if (existingAdmin.rows.length === 0) {
-      dbosAdminPassword = generatePassword();
-      await pool.query(
-        `CREATE ROLE dbosadmin WITH LOGIN CREATEDB PASSWORD '${dbosAdminPassword}'`,
-      );
-    }
-
-    const appDatabaseUrl = buildConnectionString(
-      adminConnectionString,
-      pgName,
-      appPassword,
-    );
-
-    let envContent = "";
-    if (existsSync(envPath)) {
-      envContent = await readFile(envPath, "utf-8");
-    }
-
-    const env = dotenv.parse(envContent);
-    env.DATABASE_URL = appDatabaseUrl;
-    env.DATABASE_SCHEMA = pgName;
-    if (dbosAdminPassword) {
-      env.DBOS_ADMIN_URL = buildConnectionString(
-        adminConnectionString,
-        "dbosadmin",
-        dbosAdminPassword,
-      );
-    }
-
-    const newEnvContent = Object.entries(env)
-      .map(([key, value]) => `${key}="${value}"`)
-      .join("\n");
-
-    await writeFile(envPath, `${newEnvContent}\n`);
-
-    // Create the opflow_connections table so it's ready before the dev UI launches
-    await ensureConnectionsTable(appDatabaseUrl, pgName);
+    creds = await setupSchemaFromUrl(adminConnectionString, appName);
   } catch (err) {
     const error = err as Error;
+    if (error.message.includes("already exists")) {
+      return { success: false, message: error.message };
+    }
     return {
       success: false,
       message: `Failed to set up app schema: ${error.message}`,
     };
-  } finally {
-    await pool.end();
   }
+
+  let envContent = "";
+  if (existsSync(envPath)) {
+    envContent = await readFile(envPath, "utf-8");
+  }
+
+  const env = dotenv.parse(envContent);
+  env.DATABASE_URL = creds.DATABASE_URL;
+  env.DATABASE_SCHEMA = creds.DATABASE_SCHEMA;
+
+  const newEnvContent = Object.entries(env)
+    .map(([key, value]) => `${key}="${value}"`)
+    .join("\n");
+
+  await writeFile(envPath, `${newEnvContent}\n`);
+
+  // Create the opflow_connections table so it's ready before the dev UI launches
+  await ensureConnectionsTable(creds.DATABASE_URL, creds.DATABASE_SCHEMA);
 
   return {
     success: true,

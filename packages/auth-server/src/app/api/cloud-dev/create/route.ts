@@ -8,6 +8,7 @@ import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { flyctlSync } from "@/lib/flyctl";
 import { createMachine, createVolume, type CreateMachineConfig } from "@/lib/fly";
+import { setupSchemaFromUrl } from "@/lib/schema-ops";
 
 /**
  * Generate an Ed25519 SSH keypair using Node.js crypto.
@@ -140,6 +141,27 @@ export async function POST(req: NextRequest) {
     // Generate SSH keypair for remote access
     const sshKeypair = generateSSHKeypair();
 
+    // Provision shared DB schema before creating any Fly resources so no
+    // cleanup is needed if this step fails.
+    let sharedDbSchema: string | null = null;
+    let sharedDbHostname: string | null = null;
+    let provisionedEnvVars: Record<string, string> = {};
+
+    if (!envVars?.DATABASE_URL) {
+      const DATABASE_DATA_URL = process.env.DATABASE_DATA_URL;
+      if (!DATABASE_DATA_URL) {
+        return NextResponse.json(
+          { error: "No DATABASE_URL provided and DATABASE_DATA_URL is not configured on the server." },
+          { status: 400 },
+        );
+      }
+      console.log(`[cloud-dev/create] Provisioning shared DB schema for ${flyAppName}`);
+      const creds = await setupSchemaFromUrl(DATABASE_DATA_URL, flyAppName);
+      provisionedEnvVars = { DATABASE_URL: creds.DATABASE_URL, DATABASE_SCHEMA: creds.DATABASE_SCHEMA };
+      sharedDbSchema = creds.DATABASE_SCHEMA;
+      sharedDbHostname = new URL(DATABASE_DATA_URL).hostname;
+    }
+
     console.log(`[cloud-dev/create] Creating Fly app: ${flyAppName}`);
 
     // 1. Create Fly app
@@ -175,6 +197,7 @@ export async function POST(req: NextRequest) {
     // 4. Set secrets (env vars) — staged so they apply when machine starts
     const secrets: Record<string, string> = {
       ...envVars,
+      ...provisionedEnvVars,
       APP_NAME: appName,
       DEV_USER: linuxUser,
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
@@ -250,10 +273,10 @@ export async function POST(req: NextRequest) {
 
     // 6. Insert into dev_machines + dev_machine_members
     const insertResult = await db.query(
-      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by, ssh_private_key)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO dev_machines (app_name, fly_app_name, app_url, created_by, ssh_private_key, shared_db_schema, shared_db_hostname)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
-      [appName, flyAppName, appUrl, userId, sshKeypair.privateKey],
+      [appName, flyAppName, appUrl, userId, sshKeypair.privateKey, sharedDbSchema, sharedDbHostname],
     );
 
     const machineDbId = insertResult.rows[0].id as number;

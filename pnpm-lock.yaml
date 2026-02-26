@@ -123,6 +123,9 @@ importers:
 
   packages/auth-server:
     dependencies:
+      0pflow:
+        specifier: workspace:*
+        version: link:../core
       '@nangohq/node':
         specifier: ^0.45.1
         version: 0.45.1

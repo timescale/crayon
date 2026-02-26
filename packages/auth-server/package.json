@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "test ! -f ../../core/src/cli/mcp/lib/schema-ops.ts || diff ../../core/src/cli/mcp/lib/schema-ops.ts src/lib/schema-ops.ts || (echo 'ERROR: src/lib/schema-ops.ts is out of sync with packages/core. Copy the updated file.' && exit 1)",
     "build": "next build",
     "start": "next start"
   },
