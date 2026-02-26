@@ -121,7 +121,7 @@ export function App() {
               onClick={() => router.navigate("dashboard")}
               className="text-sm font-bold text-foreground font-serif tracking-wide cursor-pointer hover:opacity-70 transition-opacity"
             >
-              Mache
+              Crayon
             </button>
             <span
               className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`}

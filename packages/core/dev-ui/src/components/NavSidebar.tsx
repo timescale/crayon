@@ -70,7 +70,7 @@ export function NavSidebar({
         {!collapsed && (
           <>
             <span className="text-sm font-bold text-foreground font-serif tracking-wide">
-              {appName || "Mache"}
+              {appName || "Crayon"}
             </span>
             <span
               className={`w-2 h-2 rounded-full ml-auto ${connected ? "bg-green-400" : "bg-red-400"}`}

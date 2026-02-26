@@ -53,7 +53,7 @@ export function SplitScreenHint({ onClose }: SplitScreenHintProps) {
           style={{ animation: "ssh-divider 4.5s ease both" }}
         />
 
-        {/* Right pane — Mache canvas */}
+        {/* Right pane — Crayon canvas */}
         <div
           className="absolute inset-y-0 right-0 w-1/2 flex flex-col items-center justify-center gap-3"
           style={{ animation: "ssh-pane-right 4.5s ease both" }}
@@ -67,7 +67,7 @@ export function SplitScreenHint({ onClose }: SplitScreenHintProps) {
               <path d="M12 13.5V16" />
             </svg>
           </div>
-          <span className="text-sm font-semibold text-foreground">Mache</span>
+          <span className="text-sm font-semibold text-foreground">Crayon</span>
           <span className="text-[10px] text-muted-foreground">This browser</span>
         </div>
 
