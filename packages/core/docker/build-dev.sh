@@ -6,8 +6,14 @@ CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 AUTH_ENV="$SCRIPT_DIR/../../auth-server/.env.local"
 REGISTRY="registry.fly.io/opflow-cloud-dev-image"
 
-# Use provided tag or default to git-branch-based tag
-TAG="${1:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/-/g')}"
+# Use provided tag, or "latest" on main, or git-branch-based tag otherwise
+if [ -n "$1" ]; then
+  TAG="$1"
+elif [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ]; then
+  TAG="latest"
+else
+  TAG="$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/-/g')"
+fi
 
 echo "==> Building 0pflow..."
 pnpm --filter 0pflow build
