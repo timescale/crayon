@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNangoConnections } from "../hooks/useConnections";
 import type { useConnections } from "../hooks/useConnections";
 
@@ -31,6 +31,13 @@ export function IntegrationSection({
     },
     [connectionsApi, workflowName, nodeName, integrationId],
   );
+
+  // Auto-assign when there's exactly one connection and none is mapped
+  useEffect(() => {
+    if (!nangoLoading && nangoConnections.length === 1 && !current) {
+      handleSelect(nangoConnections[0].connection_id);
+    }
+  }, [nangoLoading, nangoConnections, current, handleSelect]);
 
   const handleConnect = useCallback(async () => {
     setConnecting(true);

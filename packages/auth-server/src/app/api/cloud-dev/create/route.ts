@@ -173,12 +173,16 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Set secrets (env vars) — staged so they apply when machine starts
-    const secrets = {
+    const secrets: Record<string, string> = {
       ...envVars,
       APP_NAME: appName,
       DEV_USER: linuxUser,
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
     };
+    // Inject auth-server's public URL so the cloud machine calls back to us
+    if (process.env.PUBLIC_URL) {
+      secrets.OPFLOW_SERVER_URL = process.env.PUBLIC_URL;
+    }
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
     const secretsContent = Object.entries(secrets)
       .map(([k, v]) => `${k}=${v}`)

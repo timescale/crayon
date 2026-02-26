@@ -11,6 +11,8 @@ export interface DAGNode {
   fields?: string[];
   description?: string;
   integrations?: string[];
+  /** Set by WorkflowGraph when node integrations lack connection mappings */
+  hasMissingConnections?: boolean;
 }
 
 export interface LoopGroup {
