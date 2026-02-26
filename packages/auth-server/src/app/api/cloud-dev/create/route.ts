@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Create Fly volume — pass `compute` so Fly picks a host that can also
     //    run a machine with those specs, preventing 412 capacity errors.
-    const machineGuest = { cpu_kind: "shared", cpus: 2, memory_mb: 2048 };
+    const machineGuest = { cpu_kind: "shared", cpus: 8, memory_mb: 2048 };
     let volumeId: string;
     try {
       const vol = await createVolume(flyAppName, "app_data", 10, FLY_REGION, machineGuest);
