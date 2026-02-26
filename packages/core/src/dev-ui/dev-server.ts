@@ -1,6 +1,6 @@
 import { createServer as createHttpServer } from "node:http";
 import { execSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,6 @@ import { handleApiRequest } from "./api.js";
 import { handleDeployRequest } from "./deploy-api.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { ensureConnectionsTable } from "../connections/schema.js";
-import { getSchemaName } from "../dbos.js";
 import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
 
@@ -69,15 +68,11 @@ export async function startDevServer(options: DevServerOptions) {
   }
   const clientDir = resolve(pkgRoot, "dist/dev-ui-client");
 
-  // Read app schema from project's .env (DATABASE_SCHEMA, written by setup_app_schema)
-  const projectPkgPath = resolve(projectRoot, "package.json");
-  let pkgName: string | undefined;
-  try {
-    pkgName = JSON.parse(readFileSync(projectPkgPath, "utf-8")).name;
-  } catch { /* use default */ }
-
+  // Read app schema from DATABASE_SCHEMA env or project's .env (written by setup_app_schema).
+  // Derive DBOS schema from it — both locally (pkg-name-based) and in cloud (fly-app-name-based)
+  // the provisioner creates pgName and pgName_dbos schemas and sets DATABASE_SCHEMA=pgName.
   const appSchema = getAppSchema(projectRoot);
-  const dbosSchema = getSchemaName(pkgName);
+  const dbosSchema = `${appSchema}_dbos`;
 
   // Set up API context if database is configured
   const hasApi = !!(options.databaseUrl);
