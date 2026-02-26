@@ -281,6 +281,10 @@ export async function setupAppSchema({
       `GRANT CREATE ON DATABASE tsdb TO ${pgName}`,
     );
 
+    await pool.query(
+      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA public`,
+    );
+
     await pool.query(`REVOKE CREATE ON SCHEMA public FROM ${pgName}`);
     await pool.query(`GRANT USAGE ON SCHEMA public TO ${pgName}`);
 
