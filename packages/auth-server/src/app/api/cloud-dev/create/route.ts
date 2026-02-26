@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { flyctlSync } from "@/lib/flyctl";
-import { createMachine, type CreateMachineConfig } from "@/lib/fly";
+import { createMachine, createVolume, type CreateMachineConfig } from "@/lib/fly";
 
 /**
  * Generate an Ed25519 SSH keypair using Node.js crypto.
@@ -145,32 +145,15 @@ export async function POST(req: NextRequest) {
     // 1. Create Fly app
     flyctlSync(["apps", "create", flyAppName, "--org", FLY_ORG]);
 
-    // 2. Create Fly volume
+    // 2. Create Fly volume — pass `compute` so Fly picks a host that can also
+    //    run a machine with those specs, preventing 412 capacity errors.
+    const machineGuest = { cpu_kind: "shared", cpus: 2, memory_mb: 2048 };
     let volumeId: string;
     try {
-      const volOutput = flyctlSync([
-        "volumes",
-        "create",
-        "app_data",
-        "-s",
-        "10",
-        "-r",
-        FLY_REGION,
-        "-a",
-        flyAppName,
-        "-y",
-        "-j",
-      ]);
-      const volData = JSON.parse(volOutput) as { id?: string };
-      volumeId = volData.id ?? "";
-      if (!volumeId) {
-        throw new Error(`No volume ID in response: ${volOutput}`);
-      }
+      const vol = await createVolume(flyAppName, "app_data", 10, FLY_REGION, machineGuest);
+      volumeId = vol.id;
     } catch (err) {
-      // Clean up Fly app on volume creation failure
-      try {
-        flyctlSync(["apps", "destroy", flyAppName, "-y"]);
-      } catch { /* ignore cleanup errors */ }
+      try { flyctlSync(["apps", "destroy", flyAppName, "-y"]); } catch { /* ignore */ }
       throw err;
     }
 
@@ -243,20 +226,20 @@ export async function POST(req: NextRequest) {
           min_machines_running: 0,
         },
       ],
-      guest: {
-        cpu_kind: "shared",
-        cpus: 2,
-        memory_mb: 2048,
-      },
-      mounts: [
-        {
-          volume: volumeId,
-          path: "/data",
-        },
-      ],
+      guest: machineGuest,
+      mounts: [{ volume: volumeId, path: "/data" }],
     };
 
-    const machine = await createMachine(flyAppName, machineConfig);
+    let machine: Awaited<ReturnType<typeof createMachine>>;
+    try {
+      machine = await createMachine(flyAppName, machineConfig, FLY_REGION);
+    } catch (err) {
+      // Clean up Fly app (and its volume) on machine creation failure
+      try {
+        flyctlSync(["apps", "destroy", flyAppName, "-y"]);
+      } catch { /* ignore cleanup errors */ }
+      throw new Error(`Failed to create machine for "${flyAppName}": ${err instanceof Error ? err.message : String(err)}`);
+    }
     console.log(
       `[cloud-dev/create] Machine created: ${machine.id} for ${flyAppName}`,
     );

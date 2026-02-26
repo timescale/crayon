@@ -133,6 +133,10 @@ my-app/
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
 
+## Deployment
+
+- **auth-server:** `cd packages/auth-server && flyctl deploy`
+
 ## Key Documents
 
 - `docs/plans/2026-01-23-0pflow-design.md` - Main design document (architecture, SDK API, spec formats, MVP scope)

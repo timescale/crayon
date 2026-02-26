@@ -102,11 +102,42 @@ export interface CreateMachineConfig {
   services?: MachineService[];
   guest?: MachineGuest;
   env?: Record<string, string>;
-  mounts?: Array<{
-    volume: string;
-    path: string;
-  }>;
+  mounts?: Array<{ volume: string; path: string }>;
   auto_destroy?: boolean;
+}
+
+export interface VolumeInfo {
+  id: string;
+  name: string;
+  region: string;
+  size_gb: number;
+}
+
+// ── Volume mutations ─────────────────────────────────────────────
+
+/**
+ * Create a volume for a Fly app. Pass `compute` matching the intended machine
+ * guest so Fly places the volume on a host that can also run the machine.
+ */
+export async function createVolume(
+  appName: string,
+  name: string,
+  sizeGb: number,
+  region: string,
+  compute: MachineGuest,
+): Promise<VolumeInfo> {
+  const response = await flyApiCall(
+    "POST",
+    `/v1/apps/${encodeURIComponent(appName)}/volumes`,
+    { name, size_gb: sizeGb, region, compute },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to create volume for "${appName}" (${response.status}): ${text}`);
+  }
+
+  return (await response.json()) as VolumeInfo;
 }
 
 // ── Machine mutations ────────────────────────────────────────────
@@ -117,11 +148,12 @@ export interface CreateMachineConfig {
 export async function createMachine(
   appName: string,
   config: CreateMachineConfig,
+  region?: string,
 ): Promise<MachineInfo> {
   const response = await flyApiCall(
     "POST",
     `/v1/apps/${encodeURIComponent(appName)}/machines`,
-    { config },
+    { config, ...(region ? { region } : {}) },
   );
 
   if (!response.ok) {
