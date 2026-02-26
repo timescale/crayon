@@ -56,7 +56,7 @@ detect_os() {
 # ── Step 1: Node.js ─────────────────────────────────────────────────────────
 
 install_node() {
-  step "Step 1/3: Node.js"
+  step "Step 1/2: Node.js"
 
   if has_cmd node; then
     local node_version node_major
@@ -92,7 +92,7 @@ install_node() {
 # ── Step 2: Claude Code CLI ─────────────────────────────────────────────────
 
 install_claude() {
-  step "Step 2/3: Claude Code CLI"
+  step "Step 2/2: Claude Code CLI"
 
   if has_cmd claude; then
     success "Claude Code CLI found"
@@ -114,34 +114,6 @@ install_claude() {
     success "Claude Code CLI installed"
   else
     fatal "Claude Code CLI installation failed. Install manually: https://claude.ai/code"
-  fi
-}
-
-# ── Step 3: Tiger CLI ───────────────────────────────────────────────────────
-
-install_tiger() {
-  step "Step 3/3: Tiger CLI"
-
-  if has_cmd tiger; then
-    success "Tiger CLI found"
-    return 0
-  fi
-
-  info "Installing Tiger CLI..."
-  curl -fsSL https://cli.tigerdata.com | sh
-
-  # Probe known locations
-  for dir in "${HOME}/.local/bin" "/usr/local/bin" "${HOME}/bin"; do
-    if [ -x "${dir}/tiger" ]; then
-      export PATH="${dir}:${PATH}"
-      break
-    fi
-  done
-
-  if has_cmd tiger; then
-    success "Tiger CLI installed"
-  else
-    fatal "Tiger CLI installation failed. Install manually: https://cli.tigerdata.com"
   fi
 }
 
@@ -206,7 +178,6 @@ main() {
 
   install_node
   install_claude
-  install_tiger
   setup_alias
 
   # Determine which rc file to source

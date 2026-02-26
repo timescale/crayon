@@ -1,13 +1,11 @@
 import { execSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { homedir, tmpdir, userInfo } from "node:os";
+import { homedir, userInfo } from "node:os";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
-import * as dotenv from "dotenv";
 import { apiCall } from "../connections/cloud-client.js";
 import { isAuthenticated, authenticate } from "../connections/cloud-auth.js";
-import { createDatabase, setupAppSchema } from "./mcp/lib/scaffolding.js";
 
 // ── Browser helper ───────────────────────────────────────────────
 
@@ -77,62 +75,6 @@ function collectClaudeCredentials(): Record<string, string> {
   }
 
   return {};
-}
-
-// ── Tiger CLI helpers (reused from run.ts) ──────────────────────
-
-function ensureTigerAuth(): void {
-  try {
-    execSync("tiger version", { stdio: "ignore" });
-  } catch {
-    p.log.error(
-      "Tiger CLI not found. Install it: curl -fsSL https://cli.tigerdata.com | sh",
-    );
-    process.exit(1);
-  }
-
-  try {
-    const stdout = execSync("tiger auth status -o json", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    JSON.parse(stdout);
-  } catch {
-    p.log.info("Tiger Cloud authentication required. Opening browser...");
-    try {
-      execSync("tiger auth login", { stdio: "inherit" });
-    } catch {
-      p.log.error(
-        "Tiger Cloud login failed. Try running 'tiger auth login' manually.",
-      );
-      process.exit(1);
-    }
-  }
-}
-
-async function waitForDatabase(
-  serviceId: string,
-  timeoutMs = 5 * 60 * 1000,
-  intervalMs = 5000,
-): Promise<boolean> {
-  const start = Date.now();
-
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const stdout = execSync(`tiger service get ${serviceId} -o json`, {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      const info = JSON.parse(stdout) as { status?: string };
-      if (info.status?.toLowerCase() === "ready") {
-        return true;
-      }
-    } catch {
-      // Continue retrying
-    }
-    await new Promise((r) => setTimeout(r, intervalMs));
-  }
-  return false;
 }
 
 // ── Main command ────────────────────────────────────────────────
@@ -235,99 +177,8 @@ export async function runCloudRun(): Promise<void> {
 
   const s = p.spinner();
 
-  // ── Step 4: Choose database ─────────────────────────────────────
-  // List existing Tiger services (best-effort; ignored if Tiger not available)
-  interface TigerService {
-    service_id: string;
-    name: string;
-    status: string;
-  }
-  let existingServices: TigerService[] = [];
-  try {
-    ensureTigerAuth();
-    const listOutput = execSync("tiger service list -o json", {
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    existingServices = JSON.parse(listOutput) as TigerService[];
-  } catch {
-    // Tiger CLI not available or not authenticated — managed DB will be the only option
-  }
-
-  const dbChoice = await p.select({
-    message: "Database",
-    options: [
-      {
-        value: "__managed__" as const,
-        label: "Use managed database (provisioned automatically)",
-      },
-      { value: "__new__" as const, label: "Create a new Tiger database" },
-      ...existingServices.map((svc) => ({
-        value: svc.service_id,
-        label: `${svc.name} (${svc.service_id}) — ${svc.status}`,
-      })),
-    ],
-  });
-
-  if (p.isCancel(dbChoice)) {
-    p.cancel("Cancelled.");
-    process.exit(0);
-  }
-
-  // ── Step 5–6: Tiger DB setup (skipped for managed) ─────────────
+  // ── Step 4: Database (always use managed/shared) ───────────────
   const dbEnvVars: Record<string, string> = {};
-
-  if (dbChoice !== "__managed__") {
-    let serviceId: string;
-
-    if (dbChoice === "__new__") {
-      s.start("Creating database...");
-      const dbResult = await createDatabase({ name: `${appName}-db` });
-      if (!dbResult.success || !dbResult.service_id) {
-        s.stop(pc.red("Failed to create database"));
-        p.log.error(dbResult.error ?? "Unknown error");
-        process.exit(1);
-      }
-      serviceId = dbResult.service_id;
-      s.stop(pc.green(`Database created (${serviceId})`));
-    } else {
-      serviceId = dbChoice as string;
-      p.log.info(`Using existing database: ${serviceId}`);
-    }
-
-    s.start("Waiting for database to be ready...");
-    const ready = await waitForDatabase(serviceId);
-    if (!ready) {
-      s.stop(pc.red("Database timeout"));
-      p.log.error("Database took too long to become ready.");
-      process.exit(1);
-    }
-    s.stop(pc.green("Database is ready"));
-
-    s.start("Setting up database schema...");
-    const tmpDir = mkdtempSync(join(tmpdir(), "opflow-cloud-dev-"));
-    const schemaResult = await setupAppSchema({
-      directory: tmpDir,
-      serviceId,
-      appName: appName as string,
-    });
-    if (!schemaResult.success) {
-      s.stop(pc.red("Schema setup failed"));
-      p.log.error(schemaResult.message);
-      process.exit(1);
-    }
-    s.stop(pc.green("Database schema configured"));
-
-    const envPath = join(tmpDir, ".env");
-    const envContent = readFileSync(envPath, "utf-8");
-    const parsed = dotenv.parse(envContent);
-    dbEnvVars.DATABASE_URL = parsed.DATABASE_URL ?? "";
-    dbEnvVars.DATABASE_SCHEMA = parsed.DATABASE_SCHEMA ?? "";
-    dbEnvVars.DBOS_SYSTEM_DATABASE_URL = parsed.DATABASE_URL ?? "";
-
-    // Clean up temp dir now that we have the env vars
-    try { rmSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
-  }
 
   // ── Step 7: Collect all env vars for the machine ─────────────
   const { getToken } = await import("../connections/cloud-auth.js");
