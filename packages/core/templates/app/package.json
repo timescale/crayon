@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "[ ! -f /tmp/node_modules.lock ] || flock /tmp/node_modules.lock true",
+    "postinstall": "rm -rf node_modules/0pflow",
     "prebuild": "0pflow build",
     "build": "next build",
     "check": "biome check .",

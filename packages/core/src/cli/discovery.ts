@@ -1,13 +1,27 @@
 // packages/cli/src/discovery.ts
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import type { Executable } from "../index.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyExecutable = Executable<any, any>;
 
-const jiti = createJiti(import.meta.url);
+// Alias '0pflow' to the same dist/index.js that the running CLI loaded.
+// Without this, jiti resolves 'import { Workflow } from "0pflow"' from the
+// project's local node_modules, creating a separate module instance with its
+// own DBOS singleton that is never launched — causing
+// "DBOS.launch() must be called before running workflows" errors.
+//
+// This file lives at dist/cli/discovery.js in the installed package;
+// the package main entry is dist/index.js (one level up from dist/cli/).
+const _thisDir = path.dirname(fileURLToPath(import.meta.url));
+const _opflowMain = path.resolve(_thisDir, "..", "index.js");
+
+const jiti = createJiti(import.meta.url, {
+  alias: { "0pflow": _opflowMain },
+});
 
 export interface DiscoveryResult {
   workflows: AnyExecutable[];
