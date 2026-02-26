@@ -2,9 +2,10 @@
  * Update all Fly machines across all opflow-dev-* apps to the latest image.
  *
  * Usage:
- *   npx tsx update-all-machines.ts [image]
+ *   npx tsx update-all-machines.ts [image] [--app <app-name>]
  *
  * Defaults image to registry.fly.io/opflow-cloud-dev-image:latest.
+ * Use --app to update only a specific opflow-dev-* app.
  * Requires flyctl to be installed and authenticated.
  */
 
@@ -63,13 +64,23 @@ async function updateApp(app: string, image: string): Promise<{ app: string; ok:
 }
 
 async function main() {
-  const image = process.argv[2] ?? DEFAULT_IMAGE;
+  const args = process.argv.slice(2);
+  const appFlagIdx = args.indexOf("--app");
+  const appFilter = appFlagIdx !== -1 ? args[appFlagIdx + 1] : undefined;
+  const image = args.find((a) => !a.startsWith("--") && a !== appFilter) ?? DEFAULT_IMAGE;
 
-  console.log("Listing all Fly apps...");
-  const appsJson = JSON.parse(flyctl("apps list --json")) as App[];
-  const apps = appsJson
-    .map((a) => a.Name ?? a.name ?? "")
-    .filter((name) => name.startsWith("opflow-dev-"));
+  let apps: string[];
+
+  if (appFilter) {
+    apps = [appFilter];
+    console.log(`Targeting app: ${appFilter}`);
+  } else {
+    console.log("Listing all Fly apps...");
+    const appsJson = JSON.parse(flyctl("apps list --json")) as App[];
+    apps = appsJson
+      .map((a) => a.Name ?? a.name ?? "")
+      .filter((name) => name.startsWith("opflow-dev-"));
+  }
 
   if (apps.length === 0) {
     console.log("No opflow-dev-* apps found.");

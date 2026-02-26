@@ -140,6 +140,19 @@ export async function createVolume(
   return (await response.json()) as VolumeInfo;
 }
 
+// ── Volume mutations (delete) ────────────────────────────────────
+
+export async function deleteVolume(appName: string, volumeId: string): Promise<void> {
+  const response = await flyApiCall(
+    "DELETE",
+    `/v1/apps/${encodeURIComponent(appName)}/volumes/${encodeURIComponent(volumeId)}`,
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to delete volume "${volumeId}" (${response.status}): ${text}`);
+  }
+}
+
 // ── Machine mutations ────────────────────────────────────────────
 
 /**

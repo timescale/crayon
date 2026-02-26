@@ -373,7 +373,7 @@ export async function runCloudRun(): Promise<void> {
         const statusResult = (await apiCall(
           "GET",
           `/api/cloud-dev/status?appName=${encodeURIComponent(appName as string)}`,
-        )) as { status: string; url?: string };
+        )) as { status: string; url?: string; error?: string };
 
         if (statusResult.status === "running") {
           const url = statusResult.url ?? createResult.appUrl;
@@ -386,6 +386,7 @@ export async function runCloudRun(): Promise<void> {
 
         if (statusResult.status === "error") {
           s.stop(pc.red("Sandbox failed to start"));
+          if (statusResult.error) p.log.error(statusResult.error);
           p.log.error("Check logs with: 0pflow cloud status");
           process.exit(1);
         }

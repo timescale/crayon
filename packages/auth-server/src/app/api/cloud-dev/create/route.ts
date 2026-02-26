@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { authenticateRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { flyctlSync } from "@/lib/flyctl";
-import { createMachine, createVolume, type CreateMachineConfig } from "@/lib/fly";
+import { createMachine, createVolume, deleteVolume, type CreateMachineConfig } from "@/lib/fly";
 import { setupSchemaFromUrl } from "@/lib/schema-ops";
 
 /**
@@ -167,34 +167,19 @@ export async function POST(req: NextRequest) {
     // 1. Create Fly app
     flyctlSync(["apps", "create", flyAppName, "--org", FLY_ORG]);
 
-    // 2. Create Fly volume — pass `compute` so Fly picks a host that can also
-    //    run a machine with those specs, preventing 412 capacity errors.
-    const machineGuest = { cpu_kind: "shared", cpus: 8, memory_mb: 2048 };
-    let volumeId: string;
-    try {
-      const vol = await createVolume(flyAppName, "app_data", 10, FLY_REGION, machineGuest);
-      volumeId = vol.id;
-    } catch (err) {
-      try { flyctlSync(["apps", "destroy", flyAppName, "-y"]); } catch { /* ignore */ }
-      throw err;
-    }
-
-    // 3. Allocate dedicated IPv4 (required for raw TCP services like SSH;
+    // 2. Allocate dedicated IPv4 (required for raw TCP services like SSH;
     //    shared IPv4 only supports HTTP/TLS via Fly's Anycast proxy)
     try {
       flyctlSync(["ips", "allocate-v4", "-a", flyAppName, "-y"]);
     } catch (err) {
-      // Clean up Fly app — without an IP the machine is unreachable
       console.error(
         `[cloud-dev/create] IPv4 allocation failed: ${err instanceof Error ? err.message : String(err)}`,
       );
-      try {
-        flyctlSync(["apps", "destroy", flyAppName, "-y"]);
-      } catch { /* ignore cleanup errors */ }
+      try { flyctlSync(["apps", "destroy", flyAppName, "-y"]); } catch { /* ignore */ }
       throw new Error(`IPv4 allocation failed — machine would be unreachable`);
     }
 
-    // 4. Set secrets (env vars) — staged so they apply when machine starts
+    // 3. Set secrets (env vars) — staged so they apply when machine starts
     const secrets: Record<string, string> = {
       ...envVars,
       ...provisionedEnvVars,
@@ -202,15 +187,11 @@ export async function POST(req: NextRequest) {
       DEV_USER: linuxUser,
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
     };
-    // Inject auth-server's public URL so the cloud machine calls back to us
     if (process.env.PUBLIC_URL) {
       secrets.OPFLOW_SERVER_URL = process.env.PUBLIC_URL;
     }
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
-    const secretsContent = Object.entries(secrets)
-      .map(([k, v]) => `${k}=${v}`)
-      .join("\n");
-    writeFileSync(secretsFile, secretsContent);
+    writeFileSync(secretsFile, Object.entries(secrets).map(([k, v]) => `${k}=${v}`).join("\n"));
     try {
       execSync(
         `flyctl secrets import -a ${flyAppName} --stage < ${secretsFile}`,
@@ -229,43 +210,67 @@ export async function POST(req: NextRequest) {
       try { unlinkSync(secretsFile); } catch { /* ignore */ }
     }
 
-    // 5. Create machine via Fly Machines API
-    const machineConfig: CreateMachineConfig = {
-      image: CLOUD_DEV_IMAGE,
-      services: [
-        {
-          ports: [
-            { port: 443, handlers: ["tls", "http"] },
-            { port: 80, handlers: ["http"] },
-          ],
-          protocol: "tcp",
-          internal_port: 4173,
-          autostop: "stop",
-          autostart: true,
-          min_machines_running: 0,
-        },
-        {
-          ports: [{ port: 2222, handlers: [] }],
-          protocol: "tcp",
-          internal_port: 2222,
-          autostop: "stop",
-          autostart: true,
-          min_machines_running: 0,
-        },
-      ],
-      guest: machineGuest,
-      mounts: [{ volume: volumeId, path: "/data" }],
-    };
+    // 4. Create volume + machine — retry across fallback regions if host lacks capacity.
+    //    The `compute` hint asks Fly to pin the volume to a host that can also run a
+    //    machine with those specs, but it's not always honoured (412 on machine create).
+    //    When that happens we delete the volume and try the next region.
+    const machineGuest = { cpu_kind: "shared", cpus: 6, memory_mb: 1536 };
+    const regionCandidates = [FLY_REGION, "ewr", "bos"].filter(
+      (r, i, arr) => arr.indexOf(r) === i,
+    );
+    const machineServicesConfig: CreateMachineConfig["services"] = [
+      {
+        ports: [
+          { port: 443, handlers: ["tls", "http"] },
+          { port: 80, handlers: ["http"] },
+        ],
+        protocol: "tcp",
+        internal_port: 4173,
+        autostop: "stop",
+        autostart: true,
+        min_machines_running: 0,
+      },
+      {
+        ports: [{ port: 2222, handlers: [] }],
+        protocol: "tcp",
+        internal_port: 2222,
+        autostop: "stop",
+        autostart: true,
+        min_machines_running: 0,
+      },
+    ];
 
-    let machine: Awaited<ReturnType<typeof createMachine>>;
-    try {
-      machine = await createMachine(flyAppName, machineConfig, FLY_REGION);
-    } catch (err) {
-      // Clean up Fly app (and its volume) on machine creation failure
+    let machine: Awaited<ReturnType<typeof createMachine>> | undefined;
+    let lastProvisionErr: unknown;
+    for (const region of regionCandidates) {
+      let currentVolumeId = "";
       try {
-        flyctlSync(["apps", "destroy", flyAppName, "-y"]);
-      } catch { /* ignore cleanup errors */ }
-      throw new Error(`Failed to create machine for "${flyAppName}": ${err instanceof Error ? err.message : String(err)}`);
+        console.log(`[cloud-dev/create] Trying region: ${region}`);
+        const vol = await createVolume(flyAppName, "app_data", 10, region, machineGuest);
+        currentVolumeId = vol.id;
+        machine = await createMachine(flyAppName, {
+          image: CLOUD_DEV_IMAGE,
+          services: machineServicesConfig,
+          guest: machineGuest,
+          mounts: [{ volume: currentVolumeId, path: "/data" }],
+        }, region);
+        if (region !== FLY_REGION) {
+          console.log(`[cloud-dev/create] Provisioned in fallback region: ${region}`);
+        }
+        break;
+      } catch (err) {
+        lastProvisionErr = err;
+        console.warn(
+          `[cloud-dev/create] Failed in region ${region}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        if (currentVolumeId) {
+          try { await deleteVolume(flyAppName, currentVolumeId); } catch { /* ignore */ }
+        }
+      }
+    }
+    if (!machine) {
+      try { flyctlSync(["apps", "destroy", flyAppName, "-y"]); } catch { /* ignore */ }
+      throw new Error(`Failed to create machine for "${flyAppName}": ${lastProvisionErr instanceof Error ? lastProvisionErr.message : String(lastProvisionErr)}`);
     }
     console.log(
       `[cloud-dev/create] Machine created: ${machine.id} for ${flyAppName}`,

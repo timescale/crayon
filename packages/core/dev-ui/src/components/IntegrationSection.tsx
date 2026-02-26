@@ -17,17 +17,23 @@ export function IntegrationSection({
 }: IntegrationSectionProps) {
   const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId, connectionsApi.mutationVersion);
   const [connecting, setConnecting] = useState(false);
+  const [optimisticValue, setOptimisticValue] = useState<string | null>(null);
 
   const current = connectionsApi.getForNode(workflowName, nodeName, integrationId);
 
   const handleSelect = useCallback(
     async (connectionId: string) => {
-      await connectionsApi.upsert({
-        workflow_name: workflowName,
-        node_name: nodeName,
-        integration_id: integrationId,
-        connection_id: connectionId,
-      });
+      setOptimisticValue(connectionId);
+      try {
+        await connectionsApi.upsert({
+          workflow_name: workflowName,
+          node_name: nodeName,
+          integration_id: integrationId,
+          connection_id: connectionId,
+        });
+      } finally {
+        setOptimisticValue(null);
+      }
     },
     [connectionsApi, workflowName, nodeName, integrationId],
   );
@@ -100,15 +106,17 @@ export function IntegrationSection({
         </button>
       </div>
 
-      {nangoLoading ? (
-        <p className="text-[11px] text-[#a8a099] italic">Loading connections...</p>
-      ) : nangoConnections.length === 0 ? (
-        <p className="text-[11px] text-[#a8a099] italic">
-          No connections. Click Connect to add one.
-        </p>
+      {nangoConnections.length === 0 ? (
+        nangoLoading ? (
+          <p className="text-[11px] text-[#a8a099] italic">Loading connections...</p>
+        ) : (
+          <p className="text-[11px] text-[#a8a099] italic">
+            No connections. Click Connect to add one.
+          </p>
+        )
       ) : (
         <select
-          value={current?.connection_id ?? ""}
+          value={optimisticValue ?? current?.connection_id ?? ""}
           onChange={(e) => handleSelect(e.target.value)}
           className="text-[12px] px-2 py-1 rounded-md border border-border bg-background text-foreground"
         >

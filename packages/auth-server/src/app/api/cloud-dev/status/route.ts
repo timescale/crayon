@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         data: {
           status: "error",
-          error: "Failed to check machine state",
+          error: err instanceof Error ? err.message : String(err),
           url: appUrl,
         },
       });

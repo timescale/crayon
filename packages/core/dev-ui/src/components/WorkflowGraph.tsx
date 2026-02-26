@@ -144,8 +144,12 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
   useEffect(() => {
     setNodes(flowNodes);
     setEdges(flowEdges);
+  }, [flowNodes, flowEdges, setNodes, setEdges]);
+
+  // Only re-fit view when the DAG structure changes, not on connection updates
+  useEffect(() => {
     setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 50);
-  }, [flowNodes, flowEdges, setNodes, setEdges, fitView]);
+  }, [dag, fitView]);
 
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
     const nodeData = node.data as DAGNode;

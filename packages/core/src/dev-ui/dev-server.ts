@@ -11,6 +11,7 @@ import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
 import { handleDeployRequest } from "./deploy-api.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
+import { ensureConnectionsTable } from "../connections/schema.js";
 import { getSchemaName } from "../dbos.js";
 import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
@@ -84,6 +85,7 @@ export async function startDevServer(options: DevServerOptions) {
 
   if (hasApi) {
     pool = new pg.Pool({ connectionString: options.databaseUrl! });
+    await ensureConnectionsTable(options.databaseUrl!, appSchema);
   }
 
   // Integration provider auto-detects: NANGO_SECRET_KEY → local, otherwise → cloud
