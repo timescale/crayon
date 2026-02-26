@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preinstall": "[ ! -f /tmp/node_modules.lock ] || flock /tmp/node_modules.lock true",
     "prebuild": "0pflow build",
     "build": "next build",
     "check": "biome check .",

@@ -83,7 +83,12 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   # starts before the copy finishes, Node.js still resolves packages via
   # parent-directory lookup to /node_modules.
   log "  Starting node_modules population in background..."
+  touch /tmp/node_modules.lock  # create before forking so preinstall hook sees it immediately
   (
+    # Hold a flock for the duration of the copy so any concurrent `npm install`
+    # (e.g. from Claude) blocks in its preinstall hook until we finish.
+    exec 9>/tmp/node_modules.lock
+    flock 9
     rm -rf "$APP_DIR/node_modules_temp"
     cp -r /node_modules/. "$APP_DIR/node_modules_temp/"
     chown -R "$DEV_USER:devs" "$APP_DIR/node_modules_temp"
