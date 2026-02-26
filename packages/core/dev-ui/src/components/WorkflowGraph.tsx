@@ -79,6 +79,15 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
 
     // Add regular nodes
     for (const node of dag.nodes) {
+      // Compute missing connections flag
+      let hasMissingConnections = false;
+      if (connectionsApi && node.integrations?.length && node.nodeName) {
+        hasMissingConnections = node.integrations.some(
+          (id) => !connectionsApi.getForNode(dag.workflowName, node.nodeName!, id)
+        );
+      }
+      const nodeData = { ...node, hasMissingConnections };
+
       const gl = nodeToGroup.get(node.id);
       if (gl) {
         // Child of a group — use relative position
@@ -89,7 +98,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
           position: relPos,
           parentId: gl.id,
           extent: "parent" as const,
-          data: { ...node },
+          data: nodeData,
           draggable: true,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
@@ -100,7 +109,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
           id: node.id,
           type: "workflowNode",
           position: pos,
-          data: { ...node },
+          data: nodeData,
           draggable: true,
           width: NODE_WIDTH,
           height: NODE_HEIGHT,
@@ -126,7 +135,7 @@ export function WorkflowGraph({ dag, connectionsApi }: WorkflowGraphProps) {
     }));
 
     return { flowNodes, flowEdges };
-  }, [dag]);
+  }, [dag, connectionsApi?.connections]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(flowNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(flowEdges);

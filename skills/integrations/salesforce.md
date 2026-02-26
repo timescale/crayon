@@ -6,7 +6,7 @@ Guide for generating typed Salesforce query nodes using GraphQL with `graphql-re
 
 ## CRITICAL: Connection Required
 
-**This entire setup requires a live Salesforce connection.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured or authentication error), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce in the Dev UI, then say "continue" when ready.
+**This entire setup requires a live Salesforce connection.** Before doing ANYTHING below, `get_connection_info` for `"salesforce"` must succeed. If it fails (no connection configured or authentication error), **STOP — do not proceed with any steps in this file.** Do not create directories, scripts, client files, or any integration infrastructure. Tell the user to connect Salesforce via the Credentials page in the Dev UI sidebar (in a cloud sandbox, this is the browser tab they already have open). Then say "continue" when ready.
 
 ---
 
@@ -51,7 +51,7 @@ This returns:
 **Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly via the integration provider.
 
 **If `get_connection_info` fails** (no connection configured or authentication error), tell the user:
-"No Salesforce connection found. Use the Dev UI to connect your Salesforce account first, then re-run this."
+"No Salesforce connection found. Open the Credentials page in the Dev UI sidebar to connect your Salesforce account (in a cloud sandbox, use the browser tab you already have open). Then re-run this."
 
 ### 3. Check for Dependencies
 

@@ -263,7 +263,10 @@ export async function startDevServer(options: DevServerOptions) {
     });
   });
 
-  const url = `http://localhost:${actualPort}`;
+  const flyAppName = process.env.FLY_APP_NAME;
+  const url = flyAppName
+    ? `https://${flyAppName}.fly.dev`
+    : `http://localhost:${actualPort}`;
 
   if (!options.quiet) {
     console.log(`\n  Open your browser to ${url}\n`);

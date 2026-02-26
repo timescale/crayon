@@ -14,14 +14,15 @@ export function WorkflowNode({ data }: NodeProps) {
   const nodeType = (data.type ?? "node") as NodeType;
   const label = (data.label ?? "") as string;
   const fields = (data.fields ?? undefined) as string[] | undefined;
+  const hasMissingConnections = (data.hasMissingConnections ?? false) as boolean;
   const icon = TYPE_ICONS[nodeType] ?? "<>";
   const isIO = nodeType === "input" || nodeType === "output";
 
   return (
     <div
-      className="bg-white rounded-lg border"
+      className="relative bg-white rounded-lg border"
       style={{
-        borderColor: TYPE_BORDER_COLORS[nodeType],
+        borderColor: hasMissingConnections ? "#f59e0b" : TYPE_BORDER_COLORS[nodeType],
         minWidth: isIO ? 120 : 160,
         maxWidth: 260,
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
@@ -67,6 +68,16 @@ export function WorkflowNode({ data }: NodeProps) {
               {field}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Missing connection indicator */}
+      {hasMissingConnections && (
+        <div
+          className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center"
+          title="Missing connection"
+        >
+          <span className="text-[7px] font-bold text-white leading-none">!</span>
         </div>
       )}
 
