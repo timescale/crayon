@@ -1,15 +1,15 @@
 // codegen.ts
 // GraphQL Codegen config for Salesforce - generates typed SDK with graphql-request
 //
-// Usage: npx graphql-codegen --config src/integrations/salesforce/scripts/codegen.ts
+// Usage: npx graphql-codegen --config src/crayon/integrations/salesforce/scripts/codegen.ts
 
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
-  schema: "src/integrations/salesforce/schemas/schema-clean.json",
-  documents: "src/integrations/salesforce/graphql/operations/**/*.graphql",
+  schema: "src/crayon/integrations/salesforce/schemas/schema-clean.json",
+  documents: "src/crayon/integrations/salesforce/graphql/operations/**/*.graphql",
   generates: {
-    "src/integrations/salesforce/generated/graphql.ts": {
+    "src/crayon/integrations/salesforce/generated/graphql.ts": {
       plugins: [
         "typescript",
         "typescript-operations",

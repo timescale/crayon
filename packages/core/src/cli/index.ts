@@ -357,7 +357,7 @@ node
         if (options.json) {
           console.log("[]");
         } else {
-          console.log(pc.yellow("No nodes found in src/nodes/"));
+          console.log(pc.yellow("No nodes found in src/crayon/nodes/"));
         }
         return;
       }

@@ -11,7 +11,7 @@ describe("Agent.create()", () => {
       name: "researcher",
       description: "Researches topics",
       inputSchema,
-      specPath: "specs/agents/researcher.md",
+      specPath: "src/crayon/agents/researcher.md",
     });
 
     expect(agent.name).toBe("researcher");
@@ -25,7 +25,7 @@ describe("Agent.create()", () => {
       name: "researcher-no-runtime",
       description: "Researches topics",
       inputSchema: z.object({ query: z.string() }),
-      specPath: "specs/agents/researcher.md",
+      specPath: "src/crayon/agents/researcher.md",
     });
 
     const mockCtx = { run: async () => {}, log: () => {} } as never;
