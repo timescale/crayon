@@ -1,23 +1,20 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { importSPKI, jwtVerify } from "jose";
 
 const COOKIE_NAME = "devui_token";
 const FLY_APP_NAME = process.env.FLY_APP_NAME;
 const AUTH_SERVER_URL = process.env.CRAYON_SERVER_URL;
 
-// Lazy-loaded jose module and parsed public key
-let joseModule: typeof import("jose") | null = null;
-let publicKey: Awaited<ReturnType<typeof import("jose").importSPKI>> | null =
-  null;
+let publicKey: Awaited<ReturnType<typeof importSPKI>> | null = null;
 
 async function getPublicKey() {
   if (publicKey) return publicKey;
-  if (!joseModule) joseModule = await import("jose");
 
   const pem = process.env.DEV_UI_JWT_PUBLIC_KEY;
   if (!pem) throw new Error("DEV_UI_JWT_PUBLIC_KEY not set");
 
   // Env var may have literal \n — normalize to real newlines
-  publicKey = await joseModule.importSPKI(pem.replace(/\\n/g, "\n"), "EdDSA");
+  publicKey = await importSPKI(pem.replace(/\\n/g, "\n"), "EdDSA");
   return publicKey;
 }
 
@@ -50,7 +47,7 @@ function getCookie(req: IncomingMessage, name: string): string | undefined {
 async function verifyToken(token: string): Promise<AuthClaims | null> {
   try {
     const key = await getPublicKey();
-    const { payload } = await joseModule!.jwtVerify(token, key, {
+    const { payload } = await jwtVerify(token, key, {
       algorithms: ["EdDSA"],
     });
 
