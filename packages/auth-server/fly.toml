@@ -1,4 +1,4 @@
-app = "opflow-auth"
+app = "crayon"
 primary_region = "iad"
 
 [build]

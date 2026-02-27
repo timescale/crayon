@@ -1,4 +1,4 @@
-app = "opflow-cloud-dev-image"
+app = "crayon-cloud-dev-image"
 primary_region = "iad"
 
 [build]
