@@ -19,7 +19,7 @@ function CliAuthContent() {
   // Build GitHub OAuth URL with cli_code as state
   // No redirect_uri — GitHub uses the one registered in the OAuth app settings
   const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-  const githubUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&state=${cliCode}&scope=read:user,user:email`;
+  const githubUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&state=cli:${cliCode}&scope=read:user,user:email`;
 
   return (
     <div style={{ fontFamily: "system-ui", maxWidth: 400, margin: "80px auto", textAlign: "center" }}>

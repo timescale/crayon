@@ -14,7 +14,7 @@ function errorPage(message: string): string {
  * GET /api/auth/github/callback?code=X&state=STATE
  * GitHub OAuth callback. Handles both CLI auth and dev-ui auth flows.
  *
- * CLI flow:  state = <cli_code>       → approves CLI session
+ * CLI flow:  state = cli:<cli_code>    → approves CLI session
  * Dev UI:   state = devui:<fly_app>   → signs JWT, redirects to machine
  */
 export async function GET(req: NextRequest) {
@@ -126,8 +126,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  // ── CLI flow (existing) ──────────────────────────────────────────
-  const cliCode = state;
+  // ── CLI flow ─────────────────────────────────────────────────────
+  if (!state.startsWith("cli:")) {
+    return new NextResponse(errorPage("Unknown auth flow."), {
+      status: 400,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+  const cliCode = state.slice("cli:".length);
   const sessionToken = randomHex(32); // 64-char hex
 
   const updateResult = await db.query(
