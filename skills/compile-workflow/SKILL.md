@@ -5,7 +5,7 @@ description: Update workflow implementation from its embedded description. Use t
 
 # Compile Workflow
 
-Updates the `run()` method of a workflow in `generated/workflows/*.ts` based on its embedded `description` field and the `description` fields in referenced nodes/agents.
+Updates the `run()` method of a workflow in `src/crayon/workflows/*.ts` based on its embedded `description` field and the `description` fields in referenced nodes/agents.
 
 **Announce at start:** "I'm using the compile-workflow skill to update the workflow implementation from its description."
 
@@ -14,15 +14,15 @@ Updates the `run()` method of a workflow in `generated/workflows/*.ts` based on 
 ## Pre-Flight Checks
 
 1. **Verify workflow files exist:**
-   - `generated/workflows/` must exist with at least one `.ts` file
+   - `src/crayon/workflows/` must exist with at least one `.ts` file
    - If no `.ts` files found, tell user to run `/crayon:create-workflow` first
 
 2. **If no workflow name provided:**
-   - List all workflows in `generated/workflows/`
+   - List all workflows in `src/crayon/workflows/`
    - Ask user to select which one to compile
 
 3. **If workflow name provided:**
-   - Verify `generated/workflows/<name>.ts` exists
+   - Verify `src/crayon/workflows/<name>.ts` exists
    - If not, list available workflows and ask user to choose
 
 ---
@@ -31,7 +31,7 @@ Updates the `run()` method of a workflow in `generated/workflows/*.ts` based on 
 
 ### Workflow Description
 
-Read the `description` field from the `Workflow.create()` call in `generated/workflows/<name>.ts`. The description contains flow-level information:
+Read the `description` field from the `Workflow.create()` call in `src/crayon/workflows/<name>.ts`. The description contains flow-level information:
 
 - **Summary** — first line/paragraph
 - **`## Tasks`** — ordered list of tasks with:
@@ -92,12 +92,12 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 | Type | Location | Import Pattern |
 |------|----------|----------------|
 | `(builtin)` | Built-in nodes from crayon | `import { webRead } from "runcrayon"` |
-| `(node)` | User-defined in `src/nodes/` or `nodes/` | `import { nodeName } from "../../src/nodes/<name>"` |
-| `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>"` |
+| `(node)` | User-defined in `src/crayon/nodes/` | `import { nodeName } from "../nodes/<name>"` |
+| `(agent)` | `src/crayon/agents/<name>.ts` | `import { agentName } from "../agents/<name>"` |
 
-**Note:** Agent imports reference the executable file (`agents/<name>.ts`), not the spec file (`specs/agents/<name>.md`). The executable contains the runtime code that loads the spec.
+**Note:** Agent imports reference the executable file (`src/crayon/agents/<name>.ts`), not the spec file (`src/crayon/agents/<name>.md`). The executable contains the runtime code that loads the spec.
 
-**IMPORTANT:** Never use `.js` extensions in import paths. Use extensionless imports (e.g., `"../../nodes/check-website"` not `"../../nodes/check-website.js"`). Turbopack cannot resolve `.js` → `.ts` in production builds.
+**IMPORTANT:** Never use `.js` extensions in import paths. Use extensionless imports (e.g., `"../nodes/check-website"` not `"../nodes/check-website.js"`). Turbopack cannot resolve `.js` → `.ts` in production builds.
 
 ### Resolution Steps
 
@@ -108,12 +108,12 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
    - Import from `"runcrayon"`
 
 3. **For user-defined nodes:**
-   - Look for `src/nodes/<name>.ts`
+   - Look for `src/crayon/nodes/<name>.ts`
    - Read its `description` field and `inputSchema`/`outputSchema` for type info
    - If missing: create it using the stub templates from `/crayon:create-workflow`
 
 4. **For agents:**
-   - Look for `agents/<name>.ts`
+   - Look for `src/crayon/agents/<name>.ts`
    - Read its `description` field and `inputSchema`/`outputSchema` for type info
    - If missing: create it using the stub templates from `/crayon:create-workflow`
 
@@ -125,7 +125,7 @@ When an agent's description contains a `**Tools needed:**` section (added by `/c
 |-----------|----------------|--------------------|
 | `(builtin)` | `import { webRead } from "runcrayon"` | `web_read: webRead` |
 | `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"; const openai = createOpenAI();` | `web_search: openai.tools.webSearch()` |
-| `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>"` | `enrich_company: enrichCompany` |
+| `(user node in src/crayon/nodes/<file>.ts)` | `import { name } from "../nodes/<file>"` | `enrich_company: enrichCompany` |
 
 ---
 
@@ -148,7 +148,7 @@ After generating code, tell the user what you assumed so they can correct anythi
 
 ## Code Generation
 
-Rewrite the `run()` method in the existing `generated/workflows/<name>.ts` file. Also update imports and schemas as needed. Preserve the `description` field as-is.
+Rewrite the `run()` method in the existing `src/crayon/workflows/<name>.ts` file. Also update imports and schemas as needed. Preserve the `description` field as-is.
 
 ### Generated run() Structure
 
@@ -237,7 +237,7 @@ Key things the compiler did:
 ### After Compilation
 
 Tell the user:
-1. "Updated `generated/workflows/<name>.ts`"
+1. "Updated `src/crayon/workflows/<name>.ts`"
 2. If any missing nodes/agents were created: list the new files
 3. If agent tools were updated from descriptions: list which agents were updated
 

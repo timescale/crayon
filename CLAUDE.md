@@ -47,7 +47,7 @@ claude --plugin-dir /path/to/crayon
 **Workflow code with embedded descriptions** → **Compiler** (Claude Code skill) → **Updated implementation** → **DBOS runtime**
 
 - Descriptions embedded in code as `description` fields (workflow-level for flow, node-level for details)
-- Agent specs (`specs/agents/`) are separate markdown files used as runtime system prompts
+- Agent specs (`src/crayon/agents/*.md`) are markdown files colocated with agent code, used as runtime system prompts
 - No separate spec files for workflows — the code IS the spec
 - DBOS provides durability: workflows register as DBOS workflows, nodes run as DBOS steps
 
@@ -56,19 +56,24 @@ claude --plugin-dir /path/to/crayon
 | Type | Location | Example |
 |------|----------|---------|
 | Built-in | `crayon` package | `webRead` |
-| User node | `src/nodes/` in app | Custom logic functions |
-| Agent | `agents/` + `specs/agents/` in app | AI reasoning via Vercel AI SDK |
+| User node | `src/crayon/nodes/` in app | Custom logic functions |
+| Agent | `src/crayon/agents/` in app (.ts + colocated .md spec) | AI reasoning via Vercel AI SDK |
 
 ### App Template Structure (scaffolded by `createApp`)
 
 ```
 my-app/
-├── generated/workflows/    # Compiled workflows (checked into git)
-├── src/nodes/              # User-defined function nodes
-├── agents/                 # Agent TypeScript files
-├── specs/agents/           # Agent markdown specs (system prompts)
-├── src/lib/crayon.ts        # crayon singleton
-└── dbos-config.yaml        # DBOS runtime config
+├── src/
+│   ├── crayon/
+│   │   ├── workflows/       # Compiled workflows (checked into git)
+│   │   ├── nodes/           # User-defined function nodes
+│   │   ├── agents/          # Agent .ts files + colocated .md specs
+│   │   ├── tools/           # Agent tool implementations
+│   │   ├── integrations/    # External API SDKs (Salesforce, etc.)
+│   │   └── generated/       # Auto-generated (registry.ts)
+│   ├── lib/crayon.ts        # crayon singleton
+│   └── ...                  # Rest of Next.js app
+└── dbos-config.yaml         # DBOS runtime config
 ```
 
 ## Key Source Paths (packages/core/src/)

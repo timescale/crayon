@@ -90,12 +90,11 @@ export async function writeAppTemplates(
  */
 export async function createCrayonDirectories(destDir: string): Promise<void> {
   const dirs = [
-    "specs/workflows",
-    "specs/agents",
-    "generated/workflows",
-    "nodes",
-    "tools",
-    "agents",
+    "src/crayon/workflows",
+    "src/crayon/nodes",
+    "src/crayon/agents",
+    "src/crayon/tools",
+    "src/crayon/generated",
   ];
 
   for (const dir of dirs) {

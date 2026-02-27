@@ -30,7 +30,7 @@ Refine node definitions in existing node and agent files. While create-workflow 
 
 ### Step 1: Load and Assess
 
-Read `generated/workflows/<workflow-name>.ts` and parse its `description` field to find all task nodes. Then read each referenced node/agent file and check its `description` field.
+Read `src/crayon/workflows/<workflow-name>.ts` and parse its `description` field to find all task nodes. Then read each referenced node/agent file and check its `description` field.
 
 A node **needs refinement** if its `inputSchema` / `outputSchema` are still empty `z.object({})`.
 
@@ -72,7 +72,7 @@ Use your judgment to propose reasonable schemas and tool selections based on the
 |----------|-------------|---------|
 | **Built-in nodes** | Ships with crayon | `webRead` |
 | **Provider tools** | From AI SDK providers (see import below) | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()` |
-| **User nodes** | Custom nodes in `src/nodes/` | `enrichCompany`, `sendSlackMessage` |
+| **User nodes** | Custom nodes in `src/crayon/nodes/` | `enrichCompany`, `sendSlackMessage` |
 
 Common mappings:
 
@@ -92,7 +92,7 @@ const openai = createOpenAI();
 
 ### What to Update in Node Files
 
-For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
+For each node/agent file (`src/crayon/nodes/<name>.ts` or `src/crayon/agents/<name>.ts`), update:
 
 1. **The `description` field** — add typed schemas and (for agents) tools/guidelines:
 
@@ -114,7 +114,7 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 **Tools needed:**
   - webRead (builtin)
   - openai.tools.webSearch() (provider)
-  - myCustomNode (user node in src/nodes/my-custom-node.ts)
+  - myCustomNode (user node in src/crayon/nodes/my-custom-node.ts)
 **Guidelines:** <specific guidelines>
 
 **Input Description:** <original from create-workflow>
@@ -127,7 +127,7 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 
 4. **For agents: the `tools` record** — add tool imports and entries based on `**Tools needed:**`
 
-5. **For agents: the spec file** (`specs/agents/<name>.md`) — update guidelines, output format sections, and optionally add `model` and `maxSteps` to the YAML frontmatter:
+5. **For agents: the spec file** (`src/crayon/agents/<name>.md`) — update guidelines, output format sections, and optionally add `model` and `maxSteps` to the YAML frontmatter:
    - `model: openai/gpt-4o` — override the default model (use when a specific model is needed, e.g. cheaper model for simple tasks, stronger model for complex reasoning)
    - `maxSteps: 10` — max tool-call iterations (increase for agents that need many sequential tool calls, decrease for simple single-shot agents)
 
@@ -144,7 +144,7 @@ After writing all refinements:
 
 A workflow has an `enrich-lead` agent with empty schemas from create-workflow:
 
-**Before** (`agents/enrich-lead.ts`):
+**Before** (`src/crayon/agents/enrich-lead.ts`):
 ```typescript
 export const enrichLead = Agent.create({
   name: "enrich-lead",
@@ -158,7 +158,7 @@ Searches the web to find additional professional info about a lead.
   inputSchema: z.object({}),
   outputSchema: z.object({}),
   tools: {},
-  specPath: path.resolve(__dirname, "../specs/agents/enrich-lead.md"),
+  specPath: path.resolve(__dirname, "./enrich-lead.md"),
 });
 ```
 
@@ -200,7 +200,7 @@ relevant professional details.
   tools: {
     webSearch: openai.tools.webSearch({}),
   },
-  specPath: path.resolve(__dirname, "../specs/agents/enrich-lead.md"),
+  specPath: path.resolve(__dirname, "./enrich-lead.md"),
 });
 ```
 

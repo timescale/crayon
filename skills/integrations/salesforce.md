@@ -18,7 +18,7 @@ During **node refinement** (`/crayon:refine-node`), when a workflow needs Salesf
 
 1. **Announce:** "This node needs Salesforce data. I'll set up the Salesforce integration to fetch your org's schema - this tells us exactly which fields and objects are available. We won't guess at field names."
 2. Complete the setup below to fetch the actual schema from the user's Salesforce instance
-3. The schema is saved to `src/integrations/salesforce/schemas/schema-clean.json`
+3. The schema is saved to `src/crayon/integrations/salesforce/schemas/schema-clean.json`
 4. Read this file to see available objects, fields, and their types
 5. Define the node's output schema in the spec based on available fields
 6. **STOP HERE during refinement** — do not proceed to codegen or creating the actual node. The actual GraphQL operations and node code are created later during `/crayon:compile-workflow`.
@@ -31,7 +31,7 @@ Refinement is only about understanding what's available and defining the spec.
 
 ### 1. Check for Existing Setup
 
-Look for `src/integrations/salesforce/generated/graphql.ts`. If it exists, the typed SDK is ready.
+Look for `src/crayon/integrations/salesforce/generated/graphql.ts`. If it exists, the typed SDK is ready.
 
 If not: "I don't see a Salesforce SDK in your project. Would you like me to set it up?"
 
@@ -72,7 +72,7 @@ npm i -D dotenv find-config he \
 ## Directory Structure
 
 ```
-src/integrations/salesforce/
+src/crayon/integrations/salesforce/
 ├── client.ts                    # SDK factory with OAuth auth
 ├── generated/
 │   └── graphql.ts               # Typed SDK (auto-generated)
@@ -101,12 +101,12 @@ If not present, ask: "What is your Salesforce domain?"
 ### Step 2: Create Directory Structure
 
 ```bash
-mkdir -p src/integrations/salesforce/{scripts,schemas,graphql/operations,generated}
+mkdir -p src/crayon/integrations/salesforce/{scripts,schemas,graphql/operations,generated}
 ```
 
 ### Step 3: Copy fetch-schema.ts
 
-Copy from this skill's `scripts/fetch-schema.ts` to `src/integrations/salesforce/scripts/fetch-schema.ts`.
+Copy from this skill's `scripts/fetch-schema.ts` to `src/crayon/integrations/salesforce/scripts/fetch-schema.ts`.
 
 This single script handles everything:
 1. Authenticates via connection (`--connection-id`), direct token, or client credentials
@@ -117,7 +117,7 @@ This single script handles everything:
 
 ### Step 4: Copy Codegen Config
 
-Copy from this skill's `scripts/codegen.ts` to `src/integrations/salesforce/scripts/codegen.ts`.
+Copy from this skill's `scripts/codegen.ts` to `src/crayon/integrations/salesforce/scripts/codegen.ts`.
 
 This TypeScript config generates a fully typed SDK using `graphql-request`.
 
@@ -128,8 +128,8 @@ Use the `connection_id` from `get_connection_info` in the fetch-schema command:
 ```json
 {
   "scripts": {
-    "salesforce:fetch-schema": "npx tsx src/integrations/salesforce/scripts/fetch-schema.ts --connection-id <CONNECTION_ID> --output src/integrations/salesforce/schemas/schema-clean.json",
-    "salesforce:codegen": "graphql-codegen --config src/integrations/salesforce/scripts/codegen.ts",
+    "salesforce:fetch-schema": "npx tsx src/crayon/integrations/salesforce/scripts/fetch-schema.ts --connection-id <CONNECTION_ID> --output src/crayon/integrations/salesforce/schemas/schema-clean.json",
+    "salesforce:codegen": "graphql-codegen --config src/crayon/integrations/salesforce/scripts/codegen.ts",
     "salesforce:refresh": "npm run salesforce:fetch-schema && npm run salesforce:codegen"
   }
 }
@@ -139,7 +139,7 @@ Replace `<CONNECTION_ID>` with the actual `connection_id` returned by `get_conne
 
 For projects with no known connection ID, use `--domain` instead:
 ```json
-"salesforce:fetch-schema": "tsx src/integrations/salesforce/scripts/fetch-schema.ts --domain https://yourcompany.my.salesforce.com --output src/integrations/salesforce/schemas/schema-clean.json"
+"salesforce:fetch-schema": "tsx src/crayon/integrations/salesforce/scripts/fetch-schema.ts --domain https://yourcompany.my.salesforce.com --output src/crayon/integrations/salesforce/schemas/schema-clean.json"
 ```
 
 ### Step 6: Fetch Schema
@@ -150,7 +150,7 @@ npm run salesforce:fetch-schema
 
 This fetches your Salesforce GraphQL schema and creates a cleaned schema file at:
 ```
-src/integrations/salesforce/schemas/schema-clean.json
+src/crayon/integrations/salesforce/schemas/schema-clean.json
 ```
 
 This file is used by the codegen step to generate TypeScript types.
@@ -161,7 +161,7 @@ This file is used by the codegen step to generate TypeScript types.
 
 ### Step 1: Define GraphQL Query
 
-Create `src/integrations/salesforce/graphql/operations/<object>.graphql`:
+Create `src/crayon/integrations/salesforce/graphql/operations/<object>.graphql`:
 
 ```graphql
 query GetLead($id: ID) {
@@ -203,7 +203,7 @@ This generates:
 
 ## Client Setup
 
-Create `src/integrations/salesforce/client.ts`:
+Create `src/crayon/integrations/salesforce/client.ts`:
 
 ```typescript
 import { GraphQLClient } from "graphql-request";
@@ -233,7 +233,7 @@ export async function makeSalesforceSdk(ctx: WorkflowContext): Promise<Sdk> {
 ### Template: Get by ID
 
 ```typescript
-// src/nodes/salesforce-get-<object>.ts
+// src/crayon/nodes/salesforce-get-<object>.ts
 import { z } from "zod";
 import { Node } from "runcrayon";
 import { makeSalesforceSdk } from "../integrations/salesforce/client.js";
@@ -351,7 +351,7 @@ Probability { value }
 List custom fields from the schema:
 
 ```bash
-grep -oE "[A-Za-z0-9_]+__c" src/integrations/salesforce/schemas/schema-clean.json | sort -u | head -50
+grep -oE "[A-Za-z0-9_]+__c" src/crayon/integrations/salesforce/schemas/schema-clean.json | sort -u | head -50
 ```
 
 ---
@@ -388,13 +388,13 @@ Setting up schema and SDK...
 
 User: Name, Email, Company, Status, and any custom scoring fields
 
-Agent: I'll create `src/integrations/salesforce/graphql/operations/lead.graphql`:
+Agent: I'll create `src/crayon/integrations/salesforce/graphql/operations/lead.graphql`:
 
 [Shows GraphQL query with requested fields]
 
 Running codegen... Done.
 
-**Question:** Should I create the node at `src/nodes/salesforce-get-lead.ts`?
+**Question:** Should I create the node at `src/crayon/nodes/salesforce-get-lead.ts`?
 
 User: Yes
 

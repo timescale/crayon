@@ -210,7 +210,7 @@ workflow
         if (options.json) {
           console.log("[]");
         } else {
-          console.log(pc.yellow("No workflows found in generated/workflows/"));
+          console.log(pc.yellow("No workflows found in src/crayon/workflows/"));
         }
         return;
       }

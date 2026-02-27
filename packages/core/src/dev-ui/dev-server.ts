@@ -272,8 +272,7 @@ export async function startDevServer(options: DevServerOptions) {
     }
     if (options.verbose) {
       console.log(`  Watching for workflow changes in:`);
-      console.log(`    ${resolve(projectRoot, "generated/workflows/")}`);
-      console.log(`    ${resolve(projectRoot, "src/workflows/")}\n`);
+      console.log(`    ${resolve(projectRoot, "src/crayon/workflows/")}\n`);
       if (hasApi) {
         console.log(`  Connections API enabled (Nango + DB configured)\n`);
       } else {

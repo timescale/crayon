@@ -1,5 +1,5 @@
 import { createCrayon } from "runcrayon";
-import { workflows, agents, nodes } from "../../generated/registry";
+import { workflows, agents, nodes } from "../crayon/generated/registry";
 import "server-only";
 
 type CrayonInstance = Awaited<ReturnType<typeof createCrayon>>;

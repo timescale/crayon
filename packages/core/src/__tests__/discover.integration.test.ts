@@ -20,9 +20,9 @@ beforeAll(async () => {
   emptyDir = await mkdtemp(join(tmpdir(), "crayon-discover-empty-"));
 
   // Create directory structure matching a crayon app
-  await mkdir(join(tempDir, "generated", "workflows"), { recursive: true });
-  await mkdir(join(tempDir, "src", "nodes"), { recursive: true });
-  await mkdir(join(tempDir, "agents"), { recursive: true });
+  await mkdir(join(tempDir, "src", "crayon", "workflows"), { recursive: true });
+  await mkdir(join(tempDir, "src", "crayon", "nodes"), { recursive: true });
+  await mkdir(join(tempDir, "src", "crayon", "agents"), { recursive: true });
 
   // Symlink node_modules/runcrayon → core package root (equivalent to npm link)
   // This lets jiti resolve `import from "runcrayon"` in the temp dir
@@ -35,7 +35,7 @@ beforeAll(async () => {
 
   // Write a test workflow using the crayon package import
   await writeFile(
-    join(tempDir, "generated", "workflows", "test-workflow.ts"),
+    join(tempDir, "src", "crayon", "workflows", "test-workflow.ts"),
     `
 import { z } from "zod";
 import { Workflow } from "runcrayon";
@@ -55,7 +55,7 @@ export const testWorkflow = Workflow.create({
 
   // Write a test node using the crayon package import
   await writeFile(
-    join(tempDir, "src", "nodes", "test-node.ts"),
+    join(tempDir, "src", "crayon", "nodes", "test-node.ts"),
     `
 import { z } from "zod";
 import { Node } from "runcrayon";
@@ -79,7 +79,7 @@ afterAll(async () => {
 });
 
 describe("discover()", () => {
-  it("discovers workflows from generated/workflows/", async () => {
+  it("discovers workflows from src/crayon/workflows/", async () => {
     const result = await discover(tempDir);
 
     expect(result.workflows).toHaveProperty("test-workflow");
@@ -87,7 +87,7 @@ describe("discover()", () => {
     expect(result.workflows["test-workflow"]!.name).toBe("test-workflow");
   });
 
-  it("discovers nodes from src/nodes/", async () => {
+  it("discovers nodes from src/crayon/nodes/", async () => {
     const result = await discover(tempDir);
 
     expect(result.nodes).toHaveProperty("test-node");
@@ -95,7 +95,7 @@ describe("discover()", () => {
     expect(result.nodes["test-node"]!.name).toBe("test-node");
   });
 
-  it("returns empty results for agents/ when no agents exist", async () => {
+  it("returns empty results for src/crayon/agents/ when no agents exist", async () => {
     const result = await discover(tempDir);
 
     expect(result.agents).toEqual({});
@@ -130,7 +130,7 @@ describe("discover()", () => {
 
   it("skips index files in nodes directory", async () => {
     await writeFile(
-      join(tempDir, "src", "nodes", "index.ts"),
+      join(tempDir, "src", "crayon", "nodes", "index.ts"),
       `export { testNode } from "./test-node.js";`,
     );
 
@@ -139,12 +139,12 @@ describe("discover()", () => {
     const nodeNames = Object.keys(result.nodes);
     expect(nodeNames).toEqual(["test-node"]);
 
-    await rm(join(tempDir, "src", "nodes", "index.ts"));
+    await rm(join(tempDir, "src", "crayon", "nodes", "index.ts"));
   });
 
   it("reports warnings for files that fail to load", async () => {
     await writeFile(
-      join(tempDir, "generated", "workflows", "bad-workflow.ts"),
+      join(tempDir, "src", "crayon", "workflows", "bad-workflow.ts"),
       `throw new Error("intentional load failure");`,
     );
 
@@ -156,7 +156,7 @@ describe("discover()", () => {
     // Valid workflow should still be discovered
     expect(result.workflows).toHaveProperty("test-workflow");
 
-    await rm(join(tempDir, "generated", "workflows", "bad-workflow.ts"));
+    await rm(join(tempDir, "src", "crayon", "workflows", "bad-workflow.ts"));
   });
 });
 
@@ -175,13 +175,13 @@ describe("discoverAgents()", () => {
 
   it("skips index files in agents directory", async () => {
     await writeFile(
-      join(tempDir, "agents", "index.ts"),
+      join(tempDir, "src", "crayon", "agents", "index.ts"),
       `export {};`,
     );
 
     const result = await discoverAgents(tempDir);
     expect(result.agents).toEqual({});
 
-    await rm(join(tempDir, "agents", "index.ts"));
+    await rm(join(tempDir, "src", "crayon", "agents", "index.ts"));
   });
 });

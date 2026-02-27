@@ -13,10 +13,7 @@ export interface WatcherOptions {
 function isWorkflowFile(filePath: string, projectRoot: string): boolean {
   const rel = relative(projectRoot, resolve(projectRoot, filePath));
   if (extname(rel) !== ".ts") return false;
-  return (
-    rel.startsWith("generated/workflows/") ||
-    rel.startsWith("src/workflows/")
-  );
+  return rel.startsWith("src/crayon/workflows/");
 }
 
 export function createWatcher(options: WatcherOptions) {
@@ -58,8 +55,8 @@ export function createWatcher(options: WatcherOptions) {
             let resolvedPath = resolve(dirname(absPath), importFile);
             if (!existsSync(resolvedPath)) {
               // Fallback: try resolving relative to project root
-              // Handles cases where generated workflow imports use paths
-              // relative to project root (e.g. "../src/nodes/..." from generated/workflows/)
+              // Handles cases where workflow imports use paths
+              // relative to project root (e.g. "../nodes/..." from src/crayon/workflows/)
               const stripped = importFile.replace(/^(\.\.\/)+/, "");
               resolvedPath = resolve(projectRoot, stripped);
             }
@@ -140,17 +137,13 @@ export function createWatcher(options: WatcherOptions) {
   // Watch directories (not globs — chokidar v4 doesn't support glob patterns).
   // Filter to .ts files in the event handlers instead.
   const watchDirs: string[] = [];
-  const genDir = resolve(projectRoot, "generated/workflows");
-  const srcDir = resolve(projectRoot, "src/workflows");
-  if (existsSync(genDir)) watchDirs.push(genDir);
-  if (existsSync(srcDir)) watchDirs.push(srcDir);
+  const crayonWorkflowDir = resolve(projectRoot, "src/crayon/workflows");
+  if (existsSync(crayonWorkflowDir)) watchDirs.push(crayonWorkflowDir);
 
-  // If directories don't exist yet, watch parent dirs so we detect when they're created
+  // If directory doesn't exist yet, watch parent dir so we detect when it's created
   if (watchDirs.length === 0) {
-    const genParent = resolve(projectRoot, "generated");
-    const srcParent = resolve(projectRoot, "src");
-    if (existsSync(genParent)) watchDirs.push(genParent);
-    if (existsSync(srcParent)) watchDirs.push(srcParent);
+    const crayonDir = resolve(projectRoot, "src/crayon");
+    if (existsSync(crayonDir)) watchDirs.push(crayonDir);
   }
 
   const watcher = watch(watchDirs, {

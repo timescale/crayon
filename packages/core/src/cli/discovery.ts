@@ -51,14 +51,14 @@ function isWorkflow(value: unknown): value is AnyExecutable {
 }
 
 /**
- * Discover and load workflow executables from generated/workflows/ directory
+ * Discover and load workflow executables from src/crayon/workflows/ directory
  * Uses jiti to load TypeScript files directly without compilation
  * Returns workflows and any warnings (caller decides whether to display warnings)
  */
 export async function discoverWorkflows(
   projectDir: string
 ): Promise<DiscoveryResult> {
-  const workflowDir = path.join(projectDir, "generated", "workflows");
+  const workflowDir = path.join(projectDir, "src", "crayon", "workflows");
 
   if (!fs.existsSync(workflowDir)) {
     return { workflows: [], warnings: [] };
@@ -102,14 +102,14 @@ function isNode(value: unknown): value is AnyExecutable {
 }
 
 /**
- * Discover and load node executables from src/nodes/ directory
+ * Discover and load node executables from src/crayon/nodes/ directory
  * Uses jiti to load TypeScript files directly without compilation
  * Returns nodes indexed by name and any warnings
  */
 export async function discoverNodes(
   projectDir: string
 ): Promise<NodeDiscoveryResult> {
-  const nodesDir = path.join(projectDir, "src", "nodes");
+  const nodesDir = path.join(projectDir, "src", "crayon", "nodes");
   const nodes: Record<string, AnyExecutable> = {};
   const warnings: string[] = [];
 
@@ -155,14 +155,14 @@ function isAgent(value: unknown): value is AnyExecutable {
 }
 
 /**
- * Discover and load agent executables from agents/ directory
+ * Discover and load agent executables from src/crayon/agents/ directory
  * Uses jiti to load TypeScript files directly without compilation
  * Returns agents indexed by name and any warnings
  */
 export async function discoverAgents(
   projectDir: string
 ): Promise<AgentDiscoveryResult> {
-  const agentsDir = path.join(projectDir, "agents");
+  const agentsDir = path.join(projectDir, "src", "crayon", "agents");
   const agents: Record<string, AnyExecutable> = {};
   const warnings: string[] = [];
 

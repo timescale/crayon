@@ -40,7 +40,7 @@ If not found, install it:
 
 ### 2. Check for Existing Client Setup
 
-Look for `src/integrations/postgres/client.ts`. If it exists, the client is ready.
+Look for `src/crayon/integrations/postgres/client.ts`. If it exists, the client is ready.
 
 If not: "I don't see a PostgreSQL client in your project. Would you like me to set it up?"
 
@@ -126,7 +126,7 @@ psql $ENV_VAR -c 'SELECT * FROM users LIMIT 3;'
 ## Directory Structure
 
 ```
-src/integrations/postgres/
+src/crayon/integrations/postgres/
 └── client.ts           # Database client factory
 ```
 
@@ -136,10 +136,10 @@ That's it - no generated files needed.
 
 ## Client Setup
 
-Create `src/integrations/postgres/client.ts`:
+Create `src/crayon/integrations/postgres/client.ts`:
 
 ```typescript
-// src/integrations/postgres/client.ts
+// src/crayon/integrations/postgres/client.ts
 // Replace <ENV_VAR> with the environment variable from the spec (e.g., ANALYTICS_DATABASE_URL)
 import postgres from "postgres";
 import { config } from "dotenv";
@@ -189,7 +189,7 @@ All `${value}` expressions use postgres.js tagged template literals, which autom
 ### Template: Query by ID
 
 ```typescript
-// src/nodes/postgres-get-<table>.ts
+// src/crayon/nodes/postgres-get-<table>.ts
 import { z } from "zod";
 import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
@@ -228,7 +228,7 @@ export const postgresGet<Table> = Node.create({
 ### Template: Query with Filters
 
 ```typescript
-// src/nodes/postgres-list-<table>.ts
+// src/crayon/nodes/postgres-list-<table>.ts
 import { z } from "zod";
 import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
@@ -280,7 +280,7 @@ export const postgresList<Table> = Node.create({
 ### Template: Insert Row
 
 ```typescript
-// src/nodes/postgres-create-<table>.ts
+// src/crayon/nodes/postgres-create-<table>.ts
 import { z } from "zod";
 import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";

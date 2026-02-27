@@ -15,7 +15,7 @@ Deploys a crayon app to the cloud using `crayon deploy`.
 
 1. **Verify this is a crayon app:**
    - `package.json` must exist with `crayon` as a dependency
-   - `generated/workflows/` should exist with at least one compiled workflow
+   - `src/crayon/workflows/` should exist with at least one compiled workflow
 
 2. **Verify `.env` exists with required variables:**
    - `DATABASE_URL` — Application database connection string (required)
