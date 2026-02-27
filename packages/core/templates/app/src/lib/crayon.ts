@@ -1,4 +1,4 @@
-import { createCrayon } from "crayon";
+import { createCrayon } from "@crayon/core";
 import { workflows, agents, nodes } from "../../generated/registry";
 import "server-only";
 

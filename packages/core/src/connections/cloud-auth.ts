@@ -20,7 +20,7 @@ const CREDENTIALS_DIR = join(homedir(), ".crayon");
 const CREDENTIALS_FILE = join(CREDENTIALS_DIR, "credentials");
 const PENDING_AUTH_FILE = join(CREDENTIALS_DIR, "pending_auth");
 const DEFAULT_SERVER_URL =
-  process.env.CRAYON_SERVER_URL ?? "https://ocrayon-auth.fly.dev";
+  process.env.CRAYON_SERVER_URL ?? "https://crayon-auth.fly.dev";
 
 const POLL_INTERVAL_MS = 2000;
 const QUICK_POLL_ATTEMPTS = 8; // ~16 seconds

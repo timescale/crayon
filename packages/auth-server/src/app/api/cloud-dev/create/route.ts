@@ -88,7 +88,7 @@ function generateSSHKeypair(): { publicKey: string; privateKey: string } {
 const FLY_ORG = process.env.FLY_ORG ?? "tiger-data";
 const FLY_REGION = process.env.FLY_REGION ?? "iad";
 const CLOUD_DEV_IMAGE =
-  process.env.CLOUD_DEV_IMAGE ?? "registry.fly.io/ocrayon-cloud-dev-image:latest";
+  process.env.CLOUD_DEV_IMAGE ?? "registry.fly.io/crayon-cloud-dev-image:latest";
 
 /**
  * POST /api/cloud-dev/create
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // Generate unpredictable Fly app name
     const hexId = crypto.randomBytes(4).toString("hex");
-    const flyAppName = `ocrayon-dev-${hexId}`;
+    const flyAppName = `crayon-dev-${hexId}`;
     const appUrl = `https://${flyAppName}.fly.dev`;
     const linuxUser = `user-${userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}`;
 

@@ -56,7 +56,7 @@ export async function scaffoldApp({
       // - Dev mode (monorepo via npm link): "dev" dist-tag
       // - Installed from crayon@dev (e.g. 0.1.0-dev.c6251ba): "dev" dist-tag
       // - Installed from crayon@latest (e.g. 0.1.0): exact version
-      ocrayon_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
+      crayon_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
     });
 
     await createCrayonDirectories(appPath);
@@ -65,7 +65,7 @@ export async function scaffoldApp({
     if (isDevMode()) {
       const corePath = join(monorepoRoot, "packages", "core");
       await execAsync("npm link", corePath);
-      await execAsync("npm link crayon", appPath);
+      await execAsync("npm link @crayon/core", appPath);
     }
 
     if (installDeps) {
@@ -253,7 +253,7 @@ export async function setupAppSchema({
 
   await writeFile(envPath, `${newEnvContent}\n`);
 
-  // Create the ocrayon_connections table so it's ready before the dev UI launches
+  // Create the crayon_connections table so it's ready before the dev UI launches
   await ensureConnectionsTable(creds.DATABASE_URL, creds.DATABASE_SCHEMA);
 
   return {

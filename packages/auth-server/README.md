@@ -16,7 +16,7 @@ Hosted credential proxy that lets users access integrations (Salesforce, HubSpot
 4. Copy the **Client ID**
 5. Click **Generate a new client secret** and copy it
 
-> For production, update the Homepage URL and callback URL to `https://ocrayon-auth.fly.dev`.
+> For production, update the Homepage URL and callback URL to `https://crayon-auth.fly.dev`.
 
 ### 2. Configure environment
 
@@ -46,12 +46,12 @@ The auth server needs a PostgreSQL database for users and auth sessions. You can
 When set, users running `crayon cloud run` can choose **"Use managed database"** instead of providing their own Tiger database. The auth server will automatically provision a dedicated PostgreSQL schema and role in this shared database for each new workspace.
 
 - Must be an admin connection string (e.g. `tsdbadmin` on TimescaleDB Cloud)
-- Each workspace gets an isolated schema named after its Fly app (e.g. `ocrayon_dev_a1b2c3d4`)
+- Each workspace gets an isolated schema named after its Fly app (e.g. `crayon_dev_a1b2c3d4`)
 - The provisioned `DATABASE_URL` and `DATABASE_SCHEMA` are injected directly as Fly secrets on the workspace machine — the credentials are never stored on the auth server
 
 ```bash
 # Set on the deployed auth server
-flyctl secrets set DATABASE_DATA_URL="postgresql://tsdbadmin:...@host/tsdb" -a ocrayon-auth
+flyctl secrets set DATABASE_DATA_URL="postgresql://tsdbadmin:...@host/tsdb" -a crayon-auth
 ```
 
 ### 4. Install and run
@@ -93,10 +93,10 @@ The auth server runs on Fly.io so it can invoke `flyctl` for user app deployment
 cd packages/auth-server
 
 # Create the Fly app
-flyctl apps create ocrayon-auth
+flyctl apps create crayon-auth
 
 # Set secrets from .env.local
-flyctl secrets import -a ocrayon-auth < .env.local
+flyctl secrets import -a crayon-auth < .env.local
 
 # Deploy
 flyctl deploy
@@ -112,8 +112,8 @@ flyctl deploy
 ### After deploying
 
 Update your GitHub OAuth App at https://github.com/settings/developers:
-- **Homepage URL:** `https://ocrayon-auth.fly.dev`
-- **Authorization callback URL:** `https://ocrayon-auth.fly.dev/api/auth/github/callback`
+- **Homepage URL:** `https://crayon-auth.fly.dev`
+- **Authorization callback URL:** `https://crayon-auth.fly.dev/api/auth/github/callback`
 
 ## API Routes
 
@@ -148,7 +148,7 @@ The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude
 
 ```bash
 # Build crayon and pack a tarball into the docker context
-pnpm --filter crayon build
+pnpm --filter @crayon/core build
 cd packages/core && npm pack --pack-destination docker/
 
 # Build and push with local code
@@ -160,7 +160,7 @@ flyctl deploy --build-only --push --image-label latest --build-arg CRAYON_SOURCE
 
 ```bash
 # One-time: create a Fly app to host the image
-flyctl apps create ocrayon-cloud-dev-image --org tiger-data
+flyctl apps create crayon-cloud-dev-image --org tiger-data
 
 # Build and push using published crayon@dev from npm
 cd packages/core/docker
@@ -170,7 +170,7 @@ flyctl deploy --build-only --push --image-label latest
 To use a different registry/tag, set `CLOUD_DEV_IMAGE` on the auth server:
 
 ```bash
-flyctl secrets set CLOUD_DEV_IMAGE=registry.fly.io/ocrayon-cloud-dev-image:latest -a ocrayon-auth
+flyctl secrets set CLOUD_DEV_IMAGE=registry.fly.io/crayon-cloud-dev-image:latest -a crayon-auth
 ```
 
 ### Testing cloud dev locally
@@ -205,7 +205,7 @@ docker run --rm -it \
   -e DATABASE_URL="postgresql://..." \
   -e DATABASE_SCHEMA=test-app \
   -v /tmp/cloud-dev-data:/data \
-  registry.fly.io/ocrayon-cloud-dev-image:latest
+  registry.fly.io/crayon-cloud-dev-image:latest
 ```
 
 This scaffolds a project into `/tmp/cloud-dev-data/app/` and starts the dev server on port 4173.
@@ -231,7 +231,7 @@ Tables are auto-created by `ensureSchema()` on first request.
 Users of the `@crayon/core` package set `CRAYON_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
 
 ```
-User's app (CRAYON_SERVER_URL=https://ocrayon-auth.fly.dev)
+User's app (CRAYON_SERVER_URL=https://crayon-auth.fly.dev)
   → CloudIntegrationProvider
     → GET /api/credentials/salesforce?connection_id=X
       → Auth server fetches from Nango with its own NANGO_SECRET_KEY

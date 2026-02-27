@@ -1,0 +1,21 @@
+{
+  "name": "@crayon/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "crayon": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build && chmod +x dist/index.js"
+  },
+  "dependencies": {
+    "@crayon/core": "workspace:*",
+    "commander": "^14.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

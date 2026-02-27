@@ -185,9 +185,9 @@ export async function deploy(
 
   // Include CRAYON_TOKEN for runtime integration credential fetching
   const { getToken } = await import("../connections/cloud-auth.js");
-  const ocrayonToken = getToken();
-  if (ocrayonToken) {
-    envVarsToSync.CRAYON_TOKEN = ocrayonToken;
+  const crayonToken = getToken();
+  if (crayonToken) {
+    envVarsToSync.CRAYON_TOKEN = crayonToken;
   }
 
   try {
@@ -387,7 +387,7 @@ function generateCommitMessage(projectDir: string): string {
  * Create a deployment tar.gz as a base64 string using system tar.
  */
 function createDeploymentTarball(projectDir: string): string {
-  const tmpDir = mkdtempSync(join(tmpdir(), "ocrayon-deploy-"));
+  const tmpDir = mkdtempSync(join(tmpdir(), "crayon-deploy-"));
   const tarPath = join(tmpDir, "app.tar.gz");
 
   try {

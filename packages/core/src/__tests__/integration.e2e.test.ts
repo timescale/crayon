@@ -10,7 +10,7 @@ import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
 const DATABASE_URL = process.env.DATABASE_URL;
 
 // Schema used by tests (must match default from getSchemaName())
-const TEST_SCHEMA = "ocrayon_dbos";
+const TEST_SCHEMA = "crayon_dbos";
 
 async function resetDatabase(): Promise<void> {
   const client = new pg.Client({ connectionString: DATABASE_URL });
@@ -104,7 +104,7 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
 
     crayon = await createCrayon({
       databaseUrl: DATABASE_URL!,
-      appName: "ocrayon",
+      appName: "crayon",
       workflows: {
         research: researchWorkflow,
         outer: outerWorkflow,

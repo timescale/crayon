@@ -128,8 +128,8 @@ my-app/
 
 ## Development
 
-- **Build:** `pnpm --filter crayon build` (TypeScript + Vite for dev-ui)
-- **Test:** Vitest — `pnpm --filter crayon test`
+- **Build:** `pnpm --filter @crayon/core build` (TypeScript + Vite for dev-ui)
+- **Test:** Vitest — `pnpm --filter @crayon/core test`
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
 

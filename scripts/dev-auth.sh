@@ -42,7 +42,7 @@ echo "  ngrok URL: $PUBLIC_URL"
 echo "==================================="
 echo ""
 echo "To create a cloud workspace against this local server:"
-echo "  CRAYON_SERVER_URL=$PUBLIC_URL pnpm --filter crayon exec crayon cloud run"
+echo "  CRAYON_SERVER_URL=$PUBLIC_URL pnpm --filter @crayon/core exec crayon cloud run"
 echo ""
 
 # 3. Start auth-server with PUBLIC_URL injected

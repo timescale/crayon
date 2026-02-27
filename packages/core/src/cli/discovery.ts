@@ -8,8 +8,8 @@ import type { Executable } from "../index.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyExecutable = Executable<any, any>;
 
-// Alias 'crayon' to the same dist/index.js that the running CLI loaded.
-// Without this, jiti resolves 'import { Workflow } from "crayon"' from the
+// Alias '@crayon/core' to the same dist/index.js that the running CLI loaded.
+// Without this, jiti resolves 'import { Workflow } from "@crayon/core"' from the
 // project's local node_modules, creating a separate module instance with its
 // own DBOS singleton that is never launched — causing
 // "DBOS.launch() must be called before running workflows" errors.
@@ -17,10 +17,10 @@ type AnyExecutable = Executable<any, any>;
 // This file lives at dist/cli/discovery.js in the installed package;
 // the package main entry is dist/index.js (one level up from dist/cli/).
 const _thisDir = path.dirname(fileURLToPath(import.meta.url));
-const _ocrayonMain = path.resolve(_thisDir, "..", "index.js");
+const _crayonMain = path.resolve(_thisDir, "..", "index.js");
 
 const jiti = createJiti(import.meta.url, {
-  alias: { "crayon": _ocrayonMain },
+  alias: { "@crayon/core": _crayonMain },
 });
 
 export interface DiscoveryResult {

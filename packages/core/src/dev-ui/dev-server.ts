@@ -147,7 +147,7 @@ export async function startDevServer(options: DevServerOptions) {
         res.end(indexBody);
       } catch {
         res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Dev UI client not built. Run: pnpm --filter crayon build");
+        res.end("Dev UI client not built. Run: pnpm --filter @crayon/core build");
       }
     }
   });

@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 AUTH_ENV="$SCRIPT_DIR/../../auth-server/.env.local"
-REGISTRY="registry.fly.io/ocrayon-cloud-dev-image"
+REGISTRY="registry.fly.io/crayon-cloud-dev-image"
 
 # Use provided tag, or "latest" on main, or git-branch-based tag otherwise
 if [ -n "$1" ]; then
@@ -16,11 +16,11 @@ else
 fi
 
 echo "==> Building crayon..."
-pnpm --filter crayon build
+pnpm --filter @crayon/core build
 
 echo "==> Packing tarball..."
 cd "$CORE_DIR"
-rm -f docker/crayon-*.tgz
+rm -f docker/crayon-core-*.tgz
 npm pack --pack-destination docker/
 
 echo "==> Building and pushing Docker image (tag: $TAG)..."

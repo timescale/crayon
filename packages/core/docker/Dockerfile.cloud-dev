@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim
 
 # "local" = install from tarball (dev), "npm" = install from registry (prod)
-ARG OPFLOW_SOURCE=npm
+ARG CRAYON_SOURCE=npm
 
 RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-server \
     && mkdir -p /run/sshd \
@@ -11,50 +11,50 @@ RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-serve
 # This means users can run `npm install` without extra flags and still hit the cache.
 RUN npm config set cache /npm-cache --global
 
-# 0pflow — install from local tarball or npm depending on build arg.
+# @crayon/core — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
-COPY entrypoint.sh 0pflow-*.tgz /tmp/build/
-RUN if [ "$OPFLOW_SOURCE" = "local" ] && ls /tmp/build/0pflow-*.tgz 1>/dev/null 2>&1; then \
-      npm install -g /tmp/build/0pflow-*.tgz && \
+COPY entrypoint.sh crayon-core-*.tgz /tmp/build/
+RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/crayon-core-*.tgz 1>/dev/null 2>&1; then \
+      npm install -g /tmp/build/crayon-core-*.tgz && \
       # Stamp a -dev suffix so scaffolding uses the "dev" dist-tag in package.json
-      GLOBAL_PKG="$(npm root -g)/0pflow/package.json" && \
+      GLOBAL_PKG="$(npm root -g)/@crayon/core/package.json" && \
       node -e "const f='$GLOBAL_PKG'; const p=JSON.parse(require('fs').readFileSync(f,'utf8')); p.version+='-dev.local'; require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"; \
     else \
-      npm install -g 0pflow@dev; \
+      npm install -g @crayon/core@dev; \
     fi && \
     rm -rf /tmp/build
 
 # Pre-install app template node_modules at /node_modules so Node.js finds them
 # via standard parent-directory resolution from /data/app (no NODE_PATH needed).
-# The template package.json has Handlebars placeholders (e.g. {{opflow_version}})
+# The template package.json has Handlebars placeholders (e.g. {{crayon_version}})
 # that must be resolved before npm install can parse it.
 RUN GLOBAL_MODULES="$(npm root -g)" && \
-    TEMPLATE_DIR="$GLOBAL_MODULES/0pflow/templates/app" && \
+    TEMPLATE_DIR="$GLOBAL_MODULES/@crayon/core/templates/app" && \
     mkdir -p /tmp/cache-build && cp "$TEMPLATE_DIR/package.json" /tmp/cache-build/ && \
-    cd /tmp/cache-build && sed -i 's/{{opflow_version}}/dev/g' package.json && \
+    cd /tmp/cache-build && sed -i 's/{{crayon_version}}/dev/g' package.json && \
     sed -i 's/{{app_name}}/cache-app/g' package.json && \
     npm install && \
     mv node_modules / && \
     rm -rf /tmp/cache-build && \
-    rm -rf /node_modules/0pflow && \
-    ln -s "$GLOBAL_MODULES/0pflow" /node_modules/0pflow
+    rm -rf /node_modules/@crayon/core && \
+    ln -s "$GLOBAL_MODULES/@crayon/core" /node_modules/@crayon/core
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
 # /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
 RUN chmod -R a+rwx /npm-cache
 ENV PATH=/node_modules/.bin:$PATH
 
-# Pre-run claude install + 0pflow install as a temp user, then save to /etc/skel.
+# Pre-run claude install + crayon install as a temp user, then save to /etc/skel.
 # useradd -m copies /etc/skel into new home dirs, so runtime users get Claude Code
 # + plugin/marketplace registration without the slow setup on every boot.
 RUN groupadd -f devs && \
     useradd -m -s /bin/bash -g devs _setup && \
     su -s /bin/bash _setup -c "curl -fsSL https://claude.ai/install.sh | bash" && \
     ln -sf /home/_setup/.local/bin/claude /usr/local/bin/claude && \
-    OPFLOW="$(npm prefix -g)/bin/0pflow" && \
-    su -s /bin/bash _setup -c "$OPFLOW install --force" && \
-    test -f /home/_setup/.claude/settings.json || { echo "ERROR: 0pflow plugin not registered"; exit 1; } && \
+    CRAYON="$(npm prefix -g)/bin/crayon" && \
+    su -s /bin/bash _setup -c "$CRAYON install --force" && \
+    test -f /home/_setup/.claude/settings.json || { echo "ERROR: crayon plugin not registered"; exit 1; } && \
     cp -a /home/_setup/. /etc/skel/ && \
     rm -f /etc/skel/.claude/.credentials.json && \
     sed -i 's|/home/_setup|__HOMEDIR__|g' /etc/skel/.claude/plugins/known_marketplaces.json /etc/skel/.claude/plugins/installed_plugins.json && \

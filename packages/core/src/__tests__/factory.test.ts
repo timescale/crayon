@@ -26,11 +26,11 @@ describe("createCrayon()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Clear globalThis singleton so each test gets a fresh createCrayon()
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.crayonInstance")];
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("crayon.crayonInstance")];
     // Clear workflow cache so Workflow.create() re-registers
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.workflowCache")];
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("crayon.workflowCache")];
     // Clear agent cache
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.agentCache")];
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("crayon.agentCache")];
   });
 
   it("initializes DBOS and returns crayon instance", async () => {

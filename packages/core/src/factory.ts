@@ -10,7 +10,7 @@ import pg from "pg";
 
 // Global singleton to survive across Turbopack chunk duplication.
 // Module-level `let` in user's crayon.ts breaks across chunks, but globalThis is shared.
-const CRAYON_INSTANCE_KEY = Symbol.for("ocrayon.crayonInstance");
+const CRAYON_INSTANCE_KEY = Symbol.for("crayon.crayonInstance");
 
 /**
  * Create a crayon instance

@@ -50,7 +50,7 @@ interface AgentRuntimeConfig {
   appSchema: string;
 }
 
-const AGENT_CONFIG_KEY = Symbol.for("ocrayon.getAgentRuntimeConfig()");
+const AGENT_CONFIG_KEY = Symbol.for("crayon.getAgentRuntimeConfig()");
 
 function getAgentRuntimeConfig(): AgentRuntimeConfig | null {
   return (globalThis as Record<symbol, AgentRuntimeConfig | null>)[AGENT_CONFIG_KEY] ?? null;
@@ -154,7 +154,7 @@ function createAgentContext(
 
 // Global cache for agent executables to prevent duplicate DBOS registration
 // when bundlers (Turbopack) re-evaluate the same module in multiple chunks.
-const AGENT_CACHE_KEY = Symbol.for("ocrayon.agentCache");
+const AGENT_CACHE_KEY = Symbol.for("crayon.agentCache");
 function getAgentCache(): Map<string, AgentExecutable> {
   const g = globalThis as Record<symbol, Map<string, AgentExecutable>>;
   if (!g[AGENT_CACHE_KEY]) g[AGENT_CACHE_KEY] = new Map();

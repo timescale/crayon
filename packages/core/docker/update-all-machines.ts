@@ -1,18 +1,18 @@
 /**
- * Update all Fly machines across all ocrayon-dev-* apps to the latest image.
+ * Update all Fly machines across all crayon-dev-* apps to the latest image.
  *
  * Usage:
  *   npx tsx update-all-machines.ts [image] [--app <app-name>]
  *
- * Defaults image to registry.fly.io/ocrayon-cloud-dev-image:latest.
- * Use --app to update only a specific ocrayon-dev-* app.
+ * Defaults image to registry.fly.io/crayon-cloud-dev-image:latest.
+ * Use --app to update only a specific crayon-dev-* app.
  * Requires flyctl to be installed and authenticated.
  */
 
 import { execFile } from "node:child_process";
 import { execSync } from "node:child_process";
 
-const DEFAULT_IMAGE = "registry.fly.io/ocrayon-cloud-dev-image:latest";
+const DEFAULT_IMAGE = "registry.fly.io/crayon-cloud-dev-image:latest";
 
 function flyctl(args: string, timeoutMs = 30_000): string {
   return execSync(`flyctl ${args}`, { stdio: "pipe", timeout: timeoutMs }).toString("utf-8").trim();
@@ -79,11 +79,11 @@ async function main() {
     const appsJson = JSON.parse(flyctl("apps list --json")) as App[];
     apps = appsJson
       .map((a) => a.Name ?? a.name ?? "")
-      .filter((name) => name.startsWith("ocrayon-dev-"));
+      .filter((name) => name.startsWith("crayon-dev-"));
   }
 
   if (apps.length === 0) {
-    console.log("No ocrayon-dev-* apps found.");
+    console.log("No crayon-dev-* apps found.");
     return;
   }
 

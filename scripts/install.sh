@@ -120,7 +120,7 @@ install_claude() {
 # ── Shell alias ──────────────────────────────────────────────────────────────
 
 setup_alias() {
-  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error crayon@dev'"
+  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error @crayon/cli@dev'"
   local alias_comment="# crayon CLI alias"
   local added_to=""
 
@@ -189,7 +189,7 @@ main() {
   printf "\n"
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
-  printf "${CYAN}    source ${rc_file} && crayon cloud run${RESET}\n\n" >&2
+  printf "${CYAN}    source ${rc_file} && crayon run${RESET}\n\n" >&2
 }
 
 main "$@"

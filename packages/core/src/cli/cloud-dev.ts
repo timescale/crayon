@@ -182,15 +182,15 @@ export async function runCloudRun(): Promise<void> {
 
   // ── Step 7: Collect all env vars for the machine ─────────────
   const { getToken } = await import("../connections/cloud-auth.js");
-  const ocrayonToken = getToken();
+  const crayonToken = getToken();
 
   const machineEnvVars: Record<string, string> = {
       ...claudeCreds,
       ...dbEnvVars,
     };
 
-    if (ocrayonToken) {
-      machineEnvVars.CRAYON_TOKEN = ocrayonToken;
+    if (crayonToken) {
+      machineEnvVars.CRAYON_TOKEN = crayonToken;
     }
 
     // ── Step 8: Create cloud dev machine via auth-server ─────────

@@ -76,7 +76,7 @@ export interface Crayon {
 
 **Step 2: Run TypeScript to verify types compile**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core build`
 Expected: Successful compilation
 
 **Step 3: Commit**
@@ -137,7 +137,7 @@ describe("Node.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../node.js'
 
 **Step 3: Write Node.create() implementation**
@@ -177,7 +177,7 @@ export const Node = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -239,7 +239,7 @@ describe("Workflow.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../workflow.js'
 
 **Step 3: Write Workflow.create() implementation**
@@ -289,7 +289,7 @@ export const Workflow = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -347,7 +347,7 @@ describe("Agent.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../agent.js'
 
 **Step 3: Write Agent.create() stub implementation**
@@ -399,7 +399,7 @@ export const Agent = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -492,7 +492,7 @@ describe("Registry", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../registry.js'
 
 **Step 3: Write Registry implementation**
@@ -554,7 +554,7 @@ export class Registry {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -631,7 +631,7 @@ describe("createWorkflowContext()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../context.js'
 
 **Step 3: Write createWorkflowContext implementation**
@@ -683,7 +683,7 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -791,7 +791,7 @@ describe("DBOS integration", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Cannot find module '../dbos.js'
 
 **Step 3: Write DBOS integration**
@@ -854,7 +854,7 @@ export function createDurableContext(): WorkflowContext {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -1022,7 +1022,7 @@ describe("createCrayon()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: FAIL - Tests fail because factory.ts has placeholder implementation
 
 **Step 3: Write createCrayon implementation**
@@ -1075,7 +1075,7 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -1124,7 +1124,7 @@ export type {
 
 **Step 2: Verify build succeeds**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core build`
 Expected: Successful compilation
 
 **Step 3: Commit**
@@ -1260,7 +1260,7 @@ describe("crayon integration", () => {
 
 **Step 2: Run all tests**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: All tests PASS
 
 **Step 3: Commit**
@@ -1276,17 +1276,17 @@ git commit -m "test(core): add integration tests for complete workflows"
 
 **Step 1: Run full test suite**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core test`
 Expected: All tests pass
 
 **Step 2: Verify build**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core build`
 Expected: Successful compilation with no errors
 
 **Step 3: Verify TypeScript types**
 
-Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon exec tsc --noEmit`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter @crayon/core exec tsc --noEmit`
 Expected: No type errors
 
 **Step 4: Final commit**

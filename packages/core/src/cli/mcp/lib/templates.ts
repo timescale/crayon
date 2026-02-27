@@ -11,7 +11,7 @@ import { templatesDir } from "../config.js";
 
 export interface AppTemplateVars {
   app_name: string;
-  ocrayon_version: string;
+  crayon_version: string;
 }
 
 type ContentTransform = (content: string) => string;

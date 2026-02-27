@@ -2,7 +2,7 @@ import { ConnectionCredentials } from "../types.js";
 
 // Use dynamic import to avoid hard dependency when Nango isn't configured.
 // Stored on globalThis so it's shared across module instances (jiti vs compiled).
-const NANGO_KEY = Symbol.for("ocrayon.nangoInstance");
+const NANGO_KEY = Symbol.for("crayon.nangoInstance");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getNangoInstance(): any | null {

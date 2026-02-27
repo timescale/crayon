@@ -1,5 +1,5 @@
 {
-  "name": "crayon",
+  "name": "@crayon/core",
   "version": "0.1.0",
   "type": "module",
   "repository": {
@@ -19,6 +19,10 @@
     "./schema-ops": {
       "types": "./dist/cli/mcp/lib/schema-ops.d.ts",
       "import": "./dist/cli/mcp/lib/schema-ops.js"
+    },
+    "./cli/cloud-dev": {
+      "types": "./dist/cli/cloud-dev.d.ts",
+      "import": "./dist/cli/cloud-dev.js"
     }
   },
   "files": [
