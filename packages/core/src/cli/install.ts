@@ -155,7 +155,7 @@ export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "
   try {
     const marketplaceSource = mcpResult.isLocal && mcpResult.packageRoot
       ? mcpResult.packageRoot
-      : "timescale/0pflow";
+      : "timescale/crayon";
     execSync(`claude plugin marketplace add ${marketplaceSource}`, { stdio });
     return { success: true };
   } catch (err) {
