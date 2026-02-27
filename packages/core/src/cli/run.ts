@@ -207,14 +207,6 @@ function discoverProjects(): ProjectInfo[] {
   return projects;
 }
 
-const WELCOME_PROMPT =
-  "Welcome to your crayon project! What workflow would you like to create? Here are some ideas:\n\n" +
-  '- "Enrich leads from a CSV file with company data"\n' +
-  '- "Monitor website uptime and send Slack alerts"\n' +
-  '- "Sync Salesforce contacts to our database nightly"\n' +
-  '- "Score and route inbound leads based on firmographics"\n\n' +
-  "Describe what you'd like to automate and I'll help you build it with /create-workflow.";
-
 async function launchExistingProject(projectPath: string): Promise<void> {
   // Check if database is paused and start it if needed
   try {
@@ -284,7 +276,6 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
     nangoSecretKey: process.env.NANGO_SECRET_KEY,
     claudePluginDir: pluginDir,
     claudeSkipPermissions: yolo,
-    claudePrompt: WELCOME_PROMPT,
   });
 
   // Open browser

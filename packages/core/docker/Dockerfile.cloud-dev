@@ -11,6 +11,39 @@ RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-serve
 # This means users can run `npm install` without extra flags and still hit the cache.
 RUN npm config set cache /npm-cache --global
 
+# Install Claude Code CLI early so this layer is cached independently of crayon changes.
+# The _setup user is reused later by `crayon install` to register the plugin.
+RUN groupadd -f devs && \
+    useradd -m -s /bin/bash -g devs _setup && \
+    su -s /bin/bash _setup -c "curl -fsSL https://claude.ai/install.sh | bash" && \
+    ln -sf /home/_setup/.local/bin/claude /usr/local/bin/claude
+
+# Pre-install app template node_modules at /node_modules so Node.js finds them
+# via standard parent-directory resolution from /data/app (no NODE_PATH needed).
+# The template package.json has Handlebars placeholders (e.g. {{crayon_version}})
+# that must be resolved before npm install can parse it.
+#
+# Step 1: Get the template package.json into /tmp/cache-build/.
+# For local builds, build-dev.sh copies it into the build context.
+# For npm builds, download the tarball and extract just the template.
+COPY entrypoint.sh template-package.json* /tmp/
+RUN mkdir -p /tmp/cache-build && \
+    if [ "$CRAYON_SOURCE" = "local" ]; then \
+      mv /tmp/template-package.json /tmp/cache-build/package.json; \
+    else \
+      npm pack runcrayon@dev --pack-destination /tmp && \
+      tar -xzf /tmp/runcrayon-*.tgz -C /tmp/cache-build --strip-components=3 package/templates/app/package.json && \
+      rm -f /tmp/runcrayon-*.tgz; \
+    fi
+
+# Step 2: Install template deps. This layer caches when deps don't change.
+RUN cd /tmp/cache-build && \
+    sed -i 's/{{crayon_version}}/dev/g' package.json && \
+    sed -i 's/{{app_name}}/cache-app/g' package.json && \
+    npm install && \
+    mv node_modules / && \
+    rm -rf /tmp/cache-build
+
 # runcrayon — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
@@ -23,36 +56,19 @@ RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/nu
     else \
       npm install -g runcrayon@dev; \
     fi && \
-    rm -rf /tmp/build
-
-# Pre-install app template node_modules at /node_modules so Node.js finds them
-# via standard parent-directory resolution from /data/app (no NODE_PATH needed).
-# The template package.json has Handlebars placeholders (e.g. {{crayon_version}})
-# that must be resolved before npm install can parse it.
-RUN GLOBAL_MODULES="$(npm root -g)" && \
-    TEMPLATE_DIR="$GLOBAL_MODULES/runcrayon/templates/app" && \
-    mkdir -p /tmp/cache-build && cp "$TEMPLATE_DIR/package.json" /tmp/cache-build/ && \
-    cd /tmp/cache-build && sed -i 's/{{crayon_version}}/dev/g' package.json && \
-    sed -i 's/{{app_name}}/cache-app/g' package.json && \
-    npm install && \
-    mv node_modules / && \
-    rm -rf /tmp/cache-build && \
+    rm -rf /tmp/build && \
     rm -rf /node_modules/runcrayon && \
-    ln -s "$GLOBAL_MODULES/runcrayon" /node_modules/runcrayon
+    ln -s "$(npm root -g)/runcrayon" /node_modules/runcrayon
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
 # /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.
 RUN chmod -R a+rwx /npm-cache
 ENV PATH=/node_modules/.bin:$PATH
 
-# Pre-run claude install + crayon install as a temp user, then save to /etc/skel.
+# Register crayon plugin with the _setup user created earlier, then bake into /etc/skel.
 # useradd -m copies /etc/skel into new home dirs, so runtime users get Claude Code
 # + plugin/marketplace registration without the slow setup on every boot.
-RUN groupadd -f devs && \
-    useradd -m -s /bin/bash -g devs _setup && \
-    su -s /bin/bash _setup -c "curl -fsSL https://claude.ai/install.sh | bash" && \
-    ln -sf /home/_setup/.local/bin/claude /usr/local/bin/claude && \
-    CRAYON="$(npm prefix -g)/bin/crayon" && \
+RUN CRAYON="$(npm prefix -g)/bin/crayon" && \
     su -s /bin/bash _setup -c "$CRAYON install --force" && \
     test -f /home/_setup/.claude/settings.json || { echo "ERROR: crayon plugin not registered"; exit 1; } && \
     cp -a /home/_setup/. /etc/skel/ && \

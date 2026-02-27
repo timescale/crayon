@@ -69,7 +69,7 @@ export function DashboardPage({ workflows, parseErrors, onSelectWorkflow }: Dash
             </div>
             <p className="text-[15px] text-[#1a1a1a] font-medium">No workflows yet</p>
             <p className="text-[13px] text-[#a8a099] mt-1.5 max-w-sm">
-              Create a workflow file in your project to get started. Use Claude Code to generate one.
+              Go to the <a href="#/canvas" className="underline text-[#1a1a1a] hover:text-[#000]">Canvas</a> tab to create workflows.
             </p>
           </div>
         ) : (

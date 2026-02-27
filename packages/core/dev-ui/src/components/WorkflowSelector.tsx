@@ -20,7 +20,7 @@ export function WorkflowSelector({
       </h2>
 
       {workflows.length === 0 && parseErrors.length === 0 && (
-        <p className="text-xs text-[#a8a099] italic">No workflows found</p>
+        <p className="text-xs text-[#a8a099] italic">No workflows yet — create one with Claude Code</p>
       )}
 
       {workflows.map((w) => (

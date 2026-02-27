@@ -6,6 +6,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 export interface UseTerminalOptions {
   sendMessage: (msg: object) => void;
   ptyEvents: EventTarget;
+  connected: boolean;
 }
 
 function createTerminal(sendRef: React.MutableRefObject<(msg: object) => void>) {
@@ -53,7 +54,7 @@ function createTerminal(sendRef: React.MutableRefObject<(msg: object) => void>) 
   return { term, fitAddon };
 }
 
-export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
+export function useTerminal({ sendMessage, ptyEvents, connected }: UseTerminalOptions) {
   const [ptyAlive, setPtyAlive] = useState(false);
   const [hasData, setHasData] = useState(false);
 
@@ -116,6 +117,18 @@ export function useTerminal({ sendMessage, ptyEvents }: UseTerminalOptions) {
       ptyEvents.removeEventListener("spawned", onSpawned);
     };
   }, [ptyEvents, term]);
+
+  // When WebSocket connects (or reconnects), ensure PTY is spawned with correct size.
+  // The initial pty-resize from attachTo may have been lost if the WS wasn't open yet.
+  useEffect(() => {
+    if (connected && !ptyAlive && openedRef.current) {
+      fitAddon.fit();
+      sendRef.current({
+        type: "pty-resize",
+        data: { cols: term.cols, rows: term.rows },
+      });
+    }
+  }, [connected, ptyAlive, term, fitAddon]);
 
   const attachTo = useCallback(
     (container: HTMLDivElement | null) => {

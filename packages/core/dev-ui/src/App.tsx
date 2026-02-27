@@ -18,7 +18,7 @@ import { DashboardPage } from "./components/DashboardPage";
 
 export function App() {
   const { state, connected, sendMessage, ptyEvents } = useDAGSocket();
-  const terminal = useTerminal({ sendMessage, ptyEvents });
+  const terminal = useTerminal({ sendMessage, ptyEvents, connected });
   const connectionsApi = useConnections();
   const router = useHashRouter();
   const sidebar = useSidebarState();
@@ -209,8 +209,16 @@ export function App() {
                   </div>
                 </ReactFlowProvider>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  Waiting for workflow files...
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-4">
+                  <p className="font-medium">Create a workflow with Claude Code</p>
+                  <ul className="list-none space-y-1.5 text-xs text-center">
+                    <li>"Create workflow to qualify inbound leads and route to sales reps"</li>
+                    <li>"Create workflow to track competitor pricing and alert on changes"</li>
+                    <li>"Create workflow to generate weekly pipeline reports from CRM data"</li>
+                  </ul>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-2 animate-bounce">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
                 </div>
               )}
 

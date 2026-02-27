@@ -31,6 +31,7 @@ echo "==> Packing tarball..."
 cd "$CORE_DIR"
 rm -f docker/runcrayon-*.tgz
 npm pack --pack-destination docker/
+cp templates/app/package.json docker/template-package.json
 
 echo "==> Building and pushing Docker image (tag: $TAG)..."
 cd "$SCRIPT_DIR"

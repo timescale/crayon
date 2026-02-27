@@ -53,7 +53,6 @@ export interface DevServerOptions {
   nangoSecretKey?: string;
   claudePluginDir?: string;
   claudeSkipPermissions?: boolean;
-  claudePrompt?: string;
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -156,16 +155,27 @@ export async function startDevServer(options: DevServerOptions) {
   let ptyManager: PtyManager | null = null;
 
   const onClientMessage = (_ws: import("ws").WebSocket, msg: WSClientMessage) => {
-    if (!ptyManager) return;
+    if (!ptyManager) {
+      console.log(`[dev-server] Ignoring ${msg.type}: ptyManager is null (node-pty not available)`);
+      return;
+    }
     switch (msg.type) {
       case "pty-input":
         ptyManager.write(msg.data);
         break;
       case "pty-resize":
-        ptyManager.resize(msg.data.cols, msg.data.rows);
+        if (!ptyManager.isAlive()) {
+          // First resize from client — spawn PTY with correct dimensions
+          console.log(`[dev-server] First pty-resize, spawning PTY (${msg.data.cols}x${msg.data.rows})`);
+          const pid = ptyManager.spawn(msg.data.cols, msg.data.rows);
+          broadcast({ type: "pty-spawned", data: { pid } });
+        } else {
+          ptyManager.resize(msg.data.cols, msg.data.rows);
+        }
         break;
       case "pty-spawn":
         if (!ptyManager.isAlive()) {
+          console.log("[dev-server] pty-spawn received, spawning PTY");
           const pid = ptyManager.spawn();
           broadcast({ type: "pty-spawned", data: { pid } });
         }
@@ -183,12 +193,12 @@ export async function startDevServer(options: DevServerOptions) {
       claudeArgs: [
         ...(options.claudePluginDir ? ["--plugin-dir", options.claudePluginDir] : []),
         ...(options.claudeSkipPermissions ? ["--dangerously-skip-permissions"] : []),
-        ...(options.claudePrompt ? ["--", options.claudePrompt] : []),
       ],
       onData: (data) => broadcast({ type: "pty-data", data }),
       onExit: (code) => broadcast({ type: "pty-exit", data: { code } }),
     });
-  } catch {
+  } catch (err) {
+    console.log(`[dev-server] Failed to load node-pty: ${err}`);
     if (!options.quiet) {
       console.log("  Terminal: unavailable (node-pty not installed)\n");
     }
@@ -200,20 +210,7 @@ export async function startDevServer(options: DevServerOptions) {
     onMessage: (msg) => broadcast(msg),
   });
 
-  // Auto-spawn Claude Code PTY
-  if (ptyManager) {
-    try {
-      const pid = ptyManager.spawn();
-      if (options.verbose) {
-        console.log(`  Terminal: Claude Code running (PID ${pid})\n`);
-      }
-    } catch (err) {
-      if (!options.quiet) {
-        console.log(`  Terminal: failed to spawn claude (${err instanceof Error ? err.message : err})\n`);
-      }
-      ptyManager = null;
-    }
-  }
+  // PTY spawns on first client pty-resize so it starts with correct dimensions
 
   // On new WS connection, wait for initial scan then send full state
   wss.on("connection", async (ws) => {
