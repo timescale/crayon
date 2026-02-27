@@ -384,6 +384,7 @@ export async function handleDestroy(): Promise<void> {
 
   const confirm = await p.confirm({
     message: `Destroy workspace "${appName}"? This permanently deletes all workflows, code, and data in the workspace and cannot be undone.`,
+    initialValue: false,
   });
 
   if (p.isCancel(confirm) || !confirm) {
