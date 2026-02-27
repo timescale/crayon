@@ -155,11 +155,15 @@ export function sendUnauthorized(res: ServerResponse): void {
   );
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 function errorHtml(message: string): string {
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Auth Error</title>
 <style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#faf9f7;color:#1a1a1a}
 .c{text-align:center;max-width:400px}a{color:#1a1a1a}</style></head>
-<body><div class="c"><h2>Authentication Error</h2><p>${message}</p>
+<body><div class="c"><h2>Authentication Error</h2><p>${escapeHtml(message)}</p>
 <p><a href="/dev/">Return to Dev UI</a></p></div></body></html>`;
 }
