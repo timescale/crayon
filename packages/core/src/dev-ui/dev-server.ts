@@ -10,6 +10,7 @@ import { createWatcher } from "./watcher.js";
 import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
 import { handleDeployRequest } from "./deploy-api.js";
+import { proxyToUserApp } from "./proxy.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { ensureConnectionsTable } from "../connections/schema.js";
 import { getAppSchema } from "../cli/app.js";
@@ -89,66 +90,85 @@ export async function startDevServer(options: DevServerOptions) {
     // Skip WebSocket upgrade requests
     if (req.headers.upgrade) return;
 
-    const url = (req.url ?? "/").split("?")[0];
+    const fullUrl = req.url ?? "/";
+    const url = fullUrl.split("?")[0];
 
-    // Claude command hint (no database required)
-    if (url === "/api/claude-command" && req.method === "GET") {
-      const isCloud = !!process.env.FLY_APP_NAME;
-      const appName = process.env.APP_NAME;
-      res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
-      res.end(JSON.stringify({ projectRoot, isCloud, appName }));
+    // ── Dev UI routes (under /dev/) ──────────────────────────────────
+    if (url === "/dev" || url.startsWith("/dev/")) {
+      // Strip /dev prefix so existing API handlers work unchanged
+      const devPath = url === "/dev" ? "/" : url.slice(4); // "/dev/api/runs" → "/api/runs"
+
+      // Claude command hint (no database required)
+      if (devPath === "/api/claude-command" && req.method === "GET") {
+        const isCloud = !!process.env.FLY_APP_NAME;
+        const appName = process.env.APP_NAME;
+        res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+        res.end(JSON.stringify({ projectRoot, isCloud, appName }));
+        return;
+      }
+
+      // Deploy endpoint (no database required)
+      if (devPath === "/api/deploy") {
+        try {
+          // Temporarily rewrite req.url so deploy-api sees /api/deploy
+          const origUrl = req.url;
+          req.url = fullUrl.replace(/^\/dev/, "");
+          const handled = await handleDeployRequest(req, res, projectRoot);
+          req.url = origUrl;
+          if (handled) return;
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
+          return;
+        }
+      }
+
+      // Route /dev/api/* to API handler
+      if (devPath.startsWith("/api/") && hasApi && pool) {
+        try {
+          const origUrl = req.url;
+          req.url = fullUrl.replace(/^\/dev/, "");
+          const handled = await handleApiRequest(req, res, {
+            pool,
+            integrationProvider: integrationProvider!,
+            schema: dbosSchema,
+            appSchema,
+            projectRoot,
+          });
+          req.url = origUrl;
+          if (handled) return;
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
+          return;
+        }
+      }
+
+      // Serve static files (strip /dev/ prefix)
+      const filePath = devPath === "/" ? "index.html" : devPath.slice(1);
+      const absPath = resolve(clientDir, filePath);
+
+      try {
+        const body = await readFile(absPath);
+        const ext = extname(absPath);
+        res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+        res.end(body);
+      } catch {
+        // SPA fallback — serve index.html for unmatched /dev/* routes
+        try {
+          const indexBody = await readFile(resolve(clientDir, "index.html"));
+          res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+          res.end(indexBody);
+        } catch {
+          res.writeHead(500, { "Content-Type": "text/plain" });
+          res.end("Dev UI client not built. Run: pnpm --filter runcrayon build");
+        }
+      }
       return;
     }
 
-    // Deploy endpoint (no database required)
-    if (url === "/api/deploy") {
-      try {
-        const handled = await handleDeployRequest(req, res, projectRoot);
-        if (handled) return;
-      } catch (err) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
-        return;
-      }
-    }
-
-    // Route /api/* to API handler
-    if (url.startsWith("/api/") && hasApi && pool) {
-      try {
-        const handled = await handleApiRequest(req, res, {
-          pool,
-          integrationProvider: integrationProvider!,
-          schema: dbosSchema,
-          appSchema,
-          projectRoot,
-        });
-        if (handled) return;
-      } catch (err) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
-        return;
-      }
-    }
-
-    const filePath = url === "/" ? "index.html" : url.slice(1);
-    const absPath = resolve(clientDir, filePath);
-
-    try {
-      const body = await readFile(absPath);
-      const ext = extname(absPath);
-      res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
-      res.end(body);
-    } catch {
-      // SPA fallback — serve index.html for unmatched routes
-      try {
-        const indexBody = await readFile(resolve(clientDir, "index.html"));
-        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        res.end(indexBody);
-      } catch {
-        res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Dev UI client not built. Run: pnpm --filter runcrayon build");
-      }
-    }
+    // ── User app proxy (everything outside /dev/) ────────────────────
+    proxyToUserApp(req, res);
   });
 
   // Set up PTY manager for embedded Claude Code terminal
@@ -259,8 +279,8 @@ export async function startDevServer(options: DevServerOptions) {
 
   const flyAppName = process.env.FLY_APP_NAME;
   const url = flyAppName
-    ? `https://${flyAppName}.fly.dev`
-    : `http://localhost:${actualPort}`;
+    ? `https://${flyAppName}.fly.dev/dev/`
+    : `http://localhost:${actualPort}/dev/`;
 
   if (!options.quiet) {
     console.log(`\n  Open your browser to ${url}\n`);

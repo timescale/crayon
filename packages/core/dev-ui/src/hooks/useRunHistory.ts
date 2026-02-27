@@ -17,7 +17,7 @@ export function useRunHistory(workflowFilter: string | null) {
       const params = new URLSearchParams();
       if (workflowFilter) params.set("workflow", workflowFilter);
       params.set("limit", "50");
-      const res = await fetch(`/api/runs?${params}`);
+      const res = await fetch(`/dev/api/runs?${params}`);
       if (res.ok) {
         setRuns(await res.json());
         setAvailable(true);
@@ -48,7 +48,7 @@ export function useRunHistory(workflowFilter: string | null) {
     }
     setTraceLoading(true);
     try {
-      const res = await fetch(`/api/runs/${runId}/trace`);
+      const res = await fetch(`/dev/api/runs/${runId}/trace`);
       if (res.ok) {
         setTrace(await res.json());
       }

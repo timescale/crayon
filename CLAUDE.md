@@ -138,6 +138,33 @@ my-app/
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
 
+### Testing Local Changes Against Cloud
+
+To test local core changes on a cloud dev machine:
+
+1. **Build & push a Docker image with your changes:**
+   ```bash
+   cd packages/core/docker && ./build-dev.sh <tag>
+   ```
+   This builds the core package, packs it, builds/pushes the Docker image to `registry.fly.io/crayon-cloud-dev-image:<tag>`, and updates `CLOUD_DEV_IMAGE` in `packages/auth-server/.env.local`.
+
+2. **Start the local auth server** (separate terminal):
+   ```bash
+   cd packages/auth-server && pnpm dev
+   ```
+
+3. **Create a new cloud machine using the local auth server:**
+   ```bash
+   CRAYON_SERVER_URL=http://localhost:3000 pnpm --filter runcrayon exec node dist/cli/index.js cloud run
+   ```
+
+4. **Open the dev UI** at `https://<fly-app-name>.fly.dev/dev/`
+
+To update an existing cloud machine to a new image:
+```bash
+cd packages/core/docker && ./update-machines.sh <fly-app-name> [image]
+```
+
 ## Deployment
 
 - **auth-server:** `cd packages/auth-server && flyctl deploy`

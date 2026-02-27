@@ -124,7 +124,7 @@ export function CredentialsPage({ connectionsApi, workflows }: CredentialsPagePr
 
     setConnecting(true);
     try {
-      const res = await fetch("/api/nango/connect-session", {
+      const res = await fetch("/dev/api/nango/connect-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ integration_id: targetId }),

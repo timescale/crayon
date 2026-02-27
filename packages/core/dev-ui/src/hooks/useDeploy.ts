@@ -21,7 +21,7 @@ export function useDeploy() {
   // Fetch deploy URL and freshness on mount, then poll every 30s
   useEffect(() => {
     const check = () => {
-      fetch("/api/deploy")
+      fetch("/dev/api/deploy")
         .then((r) => r.json() as Promise<{ deployed: boolean; url?: string; freshness?: DeployFreshness }>)
         .then((data) => {
           if (data.deployed && data.url) {
@@ -40,7 +40,7 @@ export function useDeploy() {
     setState({ status: "deploying", message: "Starting deploy..." });
 
     try {
-      const res = await fetch("/api/deploy", { method: "POST" });
+      const res = await fetch("/dev/api/deploy", { method: "POST" });
 
       if (!res.ok) {
         setState({ status: "error", error: `Deploy request failed (HTTP ${res.status})` });

@@ -23,7 +23,7 @@ export function useConnections() {
 
   const fetchConnections = useCallback(async () => {
     try {
-      const res = await fetch("/api/connections");
+      const res = await fetch("/dev/api/connections");
       if (res.ok) {
         setConnections(await res.json());
       }
@@ -40,7 +40,7 @@ export function useConnections() {
 
   const upsert = useCallback(
     async (mapping: Omit<ConnectionMapping, "updated_at">) => {
-      await fetch("/api/connections", {
+      await fetch("/dev/api/connections", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mapping),
@@ -53,7 +53,7 @@ export function useConnections() {
 
   const remove = useCallback(
     async (workflowName: string, nodeName: string, integrationId: string) => {
-      await fetch("/api/connections", {
+      await fetch("/dev/api/connections", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -105,7 +105,7 @@ export function useNangoIntegrations() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/nango/integrations");
+        const res = await fetch("/dev/api/nango/integrations");
         if (res.ok) {
           setIntegrations(await res.json());
         }
@@ -128,7 +128,7 @@ export function useNangoConnections(integrationId: string | null, mutationVersio
     if (!integrationId) return [];
     setLoading(true);
     try {
-      const res = await fetch(`/api/nango/connections/${encodeURIComponent(integrationId)}`);
+      const res = await fetch(`/dev/api/nango/connections/${encodeURIComponent(integrationId)}`);
       if (res.ok) {
         const data: NangoConnection[] = await res.json();
         setNangoConnections(data);

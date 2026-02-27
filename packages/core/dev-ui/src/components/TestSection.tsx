@@ -46,7 +46,7 @@ export function TestSection({ dag, onSuccess }: TestSectionProps) {
 
     setRunning(true);
     try {
-      const res = await fetch(`/api/workflows/${encodeURIComponent(dag.workflowName)}/run`, {
+      const res = await fetch(`/dev/api/workflows/${encodeURIComponent(dag.workflowName)}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input }),

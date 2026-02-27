@@ -56,7 +56,7 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
 
   // Fetch claude command hint
   useEffect(() => {
-    fetch("/api/claude-command")
+    fetch("/dev/api/claude-command")
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.isCloud) {

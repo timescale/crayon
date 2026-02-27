@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "[ ! -f /tmp/node_modules.lock ] || flock /tmp/node_modules.lock true",
-    "postinstall": "rm -rf node_modules/runcrayon",
+    "postinstall": "[ -L node_modules/runcrayon ] || rm -rf node_modules/runcrayon",
     "prebuild": "crayon build",
     "build": "next build",
     "check": "biome check .",

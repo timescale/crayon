@@ -23,7 +23,7 @@ export function useDAGSocket() {
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//${window.location.host}`);
+    const ws = new WebSocket(`${protocol}//${window.location.host}/dev/ws`);
     wsRef.current = ws;
 
     ws.onopen = () => {

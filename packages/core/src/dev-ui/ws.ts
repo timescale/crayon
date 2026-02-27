@@ -21,7 +21,7 @@ export function createWSServer(
   httpServer: Server,
   onClientMessage?: (ws: WebSocket, message: WSClientMessage) => void,
 ) {
-  const wss = new WebSocketServer({ server: httpServer });
+  const wss = new WebSocketServer({ server: httpServer, path: "/dev/ws" });
 
   wss.on("connection", (ws) => {
     if (onClientMessage) {

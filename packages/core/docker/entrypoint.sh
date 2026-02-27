@@ -76,31 +76,23 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   log "  Running crayon init..."
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$CRAYON" init '$APP_NAME' --dir . --no-install"
 
-  # Copy pre-cached /node_modules onto the volume in the background.
-  # -L dereferences symlinks so all files land as real writable files (fixes
-  # npm EPERM when it tries to chmod bin entries on the overlay FS).
-  # Copies to a temp dir first, then renames atomically so if the dev server
-  # starts before the copy finishes, Node.js still resolves packages via
-  # parent-directory lookup to /node_modules.
-  log "  Starting node_modules population in background..."
-  touch /tmp/node_modules.lock  # create before forking so preinstall hook sees it immediately
+  # Copy pre-cached /node_modules onto the volume.
+  # Runs before the dev server starts so Turbopack can resolve packages.
+  log "  Populating node_modules..."
+  touch /tmp/node_modules.lock
   (
-    # Hold a flock for the duration of the copy so any concurrent `npm install`
-    # (e.g. from Claude) blocks in its preinstall hook until we finish.
     exec 9>/tmp/node_modules.lock
     flock 9
     rm -rf "$APP_DIR/node_modules_temp"
     cp -r /node_modules/. "$APP_DIR/node_modules_temp/"
     chown -R "$DEV_USER:devs" "$APP_DIR/node_modules_temp"
-    # mv is atomic on Linux (same filesystem) — either succeeds or fails if
-    # node_modules was created by a concurrent npm install. Either way is safe.
     if mv "$APP_DIR/node_modules_temp" "$APP_DIR/node_modules" 2>/dev/null; then
-      log "node_modules population complete"
+      log "  node_modules population complete"
     else
       rm -rf "$APP_DIR/node_modules_temp"
-      log "node_modules already exists (concurrent npm), discarding temp copy"
+      log "  node_modules already exists, discarding temp copy"
     fi
-  ) &
+  )
 
   log "  Scaffold complete"
 fi
@@ -112,11 +104,12 @@ fi
 #   echo "$BAD_FILES"
 # fi
 
-# ── Pin crayon to image version (every boot) ────────────────────────────
-# Remove any local copy so Node.js resolves via parent-directory lookup
-# to /node_modules/crayon (symlinked to the global install baked into the image).
-# This avoids a symlink in the app's node_modules that npm would try to chmod.
-rm -rf "$APP_DIR/node_modules/crayon"
+# ── Pin runcrayon to image version (every boot) ──────────────────────────
+# Replace any stale copy with a symlink to the global install baked into the image.
+if [ -d "$APP_DIR/node_modules" ]; then
+  rm -rf "$APP_DIR/node_modules/runcrayon" "$APP_DIR/node_modules/crayon"
+  ln -s "$(npm root -g)/runcrayon" "$APP_DIR/node_modules/runcrayon"
+fi
 
 # ── SSH server setup ──────────────────────────────────────────
 # Persist host keys on volume so they survive redeployments (avoids "host key changed" warnings)
