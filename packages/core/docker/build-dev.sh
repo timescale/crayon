@@ -25,7 +25,7 @@ npm pack --pack-destination docker/
 
 echo "==> Building and pushing Docker image (tag: $TAG)..."
 cd "$SCRIPT_DIR"
-flyctl deploy --build-only --push --image-label "$TAG" --build-arg OPFLOW_SOURCE=local --depot=false
+flyctl deploy --build-only --push --image-label "$TAG" --build-arg OPFLOW_SOURCE=local
 
 IMAGE="$REGISTRY:$TAG"
 echo "==> Updating CLOUD_DEV_IMAGE in $AUTH_ENV"
