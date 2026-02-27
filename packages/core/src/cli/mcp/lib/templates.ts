@@ -11,7 +11,7 @@ import { templatesDir } from "../config.js";
 
 export interface AppTemplateVars {
   app_name: string;
-  opflow_version: string;
+  ocrayon_version: string;
 }
 
 type ContentTransform = (content: string) => string;
@@ -86,9 +86,9 @@ export async function writeAppTemplates(
 }
 
 /**
- * Create 0pflow-specific directories in the app
+ * Create crayon-specific directories in the app
  */
-export async function create0pflowDirectories(destDir: string): Promise<void> {
+export async function createCrayonDirectories(destDir: string): Promise<void> {
   const dirs = [
     "specs/workflows",
     "specs/agents",

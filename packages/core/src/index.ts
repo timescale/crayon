@@ -1,9 +1,9 @@
 // packages/core/src/index.ts
-// 0pflow - AI-native workflow engine
+// crayon - AI-native workflow engine
 export const VERSION = "0.1.0";
 
 // Factory
-export { create0pflow } from "./factory.js";
+export { createCrayon } from "./factory.js";
 export { getSchemaName } from "./dbos.js";
 
 // Discovery (CLI / non-bundled environments)
@@ -68,7 +68,7 @@ export type {
   Executable,
   WorkflowContext,
   LogLevel,
-  PflowConfig,
-  Pflow,
+  CrayonConfig,
+  Crayon,
 } from "./types.js";
 export { ConnectionCredentials } from "./types.js";

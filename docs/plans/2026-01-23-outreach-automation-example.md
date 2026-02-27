@@ -1,9 +1,9 @@
 # Outreach Automation Example
 
 **Date:** 2026-01-23
-**Purpose:** Reference implementation to validate 0pflow design
+**Purpose:** Reference implementation to validate crayon design
 
-This document describes how to implement the [outreach-automation](../../outreach-automation) project using 0pflow. This serves as the primary example app to validate that the 0pflow design works for real-world GTM automation use cases.
+This document describes how to implement the [outreach-automation](../../outreach-automation) project using crayon. This serves as the primary example app to validate that the crayon design works for real-world GTM automation use cases.
 
 ## Overview
 
@@ -13,7 +13,7 @@ The outreach-automation project has three main workflows:
 2. **Meeting Processing Pipeline** - Download transcripts → extract companies → group → enrich from Salesforce → classify
 3. **Outreach Sequence Generation** - Given research data, generate personalized 5-email sales sequences
 
-We'll implement all three as 0pflow workflows.
+We'll implement all three as crayon workflows.
 
 ---
 
@@ -598,7 +598,7 @@ Given company research and social proof, create a compelling email sequence.
 ### `src/tools/browser/navigate.ts`
 
 ```typescript
-import { ToolDefinition } from '0pflow';
+import { ToolDefinition } from 'crayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const navigate: ToolDefinition = {
@@ -622,7 +622,7 @@ export const navigate: ToolDefinition = {
 ### `src/tools/browser/click.ts`
 
 ```typescript
-import { ToolDefinition } from '0pflow';
+import { ToolDefinition } from 'crayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const click: ToolDefinition = {
@@ -646,7 +646,7 @@ export const click: ToolDefinition = {
 ### `src/tools/browser/getText.ts`
 
 ```typescript
-import { ToolDefinition } from '0pflow';
+import { ToolDefinition } from 'crayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const getText: ToolDefinition = {
@@ -674,7 +674,7 @@ export const getText: ToolDefinition = {
 ### `src/tools/embeddings/similaritySearch.ts`
 
 ```typescript
-import { ToolDefinition } from '0pflow';
+import { ToolDefinition } from 'crayon';
 import { db } from '../lib/db';
 
 export const similaritySearch: ToolDefinition = {
@@ -710,7 +710,7 @@ For steps that don't need agentic behavior, we use function nodes.
 ### `src/nodes/find-similar-customers.ts`
 
 ```typescript
-import { NodeDefinition } from '0pflow';
+import { NodeDefinition } from 'crayon';
 import { generateEmbedding } from '../tools/embeddings/generate';
 import { db } from '../lib/db';
 
@@ -748,7 +748,7 @@ export const findSimilarCustomers: NodeDefinition<FindSimilarInput> = {
 ### `src/nodes/download-transcripts.ts`
 
 ```typescript
-import { NodeDefinition } from '0pflow';
+import { NodeDefinition } from 'crayon';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -803,7 +803,7 @@ The compiler generates TypeScript from specs. Example for company-research:
 ### `generated/workflows/company-research.ts`
 
 ```typescript
-import { Workflow, WorkflowContext } from '0pflow';
+import { Workflow, WorkflowContext } from 'crayon';
 
 interface CompanyResearchInputs {
   company_name: string;
@@ -905,7 +905,7 @@ export const companyResearch = Workflow.create({
 
 ## Mapping from Original Code
 
-| Original File | 0pflow Equivalent |
+| Original File | crayon Equivalent |
 |---------------|-------------------|
 | `integrated-research.ts` | `specs/workflows/company-research.md` |
 | `browser-automation/linkedin-company-data-agent.ts` | `specs/agents/linkedin-data-extractor.md` |
@@ -919,7 +919,7 @@ export const companyResearch = Workflow.create({
 | `pipeline/group-meetings.ts` | `specs/agents/company-grouper.md` |
 | `pipeline/classify-companies.ts` | `specs/agents/company-classifier.md` |
 | `cached-research-agents.ts` | User implements caching in tools |
-| `main-slack.ts` | User's app code (calls `pflow.triggerWorkflow`) |
+| `main-slack.ts` | User's app code (calls `crayon.triggerWorkflow`) |
 
 ---
 
@@ -927,15 +927,15 @@ export const companyResearch = Workflow.create({
 
 1. **Separation of concerns** - Workflow orchestration (specs) is separate from agent behavior (agent specs) and tooling (src/tools)
 
-2. **Declarative workflows** - Original uses imperative TypeScript; 0pflow uses markdown specs compiled to TypeScript
+2. **Declarative workflows** - Original uses imperative TypeScript; crayon uses markdown specs compiled to TypeScript
 
-3. **Caching** - Original has `cachedResearchTechStack` etc. In 0pflow, users implement caching in their tool functions
+3. **Caching** - Original has `cachedResearchTechStack` etc. In crayon, users implement caching in their tool functions
 
-4. **Browser management** - Original manages Puppeteer lifecycle inline; 0pflow tools handle this via a shared browser factory
+4. **Browser management** - Original manages Puppeteer lifecycle inline; crayon tools handle this via a shared browser factory
 
-5. **LLM provider** - Original uses `@openai/agents`; 0pflow's pre-packaged agent node uses Vercel AI SDK (provider-agnostic)
+5. **LLM provider** - Original uses `@openai/agents`; crayon's pre-packaged agent node uses Vercel AI SDK (provider-agnostic)
 
-6. **Durability** - Original has no durability; 0pflow workflows are DBOS-backed with automatic recovery
+6. **Durability** - Original has no durability; crayon workflows are DBOS-backed with automatic recovery
 
 ---
 
@@ -943,7 +943,7 @@ export const companyResearch = Workflow.create({
 
 ```bash
 # Trigger company research
-0pflow run company-research --input '{"company_name": "Acme Corp"}'
+crayon run company-research --input '{"company_name": "Acme Corp"}'
 
 # Trigger via webhook
 curl -X POST http://localhost:3000/api/workflows/company-research/trigger \
@@ -951,8 +951,8 @@ curl -X POST http://localhost:3000/api/workflows/company-research/trigger \
   -d '{"company_name": "Acme Corp"}'
 
 # Run meeting pipeline
-0pflow run meeting-pipeline --input '{"s3_bucket": "my-transcripts"}'
+crayon run meeting-pipeline --input '{"s3_bucket": "my-transcripts"}'
 
 # Generate outreach sequence
-0pflow run outreach-sequence --input '{"company_name": "Acme Corp"}'
+crayon run outreach-sequence --input '{"company_name": "Acme Corp"}'
 ```

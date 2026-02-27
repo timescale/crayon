@@ -17,8 +17,8 @@ Refine node definitions in existing node and agent files. While create-workflow 
 ## Usage
 
 ```
-/0pflow:refine-node <workflow-name>
-/0pflow:refine-node <workflow-name> <node-name>
+/crayon:refine-node <workflow-name>
+/crayon:refine-node <workflow-name> <node-name>
 ```
 
 - With just workflow name: refines all unrefined nodes in the workflow
@@ -39,7 +39,7 @@ A node **needs refinement** if its `inputSchema` / `outputSchema` are still empt
 Before drafting, gather the information needed:
 
 1. **For nodes that interact with external systems** (Salesforce, HubSpot, Slack, etc.):
-   - Invoke `/0pflow:integrations` to determine which SDK/library/API to use
+   - Invoke `/crayon:integrations` to determine which SDK/library/API to use
    - For listed integrations: read the specific file (e.g., `salesforce.md`)
    - For unlisted systems: read `unlisted.md` and research the best option
    - **CRITICAL — Connection Gate:** Call `get_connection_info` for each integration the node needs. **If the call fails** (no connection configured), you MUST stop immediately. Do NOT create SDK files, client code, integration directories, or any implementation that depends on a live connection. Tell the user which connections are missing and ask them to set them up via the Credentials page in the Dev UI sidebar (in a cloud sandbox, this is the browser tab they already have open). Then say "continue" when ready.
@@ -70,7 +70,7 @@ Use your judgment to propose reasonable schemas and tool selections based on the
 
 | Category | Description | Examples |
 |----------|-------------|---------|
-| **Built-in nodes** | Ships with 0pflow | `webRead` |
+| **Built-in nodes** | Ships with crayon | `webRead` |
 | **Provider tools** | From AI SDK providers (see import below) | `openai.tools.webSearch()`, `openai.tools.codeInterpreter()` |
 | **User nodes** | Custom nodes in `src/nodes/` | `enrichCompany`, `sendSlackMessage` |
 
@@ -83,7 +83,7 @@ Common mappings:
 | Run Python code | `openai.tools.codeInterpreter()` | provider |
 | Domain-specific (CRM, email) | User must implement | user node |
 
-**Provider tool imports:** Provider tools require creating a provider instance from `@ai-sdk/openai` (NOT from `0pflow` or `openai`):
+**Provider tool imports:** Provider tools require creating a provider instance from `@ai-sdk/openai` (NOT from `crayon` or `openai`):
 ```typescript
 import { createOpenAI } from "@ai-sdk/openai";
 const openai = createOpenAI();
@@ -136,7 +136,7 @@ For each node/agent file (`src/nodes/<name>.ts` or `agents/<name>.ts`), update:
 After writing all refinements:
 
 - Tell the user the node files have been updated
-- Invoke `/0pflow:compile-workflow` to regenerate the workflow's `run()` method with proper types
+- Invoke `/crayon:compile-workflow` to regenerate the workflow's `run()` method with proper types
 
 ---
 

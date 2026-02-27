@@ -1,7 +1,7 @@
 // packages/core/src/__tests__/factory.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { create0pflow } from "../factory.js";
+import { createCrayon } from "../factory.js";
 import { Workflow } from "../workflow.js";
 import { Node } from "../node.js";
 
@@ -22,27 +22,27 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
   },
 }));
 
-describe("create0pflow()", () => {
+describe("createCrayon()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear globalThis singleton so each test gets a fresh create0pflow()
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.pflowInstance")];
+    // Clear globalThis singleton so each test gets a fresh createCrayon()
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.crayonInstance")];
     // Clear workflow cache so Workflow.create() re-registers
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.workflowCache")];
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.workflowCache")];
     // Clear agent cache
-    delete (globalThis as Record<symbol, unknown>)[Symbol.for("opflow.agentCache")];
+    delete (globalThis as Record<symbol, unknown>)[Symbol.for("ocrayon.agentCache")];
   });
 
-  it("initializes DBOS and returns pflow instance", async () => {
-    const pflow = await create0pflow({
+  it("initializes DBOS and returns crayon instance", async () => {
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
     });
 
-    expect(pflow).toBeDefined();
-    expect(typeof pflow.listWorkflows).toBe("function");
-    expect(typeof pflow.getWorkflow).toBe("function");
-    expect(typeof pflow.triggerWorkflow).toBe("function");
+    expect(crayon).toBeDefined();
+    expect(typeof crayon.listWorkflows).toBe("function");
+    expect(typeof crayon.getWorkflow).toBe("function");
+    expect(typeof crayon.triggerWorkflow).toBe("function");
   });
 
   it("listWorkflows returns registered workflow names", async () => {
@@ -54,13 +54,13 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
       workflows: { "test-workflow": workflow },
     });
 
-    expect(pflow.listWorkflows()).toEqual(["test-workflow"]);
+    expect(crayon.listWorkflows()).toEqual(["test-workflow"]);
   });
 
   it("getWorkflow returns workflow by name", async () => {
@@ -72,14 +72,14 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
       workflows: { "my-workflow": workflow },
     });
 
-    expect(pflow.getWorkflow("my-workflow")).toBe(workflow);
-    expect(pflow.getWorkflow("unknown")).toBeUndefined();
+    expect(crayon.getWorkflow("my-workflow")).toBe(workflow);
+    expect(crayon.getWorkflow("unknown")).toBeUndefined();
   });
 
   it("triggerWorkflow executes workflow by name", async () => {
@@ -91,23 +91,23 @@ describe("create0pflow()", () => {
       run: async (_ctx, inputs) => ({ echoed: inputs.message }),
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
       workflows: { echo: workflow },
     });
 
-    const result = await pflow.triggerWorkflow("echo", { message: "hello" });
+    const result = await crayon.triggerWorkflow("echo", { message: "hello" });
     expect(result).toEqual({ echoed: "hello" });
   });
 
   it("triggerWorkflow throws for unknown workflow", async () => {
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
     });
 
-    await expect(pflow.triggerWorkflow("unknown", {})).rejects.toThrow(
+    await expect(crayon.triggerWorkflow("unknown", {})).rejects.toThrow(
       'Workflow "unknown" not found'
     );
   });
@@ -121,13 +121,13 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
       workflows: { strict: workflow },
     });
 
-    await expect(pflow.triggerWorkflow("strict", {})).rejects.toThrow();
+    await expect(crayon.triggerWorkflow("strict", {})).rejects.toThrow();
   });
 
   it("workflows can use ctx.run to call nodes", async () => {
@@ -149,14 +149,14 @@ describe("create0pflow()", () => {
       },
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       appName: "test",
       workflows: { "double-workflow": workflow },
       nodes: { double: doubleNode },
     });
 
-    const result = await pflow.triggerWorkflow("double-workflow", { value: 5 });
+    const result = await crayon.triggerWorkflow("double-workflow", { value: 5 });
     expect(result).toEqual({ result: 10 });
   });
 });

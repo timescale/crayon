@@ -80,14 +80,14 @@ function collectClaudeCredentials(): Record<string, string> {
 // ── Main command ────────────────────────────────────────────────
 
 export async function runCloudRun(): Promise<void> {
-  p.intro(pc.bold("0pflow cloud run"));
+  p.intro(pc.bold("crayon cloud run"));
 
-  // ── Step 1: Authenticate with 0pflow cloud ────────────────────
+  // ── Step 1: Authenticate with crayon cloud ────────────────────
   if (!isAuthenticated()) {
-    p.log.info("Authenticating with 0pflow cloud...");
+    p.log.info("Authenticating with crayon cloud...");
     await authenticate();
     if (!isAuthenticated()) {
-      p.log.error("Not authenticated. Run `0pflow login` first.");
+      p.log.error("Not authenticated. Run `crayon login` first.");
       process.exit(1);
     }
   }
@@ -182,15 +182,15 @@ export async function runCloudRun(): Promise<void> {
 
   // ── Step 7: Collect all env vars for the machine ─────────────
   const { getToken } = await import("../connections/cloud-auth.js");
-  const opflowToken = getToken();
+  const ocrayonToken = getToken();
 
   const machineEnvVars: Record<string, string> = {
       ...claudeCreds,
       ...dbEnvVars,
     };
 
-    if (opflowToken) {
-      machineEnvVars.OPFLOW_TOKEN = opflowToken;
+    if (ocrayonToken) {
+      machineEnvVars.CRAYON_TOKEN = ocrayonToken;
     }
 
     // ── Step 8: Create cloud dev machine via auth-server ─────────
@@ -238,7 +238,7 @@ export async function runCloudRun(): Promise<void> {
         if (statusResult.status === "error") {
           s.stop(pc.red("Sandbox failed to start"));
           if (statusResult.error) p.log.error(statusResult.error);
-          p.log.error("Check logs with: 0pflow cloud status");
+          p.log.error("Check logs with: crayon cloud status");
           process.exit(1);
         }
 
@@ -251,7 +251,7 @@ export async function runCloudRun(): Promise<void> {
     s.stop(pc.yellow("Sandbox is still starting"));
     p.log.info(`URL: ${pc.cyan(createResult.appUrl)}`);
     p.log.info("Sandbox is taking longer than expected. Check status with:");
-    p.log.info("  0pflow cloud status");
+    p.log.info("  crayon cloud status");
     p.outro(pc.yellow("Cloud dev environment is starting..."));
 }
 
@@ -317,7 +317,7 @@ async function ensureAuth(): Promise<void> {
   if (!isAuthenticated()) {
     await authenticate();
     if (!isAuthenticated()) {
-      p.log.error("Not authenticated. Run `0pflow login` first.");
+      p.log.error("Not authenticated. Run `crayon login` first.");
       process.exit(1);
     }
   }
@@ -414,7 +414,7 @@ interface SSHKeyInfo {
   port: number;
 }
 
-const SSH_KEYS_DIR = join(homedir(), ".0pflow", "keys");
+const SSH_KEYS_DIR = join(homedir(), ".crayon", "keys");
 
 function getCachedKeyPath(appName: string): string {
   return join(SSH_KEYS_DIR, appName);

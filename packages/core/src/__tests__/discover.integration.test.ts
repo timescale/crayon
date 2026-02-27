@@ -16,29 +16,29 @@ let tempDir: string;
 let emptyDir: string;
 
 beforeAll(async () => {
-  tempDir = await mkdtemp(join(tmpdir(), "0pflow-discover-test-"));
-  emptyDir = await mkdtemp(join(tmpdir(), "0pflow-discover-empty-"));
+  tempDir = await mkdtemp(join(tmpdir(), "crayon-discover-test-"));
+  emptyDir = await mkdtemp(join(tmpdir(), "crayon-discover-empty-"));
 
-  // Create directory structure matching a 0pflow app
+  // Create directory structure matching a crayon app
   await mkdir(join(tempDir, "generated", "workflows"), { recursive: true });
   await mkdir(join(tempDir, "src", "nodes"), { recursive: true });
   await mkdir(join(tempDir, "agents"), { recursive: true });
 
-  // Symlink node_modules/0pflow → core package root (equivalent to npm link)
-  // This lets jiti resolve `import from "0pflow"` in the temp dir
+  // Symlink node_modules/crayon → core package root (equivalent to npm link)
+  // This lets jiti resolve `import from "crayon"` in the temp dir
   await mkdir(join(tempDir, "node_modules"), { recursive: true });
-  await symlink(CORE_PKG, join(tempDir, "node_modules", "0pflow"), "dir");
+  await symlink(CORE_PKG, join(tempDir, "node_modules", "crayon"), "dir");
 
   // Also symlink zod so test fixtures can import it
   const zodPkg = resolve(CORE_PKG, "node_modules", "zod");
   await symlink(zodPkg, join(tempDir, "node_modules", "zod"), "dir");
 
-  // Write a test workflow using the 0pflow package import
+  // Write a test workflow using the crayon package import
   await writeFile(
     join(tempDir, "generated", "workflows", "test-workflow.ts"),
     `
 import { z } from "zod";
-import { Workflow } from "0pflow";
+import { Workflow } from "crayon";
 
 export const testWorkflow = Workflow.create({
   name: "test-workflow",
@@ -53,12 +53,12 @@ export const testWorkflow = Workflow.create({
 `,
   );
 
-  // Write a test node using the 0pflow package import
+  // Write a test node using the crayon package import
   await writeFile(
     join(tempDir, "src", "nodes", "test-node.ts"),
     `
 import { z } from "zod";
-import { Node } from "0pflow";
+import { Node } from "crayon";
 
 export const testNode = Node.create({
   name: "test-node",
@@ -116,10 +116,10 @@ describe("discover()", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("returns result shape compatible with create0pflow", async () => {
+  it("returns result shape compatible with createCrayon", async () => {
     const result = await discover(tempDir);
 
-    // Verify the shape has the keys create0pflow expects
+    // Verify the shape has the keys createCrayon expects
     expect(result).toHaveProperty("workflows");
     expect(result).toHaveProperty("agents");
     expect(result).toHaveProperty("nodes");

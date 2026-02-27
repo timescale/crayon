@@ -8,9 +8,9 @@ export interface ConnectionMapping {
   updated_at?: Date;
 }
 
-/** Schema-qualified table reference for opflow_connections */
+/** Schema-qualified table reference for ocrayon_connections */
 function table(schema: string): string {
-  return `"${schema}".opflow_connections`;
+  return `"${schema}".ocrayon_connections`;
 }
 
 /**

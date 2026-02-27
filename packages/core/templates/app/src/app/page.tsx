@@ -9,7 +9,7 @@ export default async function Home() {
             {{app_name}}
           </h1>
           <p className="text-2xl text-white/70">
-            0pflow workflow app
+            crayon workflow app
           </p>
         </div>
       </main>

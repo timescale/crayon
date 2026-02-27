@@ -88,7 +88,7 @@ function generateSSHKeypair(): { publicKey: string; privateKey: string } {
 const FLY_ORG = process.env.FLY_ORG ?? "tiger-data";
 const FLY_REGION = process.env.FLY_REGION ?? "iad";
 const CLOUD_DEV_IMAGE =
-  process.env.CLOUD_DEV_IMAGE ?? "registry.fly.io/opflow-cloud-dev-image:latest";
+  process.env.CLOUD_DEV_IMAGE ?? "registry.fly.io/ocrayon-cloud-dev-image:latest";
 
 /**
  * POST /api/cloud-dev/create
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // Generate unpredictable Fly app name
     const hexId = crypto.randomBytes(4).toString("hex");
-    const flyAppName = `opflow-dev-${hexId}`;
+    const flyAppName = `ocrayon-dev-${hexId}`;
     const appUrl = `https://${flyAppName}.fly.dev`;
     const linuxUser = `user-${userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}`;
 
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
     };
     if (process.env.PUBLIC_URL) {
-      secrets.OPFLOW_SERVER_URL = process.env.PUBLIC_URL;
+      secrets.CRAYON_SERVER_URL = process.env.PUBLIC_URL;
     }
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
     writeFileSync(secretsFile, Object.entries(secrets).map(([k, v]) => `${k}=${v}`).join("\n"));

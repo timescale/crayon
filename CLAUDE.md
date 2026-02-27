@@ -1,4 +1,4 @@
-# 0pflow
+# crayon
 
 AI-native workflow engine for GTM/RevOps automation.
 
@@ -7,13 +7,13 @@ AI-native workflow engine for GTM/RevOps automation.
 Monorepo using pnpm workspaces:
 
 ```
-0pflow/
+crayon/
 ├── packages/
-│   ├── core/              # Main SDK + CLI + MCP server + Dev UI (published as `0pflow`)
-│   ├── ui/                # React UI components (@0pflow/ui)
+│   ├── core/              # Main SDK + CLI + MCP server + Dev UI (published as `crayon`)
+│   ├── ui/                # React UI components (@crayon/ui)
 │   └── auth-server/       # Next.js OAuth server (private, Nango-based)
 ├── skills/                # Claude Code skills
-├── examples/uptime-app/   # Example app using 0pflow
+├── examples/uptime-app/   # Example app using crayon
 ├── docs/plans/            # Design documents
 └── scripts/               # MCP server launcher
 ```
@@ -22,20 +22,20 @@ Monorepo using pnpm workspaces:
 
 This repo is a Claude Code plugin. Load it with:
 ```bash
-claude --plugin-dir /path/to/0pflow
+claude --plugin-dir /path/to/crayon
 ```
 
 ### Available Skills
 
-- `/0pflow:create-workflow` - Collaborative workflow design (guides through creating workflows with embedded descriptions)
-- `/0pflow:refine-node` - Refine node definitions (adds tools, guidelines, typed Zod schemas to nodes)
-- `/0pflow:compile-workflow` - Update workflow implementation from embedded descriptions
-- `/0pflow:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
-- `/0pflow:deploy` - Deploy a 0pflow app to the cloud. Verifies deployment files, sets up environment, and deploys.
+- `/crayon:create-workflow` - Collaborative workflow design (guides through creating workflows with embedded descriptions)
+- `/crayon:refine-node` - Refine node definitions (adds tools, guidelines, typed Zod schemas to nodes)
+- `/crayon:compile-workflow` - Update workflow implementation from embedded descriptions
+- `/crayon:integrations` - Generate integration nodes for external APIs (Salesforce, HubSpot, etc.)
+- `/crayon:deploy` - Deploy a crayon app to the cloud. Verifies deployment files, sets up environment, and deploys.
 
 ### MCP Tools
 
-12 tools exposed via `scripts/run-mcp.cjs` (prefixed `mcp__plugin_0pflow_0pflow-local-tools__`):
+12 tools exposed via `scripts/run-mcp.cjs` (prefixed `mcp__plugin_crayon_crayon-local-tools__`):
 
 - `createApp` / `createDatabase` / `setupAppSchema` - Project scaffolding
 - `listIntegrations` / `getConnectionInfo` - OAuth connection management
@@ -55,7 +55,7 @@ claude --plugin-dir /path/to/0pflow
 
 | Type | Location | Example |
 |------|----------|---------|
-| Built-in | `0pflow` package | `webRead` |
+| Built-in | `crayon` package | `webRead` |
 | User node | `src/nodes/` in app | Custom logic functions |
 | Agent | `agents/` + `specs/agents/` in app | AI reasoning via Vercel AI SDK |
 
@@ -67,7 +67,7 @@ my-app/
 ├── src/nodes/              # User-defined function nodes
 ├── agents/                 # Agent TypeScript files
 ├── specs/agents/           # Agent markdown specs (system prompts)
-├── src/lib/pflow.ts        # 0pflow singleton
+├── src/lib/crayon.ts        # crayon singleton
 └── dbos-config.yaml        # DBOS runtime config
 ```
 
@@ -75,11 +75,11 @@ my-app/
 
 ### SDK Core
 - `index.ts` - Public API exports
-- `factory.ts` - `create0pflow()` factory
+- `factory.ts` - `createCrayon()` factory
 - `workflow.ts` - `Workflow.create()`, WorkflowContext, DBOS integration
 - `node.ts` - `Node.create()` for function nodes
 - `agent.ts` - `Agent.create()` for AI agents
-- `types.ts` - Executable interface, WorkflowContext, PflowConfig
+- `types.ts` - Executable interface, WorkflowContext, CrayonConfig
 - `registry.ts` - Workflow/agent/node registry
 - `discover.ts` - Auto-discovery from project directories
 
@@ -91,11 +91,11 @@ my-app/
 ### Connections (OAuth)
 - `connections/resolver.ts` - Connection ID resolution (workflow → node → integration hierarchy)
 - `connections/local-integration-provider.ts` - Self-hosted Nango mode
-- `connections/cloud-integration-provider.ts` - 0pflow cloud proxy mode
+- `connections/cloud-integration-provider.ts` - crayon cloud proxy mode
 
 ### CLI (`cli/`)
 - `index.ts` - Commander.js CLI entry point
-- `run.ts` - Interactive `0pflow run` (create or launch project)
+- `run.ts` - Interactive `crayon run` (create or launch project)
 - `discovery.ts` - Workflow/node/agent discovery via jiti
 - `runs.ts` / `trace.ts` - Run history and trace viewing
 
@@ -114,22 +114,22 @@ my-app/
 
 | Command | Description |
 |---------|-------------|
-| `0pflow run` | Interactive: create new project or launch existing |
-| `0pflow dev` | Start Dev UI with live DAG + embedded Claude Code |
-| `0pflow workflow list` | List workflows (`--json` supported) |
-| `0pflow workflow run <name>` | Run workflow with `-i <json>` |
-| `0pflow node list` / `node run <name>` | List/run nodes |
-| `0pflow history [run-id]` | List runs or get details |
-| `0pflow trace <run-id>` | Show execution trace |
-| `0pflow install` / `uninstall` | Install/remove Claude Code plugin |
-| `0pflow deploy` | Deploy app to the cloud |
-| `0pflow login` / `logout` | Authenticate with 0pflow cloud |
-| `0pflow mcp start` | Start MCP server |
+| `crayon run` | Interactive: create new project or launch existing |
+| `crayon dev` | Start Dev UI with live DAG + embedded Claude Code |
+| `crayon workflow list` | List workflows (`--json` supported) |
+| `crayon workflow run <name>` | Run workflow with `-i <json>` |
+| `crayon node list` / `node run <name>` | List/run nodes |
+| `crayon history [run-id]` | List runs or get details |
+| `crayon trace <run-id>` | Show execution trace |
+| `crayon install` / `uninstall` | Install/remove Claude Code plugin |
+| `crayon deploy` | Deploy app to the cloud |
+| `crayon login` / `logout` | Authenticate with crayon cloud |
+| `crayon mcp start` | Start MCP server |
 
 ## Development
 
-- **Build:** `pnpm --filter 0pflow build` (TypeScript + Vite for dev-ui)
-- **Test:** Vitest — `pnpm --filter 0pflow test`
+- **Build:** `pnpm --filter crayon build` (TypeScript + Vite for dev-ui)
+- **Test:** Vitest — `pnpm --filter crayon test`
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
 
@@ -139,5 +139,5 @@ my-app/
 
 ## Key Documents
 
-- `docs/plans/2026-01-23-0pflow-design.md` - Main design document (architecture, SDK API, spec formats, MVP scope)
+- `docs/plans/2026-01-23-crayon-design.md` - Main design document (architecture, SDK API, spec formats, MVP scope)
 - `docs/plans/2026-01-23-outreach-automation-example.md` - Reference implementation example

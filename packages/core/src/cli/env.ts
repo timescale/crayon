@@ -30,7 +30,7 @@ export function findEnvFile(startDir: string): string | null {
 
 /**
  * Load .env file into process.env
- * Throws if DATABASE_URL is not set (required for 0pflow)
+ * Throws if DATABASE_URL is not set (required for crayon)
  */
 export function loadEnv(envPath: string): void {
   const result = dotenv.config({ path: envPath, quiet: true });
@@ -39,7 +39,7 @@ export function loadEnv(envPath: string): void {
     throw new Error(`Failed to load .env: ${result.error.message}`);
   }
 
-  // DATABASE_URL is required for 0pflow
+  // DATABASE_URL is required for crayon
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL not found in .env\n" +

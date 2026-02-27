@@ -36,9 +36,9 @@ export const createAppFactory: ApiFactory<
   return {
     name: "create_app",
     config: {
-      title: "Create 0pflow App",
+      title: "Create crayon App",
       description:
-        "Create a new 0pflow application with T3 Stack template (Next.js + tRPC + Drizzle) and 0pflow workflow directories. Use this to scaffold new projects.",
+        "Create a new crayon application with T3 Stack template (Next.js + tRPC + Drizzle) and crayon workflow directories. Use this to scaffold new projects.",
       inputSchema,
       outputSchema,
     },

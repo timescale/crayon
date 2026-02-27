@@ -144,7 +144,7 @@ function fixEmptyEnums(schema: { data: { __schema: { types: SchemaType[] } } }):
 // --- Auth methods ---
 
 async function getCredentialsFromProvider(connectionId: string): Promise<{ accessToken: string; instanceUrl: string }> {
-  const { createIntegrationProvider } = await import("0pflow");
+  const { createIntegrationProvider } = await import("crayon");
   const provider = await createIntegrationProvider();
   const credentials = await provider.fetchCredentials("salesforce", connectionId);
 

@@ -1,7 +1,7 @@
 import pg from "pg";
 
 function createTableSQL(schema: string): string {
-  const table = `"${schema}".opflow_connections`;
+  const table = `"${schema}".ocrayon_connections`;
   return `
 CREATE TABLE IF NOT EXISTS ${table} (
   workflow_name TEXT NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS ${table} (
 }
 
 /**
- * Ensure the opflow_connections table exists.
+ * Ensure the ocrayon_connections table exists.
  * Creates a short-lived connection, runs the DDL, then closes it.
  * When schema is provided, the table is created in that schema explicitly
  * (avoids permission issues when a same-named table exists in public).

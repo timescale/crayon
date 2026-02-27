@@ -80,11 +80,11 @@ export function buildMcpCommand(): McpCommandResult {
     };
   }
 
-  // If running from npx cache or node_modules, use npx 0pflow@version
-  if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/0pflow")) {
+  // If running from npx cache or node_modules, use npx crayon@version
+  if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/crayon")) {
     const ver = getNpmVersionForMcp();
     return {
-      command: ["npx", "-y", `0pflow@${ver}`, "mcp", "start"],
+      command: ["npx", "-y", `crayon@${ver}`, "mcp", "start"],
       isLocal: false,
     };
   }
@@ -100,7 +100,7 @@ export function buildMcpCommand(): McpCommandResult {
  */
 export function getSettingsDir(): string {
   const home = process.env.HOME || process.env.USERPROFILE || "~";
-  return join(home, ".config", "0pflow");
+  return join(home, ".config", "crayon");
 }
 
 /**
@@ -149,13 +149,13 @@ export function isClaudeCliAvailable(): boolean {
 }
 
 /**
- * Add the 0pflow marketplace to Claude Code
+ * Add the crayon marketplace to Claude Code
  */
 export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "ignore" = "inherit"): { success: boolean; error?: string } {
   try {
     const marketplaceSource = mcpResult.isLocal && mcpResult.packageRoot
       ? mcpResult.packageRoot
-      : "timescale/0pflow";
+      : "timescale/crayon";
     execSync(`claude plugin marketplace add ${marketplaceSource}`, { stdio });
     return { success: true };
   } catch (err) {
@@ -167,27 +167,27 @@ export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "
 }
 
 /**
- * Uninstall the 0pflow plugin and marketplace from Claude Code (if present).
+ * Uninstall the crayon plugin and marketplace from Claude Code (if present).
  */
 export function uninstallPlugin(stdio: "inherit" | "ignore" = "inherit"): void {
   try {
-    execSync("claude plugin uninstall 0pflow", { stdio });
+    execSync("claude plugin uninstall crayon", { stdio });
   } catch {
     // Plugin may not be installed — ignore
   }
   try {
-    execSync("claude plugin marketplace remove 0pflow", { stdio });
+    execSync("claude plugin marketplace remove crayon", { stdio });
   } catch {
     // Marketplace may not be registered — ignore
   }
 }
 
 /**
- * Install the 0pflow plugin to Claude Code
+ * Install the crayon plugin to Claude Code
  */
 export function installPlugin(stdio: "inherit" | "ignore" = "inherit"): { success: boolean; error?: string } {
   try {
-    execSync("claude plugin install 0pflow", { stdio });
+    execSync("claude plugin install crayon", { stdio });
     return { success: true };
   } catch (err) {
     return {
@@ -266,7 +266,7 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    const initCmd = `npx -y 0pflow@${getNpmVersionForMcp()} run`;
+    const initCmd = `npx -y crayon@${getNpmVersionForMcp()} run`;
 
     printBanner();
     console.log(pc.green("✓"), "Installed successfully");

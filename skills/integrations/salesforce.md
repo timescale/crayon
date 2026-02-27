@@ -14,14 +14,14 @@ Guide for generating typed Salesforce query nodes using GraphQL with `graphql-re
 
 **Never guess at Salesforce field names or object structures.** Every Salesforce org has different custom fields, objects, and configurations.
 
-During **node refinement** (`/0pflow:refine-node`), when a workflow needs Salesforce data:
+During **node refinement** (`/crayon:refine-node`), when a workflow needs Salesforce data:
 
 1. **Announce:** "This node needs Salesforce data. I'll set up the Salesforce integration to fetch your org's schema - this tells us exactly which fields and objects are available. We won't guess at field names."
 2. Complete the setup below to fetch the actual schema from the user's Salesforce instance
 3. The schema is saved to `src/integrations/salesforce/schemas/schema-clean.json`
 4. Read this file to see available objects, fields, and their types
 5. Define the node's output schema in the spec based on available fields
-6. **STOP HERE during refinement** — do not proceed to codegen or creating the actual node. The actual GraphQL operations and node code are created later during `/0pflow:compile-workflow`.
+6. **STOP HERE during refinement** — do not proceed to codegen or creating the actual node. The actual GraphQL operations and node code are created later during `/crayon:compile-workflow`.
 
 Refinement is only about understanding what's available and defining the spec.
 
@@ -208,7 +208,7 @@ Create `src/integrations/salesforce/client.ts`:
 ```typescript
 import { GraphQLClient } from "graphql-request";
 import { getSdk, type Sdk } from "./generated/graphql.js";
-import type { WorkflowContext } from "0pflow";
+import type { WorkflowContext } from "crayon";
 
 const API_VERSION = "v59.0";
 
@@ -235,7 +235,7 @@ export async function makeSalesforceSdk(ctx: WorkflowContext): Promise<Sdk> {
 ```typescript
 // src/nodes/salesforce-get-<object>.ts
 import { z } from "zod";
-import { Node } from "0pflow";
+import { Node } from "crayon";
 import { makeSalesforceSdk } from "../integrations/salesforce/client.js";
 import type { Get<Object>Query } from "../integrations/salesforce/generated/graphql.js";
 

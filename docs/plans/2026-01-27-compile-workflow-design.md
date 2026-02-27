@@ -11,8 +11,8 @@ The compile-workflow skill transforms workflow specs (`specs/workflows/*.md`) in
 ## Invocation
 
 ```
-/0pflow:compile-workflow              → Interactive: list specs, user picks
-/0pflow:compile-workflow url-check    → Compile specific workflow
+/crayon:compile-workflow              → Interactive: list specs, user picks
+/crayon:compile-workflow url-check    → Compile specific workflow
 ```
 
 ## Process
@@ -116,8 +116,8 @@ Generated `url-summarizer.ts`:
 ```typescript
 // generated/workflows/url-summarizer.ts
 import { z } from "zod";
-import { Workflow } from "0pflow";
-import { webRead } from "0pflow";
+import { Workflow } from "crayon";
+import { webRead } from "crayon";
 import { pageSummarizer } from "../../specs/agents/page-summarizer.js";
 
 // Input schema

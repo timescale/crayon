@@ -69,17 +69,17 @@ export async function deploy(
   if (!existsSync(pkgPath)) {
     return {
       success: false,
-      error: "No package.json found. Run from a 0pflow app directory.",
+      error: "No package.json found. Run from a crayon app directory.",
     };
   }
   const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
     name?: string;
     dependencies?: Record<string, string>;
   };
-  if (!pkg.dependencies?.["0pflow"]) {
+  if (!pkg.dependencies?.["crayon"]) {
     return {
       success: false,
-      error: "Not a 0pflow app (0pflow not in dependencies).",
+      error: "Not a crayon app (crayon not in dependencies).",
     };
   }
   if (!pkg.name) {
@@ -131,7 +131,7 @@ export async function deploy(
     if (!isAuthenticated()) {
       return {
         success: false,
-        error: "Not authenticated. Run `0pflow login` first.",
+        error: "Not authenticated. Run `crayon login` first.",
       };
     }
   }
@@ -183,11 +183,11 @@ export async function deploy(
     }
   }
 
-  // Include OPFLOW_TOKEN for runtime integration credential fetching
+  // Include CRAYON_TOKEN for runtime integration credential fetching
   const { getToken } = await import("../connections/cloud-auth.js");
-  const opflowToken = getToken();
-  if (opflowToken) {
-    envVarsToSync.OPFLOW_TOKEN = opflowToken;
+  const ocrayonToken = getToken();
+  if (ocrayonToken) {
+    envVarsToSync.CRAYON_TOKEN = ocrayonToken;
   }
 
   try {
@@ -240,7 +240,7 @@ export async function deploy(
       if (status.status === "build_error") {
         return {
           success: false,
-          error: `Build failed: ${status.error ?? "Unknown error"}. Check logs with: 0pflow deploy --logs`,
+          error: `Build failed: ${status.error ?? "Unknown error"}. Check logs with: crayon deploy --logs`,
         };
       }
 
@@ -270,12 +270,12 @@ export async function deploy(
 }
 
 /**
- * CLI entry point for `0pflow deploy`.
+ * CLI entry point for `crayon deploy`.
  */
 export async function runDeploy(
   options: { verbose?: boolean } = {},
 ): Promise<void> {
-  p.intro(pc.bold("0pflow deploy"));
+  p.intro(pc.bold("crayon deploy"));
 
   const s = p.spinner();
   let currentStep = "";
@@ -387,7 +387,7 @@ function generateCommitMessage(projectDir: string): string {
  * Create a deployment tar.gz as a base64 string using system tar.
  */
 function createDeploymentTarball(projectDir: string): string {
-  const tmpDir = mkdtempSync(join(tmpdir(), "opflow-deploy-"));
+  const tmpDir = mkdtempSync(join(tmpdir(), "ocrayon-deploy-"));
   const tarPath = join(tmpDir, "app.tar.gz");
 
   try {

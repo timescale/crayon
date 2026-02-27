@@ -1,6 +1,6 @@
 # Install Flow Improvements
 
-Goal: Make the 0pflow signup-to-first-workflow experience smooth for non-technical users.
+Goal: Make the crayon signup-to-first-workflow experience smooth for non-technical users.
 
 ## Phase 1: Bash Bootstrap Script
 
@@ -17,20 +17,20 @@ The script should:
    - Linux: Use fnm/nvm or distro package manager
 3. **Check for Claude Code CLI** — if missing, show install link or auto-install
 4. **Check for Tiger CLI** — if missing, install it (brew or curl)
-5. **Run `npx -y 0pflow@latest install`** with `--loglevel=error`
-6. **Print the next command:** `npx -y 0pflow@latest run`
+5. **Run `npx -y crayon@latest install`** with `--loglevel=error`
+6. **Print the next command:** `npx -y crayon@latest run`
 
 Target UX:
 ```bash
-curl -fsSL https://0pflow.com/install | bash
+curl -fsSL https://crayon.com/install | bash
 # ...installs everything...
 # Then user runs:
-0pflow run
+crayon run
 ```
 
-Create a shell alias so users can just type `0pflow run`:
+Create a shell alias so users can just type `crayon run`:
 ```bash
-alias 0pflow='npx -y --prefer-online 0pflow@dev'
+alias crayon='npx -y --prefer-online crayon@dev'
 ```
 Use `--prefer-online` to ensure npx always re-resolves the `@dev` tag and pulls the latest build. For production, switch to `@latest` once we have a stable release channel.
 
@@ -44,7 +44,7 @@ Reduce the number of commands and decisions the user has to make.
 
 Currently `install` and `run` are separate commands. For non-technical users, this is one extra step to remember.
 
-**Fix:** At the start of `runRun()`, check if the plugin is installed (read `~/.config/0pflow/settings.json`). If not, run the install flow automatically (marketplace add + plugin install). This makes the user journey: bash script → `0pflow run` (which handles everything).
+**Fix:** At the start of `runRun()`, check if the plugin is installed (read `~/.config/crayon/settings.json`). If not, run the install flow automatically (marketplace add + plugin install). This makes the user journey: bash script → `crayon run` (which handles everything).
 
 Keep `install` as a standalone command for advanced users, but make it optional.
 
@@ -56,13 +56,13 @@ If the user isn't logged into Tiger Cloud, `tiger service list` and `tiger servi
 
 **Fix:** Before database operations, check Tiger auth status (e.g. `tiger auth status` or try `tiger service list` and check for auth errors). If not authenticated, prompt and run `tiger login` (which opens browser). This removes a hidden prerequisite.
 
-### 4. Default project directory to `~/0pflow/<name>`
+### 4. Default project directory to `~/crayon/<name>`
 
 **File:** `packages/core/src/cli/run.ts:263-304`
 
 Currently asks user to pick between cwd and a custom path. Non-technical users don't want to think about filesystems.
 
-**Fix:** Change the default to `~/0pflow/<projectName>`. Create `~/0pflow/` if it doesn't exist. Still offer "Other directory" as an option for power users, but the default should just work without any cd/mkdir. Remove the "Here" option (or make it secondary) since running from a random terminal location shouldn't be the default.
+**Fix:** Change the default to `~/crayon/<projectName>`. Create `~/crayon/` if it doesn't exist. Still offer "Other directory" as an option for power users, but the default should just work without any cd/mkdir. Remove the "Here" option (or make it secondary) since running from a random terminal location shouldn't be the default.
 
 ### 5. Suppress npm engine warnings
 
@@ -88,7 +88,7 @@ Currently, after schema setup fails, the code still asks "Launch now?" — if th
 
 **File:** `packages/core/src/cli/run.ts:192-237`
 
-If schema setup failed and user runs `0pflow run` again, `isExisting0pflow()` returns true (package.json exists with 0pflow dependency), so it goes straight to launch — which crashes again. There's no way to retry schema setup.
+If schema setup failed and user runs `crayon run` again, `isExistingcrayon()` returns true (package.json exists with crayon dependency), so it goes straight to launch — which crashes again. There's no way to retry schema setup.
 
 **Fix:** When detecting an existing project, check if `.env` has `DATABASE_SCHEMA`. If not, offer to retry schema setup instead of launching.
 
@@ -121,7 +121,7 @@ When selecting an existing PAUSED database during new project creation, the code
 ### 11. Improve error messages throughout
 
 Replace raw stack traces with user-friendly messages. Key places:
-- `getAppSchema()` crash → "Database not configured. Run `0pflow run` to set up."
+- `getAppSchema()` crash → "Database not configured. Run `crayon run` to set up."
 - `tiger` command failures → "Could not connect to Tiger Cloud. Run `tiger login` first."
 - npm install failures → "Dependency installation failed. Try running `npm install` manually."
 
@@ -129,11 +129,11 @@ Replace raw stack traces with user-friendly messages. Key places:
 
 **File:** `packages/core/src/cli/install.ts:254`
 
-The `npx` command shown to users after install doesn't suppress warnings. Change to `npx --loglevel=error -y 0pflow@... run`.
+The `npx` command shown to users after install doesn't suppress warnings. Change to `npx --loglevel=error -y crayon@... run`.
 
 ### 13. ~~Consider global CLI install~~ — Decided against
 
-We want "always fresh" — every invocation should pull the latest dev build. The bash script sets up a shell alias (`alias 0pflow='npx -y --prefer-online 0pflow@dev'`) which handles this. A global install would require explicit `npm update -g` to get new versions.
+We want "always fresh" — every invocation should pull the latest dev build. The bash script sets up a shell alias (`alias crayon='npx -y --prefer-online crayon@dev'`) which handles this. A global install would require explicit `npm update -g` to get new versions.
 
 ## Implementation Order
 

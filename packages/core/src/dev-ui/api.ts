@@ -17,7 +17,7 @@ export interface ApiContext {
   integrationProvider: IntegrationProvider;
   /** DBOS system schema (e.g. my_app_dbos) for workflow_status queries */
   schema: string;
-  /** App schema where opflow_connections lives (e.g. my_app) */
+  /** App schema where ocrayon_connections lives (e.g. my_app) */
   appSchema: string;
   /** Project root directory for CLI subprocess execution */
   projectRoot: string;

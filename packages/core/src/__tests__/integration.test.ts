@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
-import { create0pflow, Workflow, Node, type Pflow } from "../index.js";
+import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -82,13 +82,13 @@ const outerWorkflow = Workflow.create({
   },
 });
 
-describe.skipIf(!DATABASE_URL)("0pflow integration", () => {
-  let pflow: Pflow;
+describe.skipIf(!DATABASE_URL)("crayon integration", () => {
+  let crayon: Crayon;
 
   beforeAll(async () => {
     await resetDatabase();
 
-    pflow = await create0pflow({
+    crayon = await createCrayon({
       databaseUrl: DATABASE_URL!,
       appName: "integration_test",
       workflows: {
@@ -101,11 +101,11 @@ describe.skipIf(!DATABASE_URL)("0pflow integration", () => {
   }, 30000);
 
   afterAll(async () => {
-    await pflow?.shutdown();
+    await crayon?.shutdown();
   });
 
   it("complete workflow with multiple nodes", async () => {
-    const result = await pflow.triggerWorkflow("research", {
+    const result = await crayon.triggerWorkflow("research", {
       url: "https://example.com",
     });
 
@@ -116,7 +116,7 @@ describe.skipIf(!DATABASE_URL)("0pflow integration", () => {
   });
 
   it("nested workflow calls", async () => {
-    const result = await pflow.triggerWorkflow("outer", { value: 5 });
+    const result = await crayon.triggerWorkflow("outer", { value: 5 });
     expect(result).toBe(11); // (5 * 2) + 1
   });
 });

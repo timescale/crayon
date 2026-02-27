@@ -30,12 +30,12 @@ Create `skills/spec-author/SKILL.md` with the following content:
 ```markdown
 ---
 name: spec-author
-description: Collaborative workflow design - guides users through creating well-structured 0pflow workflow specs
+description: Collaborative workflow design - guides users through creating well-structured crayon workflow specs
 ---
 
 # Spec Author
 
-This skill guides you through designing a workflow specification for 0pflow. We'll work together step-by-step to turn your workflow idea into a well-structured spec that can be compiled into executable code.
+This skill guides you through designing a workflow specification for crayon. We'll work together step-by-step to turn your workflow idea into a well-structured spec that can be compiled into executable code.
 
 **Announce at start:** "I'm using the spec-author skill to help you design a workflow."
 

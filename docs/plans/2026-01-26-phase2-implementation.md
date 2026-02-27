@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement the core 0pflow SDK with unified `ctx.run()` API and DBOS durability.
+**Goal:** Implement the core crayon SDK with unified `ctx.run()` API and DBOS durability.
 
 **Architecture:** All executable types (Node, Agent, Workflow) share the `Executable` interface. `ctx.run()` validates inputs with Zod, wraps execution as DBOS steps, and provides full TypeScript type safety. DBOS is wrapped internally - users never see decorators.
 
@@ -48,9 +48,9 @@ export interface WorkflowContext {
 export type LogLevel = "info" | "warn" | "error" | "debug";
 
 /**
- * Configuration for create0pflow()
+ * Configuration for createCrayon()
  */
-export interface PflowConfig {
+export interface CrayonConfig {
   /** Database connection URL for DBOS durability */
   databaseUrl: string;
   /** Registered workflows */
@@ -62,9 +62,9 @@ export interface PflowConfig {
 }
 
 /**
- * The 0pflow instance returned by create0pflow()
+ * The crayon instance returned by createCrayon()
  */
-export interface Pflow {
+export interface Crayon {
   /** List all registered workflow names */
   listWorkflows: () => string[];
   /** Get a workflow by name */
@@ -76,7 +76,7 @@ export interface Pflow {
 
 **Step 2: Run TypeScript to verify types compile**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
 Expected: Successful compilation
 
 **Step 3: Commit**
@@ -137,7 +137,7 @@ describe("Node.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../node.js'
 
 **Step 3: Write Node.create() implementation**
@@ -177,7 +177,7 @@ export const Node = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -239,7 +239,7 @@ describe("Workflow.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../workflow.js'
 
 **Step 3: Write Workflow.create() implementation**
@@ -289,7 +289,7 @@ export const Workflow = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -347,7 +347,7 @@ describe("Agent.create()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../agent.js'
 
 **Step 3: Write Agent.create() stub implementation**
@@ -399,7 +399,7 @@ export const Agent = {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -492,7 +492,7 @@ describe("Registry", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../registry.js'
 
 **Step 3: Write Registry implementation**
@@ -554,7 +554,7 @@ export class Registry {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -631,7 +631,7 @@ describe("createWorkflowContext()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../context.js'
 
 **Step 3: Write createWorkflowContext implementation**
@@ -647,7 +647,7 @@ export interface ContextOptions {
 
 const defaultLogger = (message: string, level: LogLevel) => {
   console[level === "debug" ? "log" : level](
-    `[0pflow:${level}] ${message}`
+    `[crayon:${level}] ${message}`
   );
 };
 
@@ -683,7 +683,7 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -791,7 +791,7 @@ describe("DBOS integration", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Cannot find module '../dbos.js'
 
 **Step 3: Write DBOS integration**
@@ -811,7 +811,7 @@ export interface DBOSConfig {
  */
 export async function initializeDBOS(config: DBOSConfig): Promise<void> {
   DBOS.setConfig({
-    name: config.appName ?? "0pflow",
+    name: config.appName ?? "crayon",
     systemDatabaseUrl: config.databaseUrl,
   });
   await DBOS.launch();
@@ -854,7 +854,7 @@ export function createDurableContext(): WorkflowContext {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
@@ -866,7 +866,7 @@ git commit -m "feat(core): add DBOS integration for durability"
 
 ---
 
-## Task 8: Factory (create0pflow)
+## Task 8: Factory (createCrayon)
 
 **Files:**
 - Modify: `packages/core/src/factory.ts`
@@ -878,7 +878,7 @@ git commit -m "feat(core): add DBOS integration for durability"
 // packages/core/src/__tests__/factory.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { create0pflow } from "../factory.js";
+import { createCrayon } from "../factory.js";
 import { Workflow } from "../workflow.js";
 import { Node } from "../node.js";
 
@@ -899,20 +899,20 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
   },
 }));
 
-describe("create0pflow()", () => {
+describe("createCrayon()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("initializes DBOS and returns pflow instance", async () => {
-    const pflow = await create0pflow({
+  it("initializes DBOS and returns crayon instance", async () => {
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
     });
 
-    expect(pflow).toBeDefined();
-    expect(typeof pflow.listWorkflows).toBe("function");
-    expect(typeof pflow.getWorkflow).toBe("function");
-    expect(typeof pflow.triggerWorkflow).toBe("function");
+    expect(crayon).toBeDefined();
+    expect(typeof crayon.listWorkflows).toBe("function");
+    expect(typeof crayon.getWorkflow).toBe("function");
+    expect(typeof crayon.triggerWorkflow).toBe("function");
   });
 
   it("listWorkflows returns registered workflow names", async () => {
@@ -923,12 +923,12 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { "test-workflow": workflow },
     });
 
-    expect(pflow.listWorkflows()).toEqual(["test-workflow"]);
+    expect(crayon.listWorkflows()).toEqual(["test-workflow"]);
   });
 
   it("getWorkflow returns workflow by name", async () => {
@@ -939,13 +939,13 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { "my-workflow": workflow },
     });
 
-    expect(pflow.getWorkflow("my-workflow")).toBe(workflow);
-    expect(pflow.getWorkflow("unknown")).toBeUndefined();
+    expect(crayon.getWorkflow("my-workflow")).toBe(workflow);
+    expect(crayon.getWorkflow("unknown")).toBeUndefined();
   });
 
   it("triggerWorkflow executes workflow by name", async () => {
@@ -956,21 +956,21 @@ describe("create0pflow()", () => {
       run: async (_ctx, inputs) => ({ echoed: inputs.message }),
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { echo: workflow },
     });
 
-    const result = await pflow.triggerWorkflow("echo", { message: "hello" });
+    const result = await crayon.triggerWorkflow("echo", { message: "hello" });
     expect(result).toEqual({ echoed: "hello" });
   });
 
   it("triggerWorkflow throws for unknown workflow", async () => {
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
     });
 
-    await expect(pflow.triggerWorkflow("unknown", {})).rejects.toThrow(
+    await expect(crayon.triggerWorkflow("unknown", {})).rejects.toThrow(
       'Workflow "unknown" not found'
     );
   });
@@ -983,12 +983,12 @@ describe("create0pflow()", () => {
       run: async () => "done",
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { strict: workflow },
     });
 
-    await expect(pflow.triggerWorkflow("strict", {})).rejects.toThrow();
+    await expect(crayon.triggerWorkflow("strict", {})).rejects.toThrow();
   });
 
   it("workflows can use ctx.run to call nodes", async () => {
@@ -1008,13 +1008,13 @@ describe("create0pflow()", () => {
       },
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { "double-workflow": workflow },
       nodes: { double: doubleNode },
     });
 
-    const result = await pflow.triggerWorkflow("double-workflow", { value: 5 });
+    const result = await crayon.triggerWorkflow("double-workflow", { value: 5 });
     expect(result).toEqual({ result: 10 });
   });
 });
@@ -1022,22 +1022,22 @@ describe("create0pflow()", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: FAIL - Tests fail because factory.ts has placeholder implementation
 
-**Step 3: Write create0pflow implementation**
+**Step 3: Write createCrayon implementation**
 
 ```typescript
 // packages/core/src/factory.ts
-import type { Executable, Pflow, PflowConfig } from "./types.js";
+import type { Executable, Crayon, CrayonConfig } from "./types.js";
 import type { WorkflowExecutable } from "./workflow.js";
 import { Registry } from "./registry.js";
 import { initializeDBOS, createDurableContext } from "./dbos.js";
 
 /**
- * Create a 0pflow instance
+ * Create a crayon instance
  */
-export async function create0pflow(config: PflowConfig): Promise<Pflow> {
+export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
   // Initialize DBOS for durability
   await initializeDBOS({ databaseUrl: config.databaseUrl });
 
@@ -1075,14 +1075,14 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
 git add packages/core/src/factory.ts packages/core/src/__tests__/factory.test.ts
-git commit -m "feat(core): implement create0pflow() factory"
+git commit -m "feat(core): implement createCrayon() factory"
 ```
 
 ---
@@ -1096,11 +1096,11 @@ git commit -m "feat(core): implement create0pflow() factory"
 
 ```typescript
 // packages/core/src/index.ts
-// 0pflow - AI-native workflow engine
+// crayon - AI-native workflow engine
 export const VERSION = "0.1.0";
 
 // Factory
-export { create0pflow } from "./factory.js";
+export { createCrayon } from "./factory.js";
 
 // Executable factories
 export { Node } from "./node.js";
@@ -1117,14 +1117,14 @@ export type {
   Executable,
   WorkflowContext,
   LogLevel,
-  PflowConfig,
-  Pflow,
+  CrayonConfig,
+  Crayon,
 } from "./types.js";
 ```
 
 **Step 2: Verify build succeeds**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
 Expected: Successful compilation
 
 **Step 3: Commit**
@@ -1147,7 +1147,7 @@ git commit -m "feat(core): export all Phase 2 public APIs"
 // packages/core/src/__tests__/integration.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
-import { create0pflow, Workflow, Node } from "../index.js";
+import { createCrayon, Workflow, Node } from "../index.js";
 
 // Mock DBOS
 vi.mock("@dbos-inc/dbos-sdk", () => ({
@@ -1166,7 +1166,7 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
   },
 }));
 
-describe("0pflow integration", () => {
+describe("crayon integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -1212,14 +1212,14 @@ describe("0pflow integration", () => {
     });
 
     // Create instance
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { research: researchWorkflow },
       nodes: { "fetch-data": fetchData, summarize },
     });
 
     // Execute
-    const result = await pflow.triggerWorkflow("research", {
+    const result = await crayon.triggerWorkflow("research", {
       url: "https://example.com",
     });
 
@@ -1247,12 +1247,12 @@ describe("0pflow integration", () => {
       },
     });
 
-    const pflow = await create0pflow({
+    const crayon = await createCrayon({
       databaseUrl: "postgres://localhost/test",
       workflows: { outer: outerWorkflow, inner: innerWorkflow },
     });
 
-    const result = await pflow.triggerWorkflow("outer", { value: 5 });
+    const result = await crayon.triggerWorkflow("outer", { value: 5 });
     expect(result).toBe(11); // (5 * 2) + 1
   });
 });
@@ -1260,7 +1260,7 @@ describe("0pflow integration", () => {
 
 **Step 2: Run all tests**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: All tests PASS
 
 **Step 3: Commit**
@@ -1276,17 +1276,17 @@ git commit -m "test(core): add integration tests for complete workflows"
 
 **Step 1: Run full test suite**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow test`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon test`
 Expected: All tests pass
 
 **Step 2: Verify build**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow build`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon build`
 Expected: Successful compilation with no errors
 
 **Step 3: Verify TypeScript types**
 
-Run: `cd /Users/cevian/Development/0pflow && pnpm --filter 0pflow exec tsc --noEmit`
+Run: `cd /Users/cevian/Development/crayon && pnpm --filter crayon exec tsc --noEmit`
 Expected: No type errors
 
 **Step 4: Final commit**
@@ -1309,7 +1309,7 @@ git commit -m "chore(core): Phase 2 SDK Core complete"
 | 5 | Registry | |
 | 6 | WorkflowContext | |
 | 7 | DBOS integration | |
-| 8 | create0pflow() factory | |
+| 8 | createCrayon() factory | |
 | 9 | Public exports | |
 | 10 | Integration tests | |
 | 11 | Final verification | |

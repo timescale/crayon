@@ -7,7 +7,7 @@ export interface ContextOptions {
 
 const defaultLogger = (message: string, level: LogLevel) => {
   console[level === "debug" ? "log" : level](
-    `[0pflow:${level}] ${message}`
+    `[crayon:${level}] ${message}`
   );
 };
 
@@ -36,7 +36,7 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
 
     getConnection: async () => {
       throw new Error(
-        "getConnection is not available in this context. Use create0pflow() for connection management.",
+        "getConnection is not available in this context. Use createCrayon() for connection management.",
       );
     },
 

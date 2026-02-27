@@ -156,13 +156,13 @@ function ensureTigerAuth(): void {
   }
 }
 
-function isExisting0pflow(): boolean {
+function isExistingcrayon(): boolean {
   try {
     const pkgPath = join(process.cwd(), "package.json");
     if (!existsSync(pkgPath)) return false;
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-    return "0pflow" in deps;
+    return "crayon" in deps;
   } catch {
     return false;
   }
@@ -174,10 +174,10 @@ interface ProjectInfo {
 }
 
 /**
- * Scan ~/0pflow/ for directories that contain a package.json with 0pflow as a dependency.
+ * Scan ~/crayon/ for directories that contain a package.json with crayon as a dependency.
  */
 function discoverProjects(): ProjectInfo[] {
-  const baseDir = join(homedir(), "0pflow");
+  const baseDir = join(homedir(), "crayon");
   if (!existsSync(baseDir)) return [];
 
   const projects: ProjectInfo[] = [];
@@ -195,7 +195,7 @@ function discoverProjects(): ProjectInfo[] {
       if (!existsSync(pkgPath)) continue;
       const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if ("0pflow" in deps) {
+      if ("crayon" in deps) {
         projects.push({ name: entry, path: projectDir });
       }
     } catch {
@@ -208,7 +208,7 @@ function discoverProjects(): ProjectInfo[] {
 }
 
 const WELCOME_PROMPT =
-  "Welcome to your 0pflow project! What workflow would you like to create? Here are some ideas:\n\n" +
+  "Welcome to your crayon project! What workflow would you like to create? Here are some ideas:\n\n" +
   '- "Enrich leads from a CSV file with company data"\n' +
   '- "Monitor website uptime and send Slack alerts"\n' +
   '- "Sync Salesforce contacts to our database nightly"\n' +
@@ -297,7 +297,7 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
 }
 
 export async function runRun(): Promise<void> {
-  p.intro(pc.red("0pflow"));
+  p.intro(pc.red("crayon"));
 
   if (!isClaudeAvailable()) {
     p.log.error("Claude Code CLI not found. Install it from https://claude.ai/code");
@@ -307,7 +307,7 @@ export async function runRun(): Promise<void> {
   // ── Always install/update plugin ────────────────────────────────────
   {
     const s = p.spinner();
-    s.start("Updating 0pflow plugin...");
+    s.start("Updating crayon plugin...");
     try {
       const mcpResult = buildMcpCommand();
       writeSettings({
@@ -327,7 +327,7 @@ export async function runRun(): Promise<void> {
         if (result.success) {
           s.stop(pc.green("Plugin up to date"));
         } else {
-          s.stop(pc.yellow("Plugin update skipped (can retry with '0pflow install --force')"));
+          s.stop(pc.yellow("Plugin update skipped (can retry with 'crayon install --force')"));
         }
       }
     } catch (err) {
@@ -336,12 +336,12 @@ export async function runRun(): Promise<void> {
   }
 
   // ── Existing project (CWD) → launch directly ───────────────────────
-  if (isExisting0pflow()) {
+  if (isExistingcrayon()) {
     await launchExistingProject(process.cwd());
     return;
   }
 
-  // ── Discover existing projects in ~/0pflow/ ───────────────────────
+  // ── Discover existing projects in ~/crayon/ ───────────────────────
   const projects = discoverProjects();
 
   if (projects.length > 0) {
@@ -390,8 +390,8 @@ export async function runRun(): Promise<void> {
     process.exit(0);
   }
 
-  // ── Directory (always ~/0pflow/<name>) ────────────────────────────
-  const directory = join(homedir(), "0pflow", projectName);
+  // ── Directory (always ~/crayon/<name>) ────────────────────────────
+  const directory = join(homedir(), "crayon", projectName);
 
   // ── Tiger auth ────────────────────────────────────────────────────
   ensureTigerAuth();
@@ -576,7 +576,7 @@ export async function runRun(): Promise<void> {
         } else {
           s.stop(pc.yellow("Database not ready yet"));
           p.log.warn(
-            `Run later: 0pflow run won't retry. Use the MCP tools or set up manually.`,
+            `Run later: crayon run won't retry. Use the MCP tools or set up manually.`,
           );
         }
       } else {
@@ -606,6 +606,6 @@ export async function runRun(): Promise<void> {
   p.outro(pc.green(`Project created at ${directory}`));
   console.log();
   console.log(pc.bold("  To launch later:"));
-  console.log(pc.cyan(`  cd ${directory} && 0pflow run`));
+  console.log(pc.cyan(`  cd ${directory} && crayon run`));
   console.log();
 }

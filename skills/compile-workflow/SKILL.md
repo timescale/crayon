@@ -15,7 +15,7 @@ Updates the `run()` method of a workflow in `generated/workflows/*.ts` based on 
 
 1. **Verify workflow files exist:**
    - `generated/workflows/` must exist with at least one `.ts` file
-   - If no `.ts` files found, tell user to run `/0pflow:create-workflow` first
+   - If no `.ts` files found, tell user to run `/crayon:create-workflow` first
 
 2. **If no workflow name provided:**
    - List all workflows in `generated/workflows/`
@@ -91,7 +91,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 | Type | Location | Import Pattern |
 |------|----------|----------------|
-| `(builtin)` | Built-in nodes from 0pflow | `import { webRead } from "0pflow"` |
+| `(builtin)` | Built-in nodes from crayon | `import { webRead } from "crayon"` |
 | `(node)` | User-defined in `src/nodes/` or `nodes/` | `import { nodeName } from "../../src/nodes/<name>"` |
 | `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>"` |
 
@@ -105,25 +105,25 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 2. **For builtin nodes:**
    - Check if it's a built-in node (`web_read`, etc.)
-   - Import from `"0pflow"`
+   - Import from `"crayon"`
 
 3. **For user-defined nodes:**
    - Look for `src/nodes/<name>.ts`
    - Read its `description` field and `inputSchema`/`outputSchema` for type info
-   - If missing: create it using the stub templates from `/0pflow:create-workflow`
+   - If missing: create it using the stub templates from `/crayon:create-workflow`
 
 4. **For agents:**
    - Look for `agents/<name>.ts`
    - Read its `description` field and `inputSchema`/`outputSchema` for type info
-   - If missing: create it using the stub templates from `/0pflow:create-workflow`
+   - If missing: create it using the stub templates from `/crayon:create-workflow`
 
 ### Updating Agent Tools from Description
 
-When an agent's description contains a `**Tools needed:**` section (added by `/0pflow:refine-node`), update the agent's `tools` record and imports to match. Use the tool type to determine the import pattern:
+When an agent's description contains a `**Tools needed:**` section (added by `/crayon:refine-node`), update the agent's `tools` record and imports to match. Use the tool type to determine the import pattern:
 
 | Tool Type | Import Pattern | tools record entry |
 |-----------|----------------|--------------------|
-| `(builtin)` | `import { webRead } from "0pflow"` | `web_read: webRead` |
+| `(builtin)` | `import { webRead } from "crayon"` | `web_read: webRead` |
 | `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"; const openai = createOpenAI();` | `web_search: openai.tools.webSearch()` |
 | `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>"` | `enrich_company: enrichCompany` |
 

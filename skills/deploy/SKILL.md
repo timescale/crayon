@@ -1,11 +1,11 @@
 ---
 name: deploy
-description: Deploy a 0pflow app to the cloud. Verifies deployment files, sets up environment, and deploys.
+description: Deploy a crayon app to the cloud. Verifies deployment files, sets up environment, and deploys.
 ---
 
 # Deploy to Cloud
 
-Deploys a 0pflow app to the cloud using `0pflow deploy`.
+Deploys a crayon app to the cloud using `crayon deploy`.
 
 **Announce at start:** "I'm using the deploy skill to prepare and deploy this app."
 
@@ -13,8 +13,8 @@ Deploys a 0pflow app to the cloud using `0pflow deploy`.
 
 ## Pre-Flight Checks
 
-1. **Verify this is a 0pflow app:**
-   - `package.json` must exist with `0pflow` as a dependency
+1. **Verify this is a crayon app:**
+   - `package.json` must exist with `crayon` as a dependency
    - `generated/workflows/` should exist with at least one compiled workflow
 
 2. **Verify `.env` exists with required variables:**
@@ -34,7 +34,7 @@ Deploys a 0pflow app to the cloud using `0pflow deploy`.
 If not already authenticated:
 
 ```bash
-0pflow login
+crayon login
 ```
 
 This opens a browser for GitHub OAuth and stores a session token locally.
@@ -44,7 +44,7 @@ This opens a browser for GitHub OAuth and stores a session token locally.
 ## Phase 2: Deploy
 
 ```bash
-0pflow deploy
+crayon deploy
 ```
 
 This command:
@@ -74,7 +74,7 @@ After deployment completes:
 
 ### Deploy fails during authentication
 
-Run `0pflow login` manually and retry.
+Run `crayon login` manually and retry.
 
 ### Build fails remotely
 
@@ -101,7 +101,7 @@ All variables from `.env` are synced to the cloud VM during deploy, except:
 - `DBOS_SYSTEM_DATABASE_URL`
 - `DBOS_CONDUCTOR_KEY`
 
-Additionally, `OPFLOW_TOKEN` is automatically included for runtime integration credential fetching.
+Additionally, `CRAYON_TOKEN` is automatically included for runtime integration credential fetching.
 
 ---
 

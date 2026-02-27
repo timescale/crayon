@@ -1,12 +1,12 @@
 #!/bin/bash
 # Update all Fly machines in a cloud-dev app to the latest image.
 # Usage: ./update-machines.sh <fly-app-name> [image]
-#   fly-app-name: e.g. opflow-dev-f7a3b2c1
-#   image:        defaults to registry.fly.io/opflow-cloud-dev-image:latest
+#   fly-app-name: e.g. ocrayon-dev-f7a3b2c1
+#   image:        defaults to registry.fly.io/ocrayon-cloud-dev-image:latest
 set -e
 
 APP="${1:?Usage: $0 <fly-app-name> [image]}"
-IMAGE="${2:-registry.fly.io/opflow-cloud-dev-image:latest}"
+IMAGE="${2:-registry.fly.io/ocrayon-cloud-dev-image:latest}"
 
 echo "==> Fetching machines for app: $APP"
 MACHINES=$(flyctl machines list -a "$APP" --json 2>/dev/null)

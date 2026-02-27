@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement the 0pflow CLI with commands to list workflows, run workflows, and view run history.
+**Goal:** Implement the crayon CLI with commands to list workflows, run workflows, and view run history.
 
-**Architecture:** CLI walks up directories to find `.env` and loads all variables into `process.env`, loads workflows from `generated/workflows/` in cwd, uses existing `create0pflow()` factory for workflow execution, and queries DBOS tables directly for run history.
+**Architecture:** CLI walks up directories to find `.env` and loads all variables into `process.env`, loads workflows from `generated/workflows/` in cwd, uses existing `createCrayon()` factory for workflow execution, and queries DBOS tables directly for run history.
 
 **Tech Stack:** Commander.js (CLI framework), picocolors (terminal colors), dotenv (env loading), pg (database queries), jiti (TypeScript loader for runtime imports)
 
@@ -15,20 +15,20 @@
 **Files:**
 - Modify: `packages/cli/package.json`
 
-**Step 1: Add dotenv, pg, cli-table3, jiti, and 0pflow**
+**Step 1: Add dotenv, pg, cli-table3, jiti, and crayon**
 
 Run:
 ```bash
-cd packages/cli && pnpm add dotenv pg cli-table3 jiti 0pflow@workspace:* && pnpm add -D @types/pg
+cd packages/cli && pnpm add dotenv pg cli-table3 jiti crayon@workspace:* && pnpm add -D @types/pg
 ```
 
-Note: `0pflow@workspace:*` adds the local workspace package as a dependency (required for `create0pflow` import in the run command).
+Note: `crayon@workspace:*` adds the local workspace package as a dependency (required for `createCrayon` import in the run command).
 
 **Step 2: Commit**
 
 ```bash
 git add packages/cli/package.json pnpm-lock.yaml
-git commit -m "chore(cli): add dotenv, pg, cli-table3, jiti, and 0pflow dependencies"
+git commit -m "chore(cli): add dotenv, pg, cli-table3, jiti, and crayon dependencies"
 ```
 
 ---
@@ -152,7 +152,7 @@ export function findEnvFile(startDir: string): string | null {
 
 /**
  * Load .env file into process.env
- * Throws if DATABASE_URL is not set (required for 0pflow)
+ * Throws if DATABASE_URL is not set (required for crayon)
  */
 export function loadEnv(envPath: string): void {
   const result = dotenv.config({ path: envPath });
@@ -161,7 +161,7 @@ export function loadEnv(envPath: string): void {
     throw new Error(`Failed to load .env: ${result.error.message}`);
   }
 
-  // DATABASE_URL is required for 0pflow
+  // DATABASE_URL is required for crayon
   if (!process.env.DATABASE_URL) {
     throw new Error(
       "DATABASE_URL not found in .env\n" +
@@ -252,7 +252,7 @@ Expected: FAIL with "Cannot find module '../discovery.js'"
 import fs from "fs";
 import path from "path";
 import { createJiti } from "jiti";
-import type { Executable } from "0pflow";
+import type { Executable } from "crayon";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WorkflowExecutable = Executable<any, any>;
@@ -534,8 +534,8 @@ import { discoverWorkflows } from "./discovery.js";
 const program = new Command();
 
 program
-  .name("0pflow")
-  .description("CLI for 0pflow workflow engine")
+  .name("crayon")
+  .description("CLI for crayon workflow engine")
   .version("0.1.0");
 
 program
@@ -588,7 +588,7 @@ program.parse();
 Run:
 ```bash
 cd packages/cli && pnpm build
-cd ../../examples/uptime-app && npx 0pflow list
+cd ../../examples/uptime-app && npx crayon list
 ```
 Expected: Shows url-check and url-summarizer workflows
 
@@ -609,7 +609,7 @@ git commit -m "feat(cli): implement list command"
 **Step 1: Add run command after list command**
 
 ```typescript
-import { create0pflow } from "0pflow";
+import { createCrayon } from "crayon";
 import { resolveEnv } from "./env.js";
 
 program
@@ -665,18 +665,18 @@ program
         workflowRegistry[w.name] = w;
       }
 
-      // Create 0pflow instance and run
+      // Create crayon instance and run
       if (!options.json) {
         console.log(pc.dim(`Running ${workflowName}...`));
       }
 
-      const pflow = await create0pflow({
+      const crayon = await createCrayon({
         databaseUrl: process.env.DATABASE_URL!,
         workflows: workflowRegistry,
       });
 
       try {
-        const result = await pflow.triggerWorkflow(workflow.name, inputs);
+        const result = await crayon.triggerWorkflow(workflow.name, inputs);
 
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -685,7 +685,7 @@ program
           console.log(JSON.stringify(result, null, 2));
         }
       } finally {
-        await pflow.shutdown();
+        await crayon.shutdown();
       }
     } catch (err) {
       console.error(pc.red(`Error: ${err instanceof Error ? err.message : err}`));
@@ -699,7 +699,7 @@ program
 Run:
 ```bash
 cd packages/cli && pnpm build
-cd ../../examples/uptime-app && npx 0pflow run url-check -i '{"url": "https://example.com"}'
+cd ../../examples/uptime-app && npx crayon run url-check -i '{"url": "https://example.com"}'
 ```
 Expected: Shows workflow result with status_code, response_time_ms, etc.
 
@@ -830,8 +830,8 @@ program
 Run:
 ```bash
 cd packages/cli && pnpm build
-cd ../../examples/uptime-app && npx 0pflow history
-cd ../../examples/uptime-app && npx 0pflow history <id-from-list>
+cd ../../examples/uptime-app && npx crayon history
+cd ../../examples/uptime-app && npx crayon history <id-from-list>
 ```
 Expected: Shows list of past executions, then details of specific run
 
@@ -877,31 +877,31 @@ pnpm build
 cd examples/uptime-app
 
 # List workflows
-npx 0pflow list
-npx 0pflow list --json
+npx crayon list
+npx crayon list --json
 
 # Run a workflow
-npx 0pflow run url-check -i '{"url": "https://example.com"}'
-npx 0pflow run url-check -i '{"url": "https://example.com"}' --json
+npx crayon run url-check -i '{"url": "https://example.com"}'
+npx crayon run url-check -i '{"url": "https://example.com"}' --json
 
 # List past executions
-npx 0pflow history
-npx 0pflow history --json
-npx 0pflow history -n 5
-npx 0pflow history -w url-check
+npx crayon history
+npx crayon history --json
+npx crayon history -n 5
+npx crayon history -w url-check
 
 # Get run details (use ID from above)
-npx 0pflow history <run-id>
-npx 0pflow history <run-id> --json
+npx crayon history <run-id>
+npx crayon history <run-id> --json
 ```
 
 **Step 3: Update design doc**
 
-Update `docs/plans/2026-01-23-0pflow-design.md` to mark Phase 6 CLI as Done.
+Update `docs/plans/2026-01-23-crayon-design.md` to mark Phase 6 CLI as Done.
 
 **Step 4: Final commit**
 
 ```bash
-git add docs/plans/2026-01-23-0pflow-design.md
+git add docs/plans/2026-01-23-crayon-design.md
 git commit -m "docs: mark Phase 6 CLI as complete"
 ```

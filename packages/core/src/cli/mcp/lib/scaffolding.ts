@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 
 import * as dotenv from "dotenv";
 import { packageRoot, version } from "../config.js";
-import { writeAppTemplates, create0pflowDirectories } from "../lib/templates.js";
+import { writeAppTemplates, createCrayonDirectories } from "../lib/templates.js";
 import { setupSchemaFromUrl } from "./schema-ops.js";
 import { ensureConnectionsTable } from "../../../connections/schema.js";
 
@@ -54,18 +54,18 @@ export async function scaffoldApp({
     await writeAppTemplates(appPath, {
       app_name: appName,
       // - Dev mode (monorepo via npm link): "dev" dist-tag
-      // - Installed from 0pflow@dev (e.g. 0.1.0-dev.c6251ba): "dev" dist-tag
-      // - Installed from 0pflow@latest (e.g. 0.1.0): exact version
-      opflow_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
+      // - Installed from crayon@dev (e.g. 0.1.0-dev.c6251ba): "dev" dist-tag
+      // - Installed from crayon@latest (e.g. 0.1.0): exact version
+      ocrayon_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
     });
 
-    await create0pflowDirectories(appPath);
+    await createCrayonDirectories(appPath);
 
-    // In dev mode, link local 0pflow packages
+    // In dev mode, link local crayon packages
     if (isDevMode()) {
       const corePath = join(monorepoRoot, "packages", "core");
       await execAsync("npm link", corePath);
-      await execAsync("npm link 0pflow", appPath);
+      await execAsync("npm link crayon", appPath);
     }
 
     if (installDeps) {
@@ -83,7 +83,7 @@ export async function scaffoldApp({
 
     return {
       success: true,
-      message: `Created 0pflow app '${appName}' in ${appPath}`,
+      message: `Created crayon app '${appName}' in ${appPath}`,
       path: appPath,
     };
   } catch (err) {
@@ -253,7 +253,7 @@ export async function setupAppSchema({
 
   await writeFile(envPath, `${newEnvContent}\n`);
 
-  // Create the opflow_connections table so it's ready before the dev UI launches
+  // Create the ocrayon_connections table so it's ready before the dev UI launches
   await ensureConnectionsTable(creds.DATABASE_URL, creds.DATABASE_SCHEMA);
 
   return {

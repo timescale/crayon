@@ -60,7 +60,7 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.isCloud) {
-          setClaudeCommand("0pflow cloud claude --continue");
+          setClaudeCommand("crayon cloud claude --continue");
         } else if (data?.projectRoot) {
           setClaudeCommand(`cd ${data.projectRoot} && claude --continue`);
         }

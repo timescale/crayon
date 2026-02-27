@@ -147,7 +147,7 @@ export async function startDevServer(options: DevServerOptions) {
         res.end(indexBody);
       } catch {
         res.writeHead(500, { "Content-Type": "text/plain" });
-        res.end("Dev UI client not built. Run: pnpm --filter 0pflow build");
+        res.end("Dev UI client not built. Run: pnpm --filter crayon build");
       }
     }
   });
@@ -237,7 +237,7 @@ export async function startDevServer(options: DevServerOptions) {
     httpServer.once("error", async (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
         const shouldKill = await p.confirm({
-          message: "0pflow is likely already running. Kill it and restart?",
+          message: "crayon is likely already running. Kill it and restart?",
         });
         if (!p.isCancel(shouldKill) && shouldKill) {
           const killed = await killPortHolder(port);

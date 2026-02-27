@@ -1,4 +1,4 @@
-# 0pflow Design Document
+# crayon Design Document
 
 **Date:** 2026-01-23
 **Status:** In Progress
@@ -14,11 +14,11 @@
 | 5 | Compiler (Claude Code Skill) | Done |
 | 6 | CLI | Done |
 | 7 | Validator (Claude Code Skill) | Not Started |
-| 8 | Minimal UI (@0pflow/ui) | Not Started |
+| 8 | Minimal UI (@crayon/ui) | Not Started |
 
 ## Overview
 
-0pflow is an AI-native workflow engine for GTM/RevOps automation.
+crayon is an AI-native workflow engine for GTM/RevOps automation.
 
 **Primary users:** GTM engineers, RevOps, and semi-technical operators building research and automation workflows (ICP scoring, expansion research, competitor monitoring).
 
@@ -26,7 +26,7 @@
 
 ## User App Scaffolding
 
-User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, better-auth). 0pflow adds specific directories for specs, nodes, and generated code.
+User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, better-auth). crayon adds specific directories for specs, nodes, and generated code.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 ┌─────────────────────────────────────────────────────┐
 │          User's App (T3 Stack: Next.js + tRPC)      │
 ├─────────────────────────────────────────────────────┤
-│  specs/                  ← 0pflow additions         │
+│  specs/                  ← crayon additions         │
 │    workflows/            ← Workflow specs (markdown)│
 │    agents/               ← Agent definitions        │
 │  src/                                               │
@@ -57,23 +57,23 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 ## Package Structure
 
 ```
-0pflow/
+crayon/
 ├── packages/
-│   ├── core/                 ← SDK + runtime (0pflow)
+│   ├── core/                 ← SDK + runtime (crayon)
 │   │   ├── src/
 │   │   │   ├── workflow.ts   ← Workflow.create(), WorkflowContext
 │   │   │   ├── node.ts       ← Node.create()
 │   │   │   ├── agent.ts      ← Agent.create()
 │   │   │   ├── nodes/        ← Built-in nodes, registry, agent internals
-│   │   │   └── factory.ts    ← create0pflow()
+│   │   │   └── factory.ts    ← createCrayon()
 │   │   └── package.json
 │   │
-│   ├── ui/                   ← Default UI (@0pflow/ui)
+│   ├── ui/                   ← Default UI (@crayon/ui)
 │   │   ├── src/
 │   │   │   └── dashboard.tsx ← React components (fetch via props/hooks)
 │   │   └── package.json
 │   │
-│   └── cli/                  ← CLI tool (@0pflow/cli)
+│   └── cli/                  ← CLI tool (@crayon/cli)
 │       └── package.json
 │
 └── skills/                   ← Claude Code skills
@@ -85,19 +85,19 @@ User apps are standard T3-stack apps (Next.js 16, tRPC, Drizzle, PostgreSQL, bet
 **Core SDK API (plain TypeScript functions, no framework dependencies):**
 
 ```typescript
-import { create0pflow } from '0pflow';
+import { createCrayon } from 'crayon';
 
 // Create instance at app startup (configures DBOS, discovers workflows)
-const pflow = await create0pflow({ workflowDir: './generated/workflows' });
+const crayon = await createCrayon({ workflowDir: './generated/workflows' });
 
 // Use anywhere server-side
-const workflows = await pflow.listWorkflows();
-const result = await pflow.triggerWorkflow('icp-scoring', { company_url: '...' });
+const workflows = await crayon.listWorkflows();
+const result = await crayon.triggerWorkflow('icp-scoring', { company_url: '...' });
 ```
 
-**User integration:** Users wrap these methods in tRPC routers, REST API routes, or call directly from server components. 0pflow doesn't prescribe how - it's a library, not a framework.
+**User integration:** Users wrap these methods in tRPC routers, REST API routes, or call directly from server components. crayon doesn't prescribe how - it's a library, not a framework.
 
-**Webhook triggers:** For external systems to trigger workflows, users create a REST endpoint in their app that calls `pflow.triggerWorkflow()`. Example: `POST /api/workflows/[name]/trigger`.
+**Webhook triggers:** For external systems to trigger workflows, users create a REST endpoint in their app that calls `crayon.triggerWorkflow()`. Example: `POST /api/workflows/[name]/trigger`.
 
 ## Workflow Spec Format
 
@@ -229,7 +229,7 @@ Return a JSON object with fields:
 - **Body:** system prompt (task, guidelines, output format)
 
 **Tools can be:**
-- Built-in nodes (`web_read`) - ship with 0pflow
+- Built-in nodes (`web_read`) - ship with crayon
 - User-defined nodes from `src/nodes/` - resolved by convention
 
 **Node naming convention:** Node names must use underscores, not dots (e.g., `web_read` not `http.get`). This ensures compatibility with all LLM providers.
@@ -245,13 +245,13 @@ Workflows orchestrate nodes. Node types:
 | **Node** | User TypeScript in `src/nodes/` | `calculateScore` |
 | **Sub-workflow** | Another workflow spec | `enrichment-pipeline` |
 
-**Unified node model:** Tools and function nodes are unified into a single concept: nodes. All nodes have a `description` field which allows them to be used as agent tools. Built-in nodes like `web_read` ship with 0pflow; user-defined nodes live in `src/nodes/`.
+**Unified node model:** Tools and function nodes are unified into a single concept: nodes. All nodes have a `description` field which allows them to be used as agent tools. Built-in nodes like `web_read` ship with crayon; user-defined nodes live in `src/nodes/`.
 
 **Agent execution model:** Agents are not special runtime machinery. The pre-packaged agent node reads agent specs (`specs/agents/*.md`) at runtime and executes an agentic loop using the Vercel AI SDK. Users can also write custom agent nodes in `src/nodes/` if they need different behavior (e.g., different LLM providers, custom tool-calling logic).
 
 **Node resolution:** Nodes referenced in agent specs (as tools) and workflows are resolved by convention:
 - **User-defined nodes:** `src/nodes/<name>.ts`
-- **Built-in nodes:** `web_read` ships with 0pflow
+- **Built-in nodes:** `web_read` ships with crayon
 
 ## Runtime & SDK
 
@@ -260,7 +260,7 @@ The runtime executes compiled TypeScript workflows using DBOS for durability.
 **SDK surface (intentionally minimal):**
 
 ```typescript
-import { Workflow, WorkflowContext } from '0pflow';
+import { Workflow, WorkflowContext } from 'crayon';
 
 export const icpScoring = Workflow.create({
   name: 'icp-scoring',
@@ -305,7 +305,7 @@ DBOS handles: retries, idempotency, checkpointing, replay.
 
 ## Idempotency & Attempt Semantics (Post-MVP)
 
-0pflow distinguishes between idempotent and non-idempotent nodes to determine how retries and recovery are handled. This distinction affects how `maxAttempts` is interpreted and enforced.
+crayon distinguishes between idempotent and non-idempotent nodes to determine how retries and recovery are handled. This distinction affects how `maxAttempts` is interpreted and enforced.
 
 **MVP behavior:** All nodes are treated as idempotent. Non-idempotent semantics are deferred to post-MVP.
 
@@ -341,7 +341,7 @@ A node is non-idempotent if re-execution may produce duplicate or unintended sid
 Non-idempotent nodes must explicitly declare `idempotency: non-idempotent`.
 
 **Attempt semantics (start-based):**
-- An attempt is counted when execution is started, recorded in a durable 0pflow attempt ledger
+- An attempt is counted when execution is started, recorded in a durable crayon attempt ledger
 - Each execution start consumes one attempt, regardless of whether it completes
 - On recovery, previously started but incomplete attempts are not replayed
 - The engine will start execution at most `maxAttempts` times for a given `(runId, nodeId)` unless explicitly forced
@@ -400,7 +400,7 @@ throw new WorkflowCompilationError('Unresolved TODOs in task 3');
 
 ## Spec Author Skill
 
-The spec-author skill is a Claude Code skill that guides users through collaborative workflow design. It's modeled after brainstorming workflows but focused specifically on creating 0pflow specs.
+The spec-author skill is a Claude Code skill that guides users through collaborative workflow design. It's modeled after brainstorming workflows but focused specifically on creating crayon specs.
 
 **Purpose:** Turn vague workflow ideas into well-structured specs through guided dialogue, ensuring specs are complete enough to compile without ambiguity.
 
@@ -514,7 +514,7 @@ For MVP, the UI is extremely minimal.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  0pflow                                             │
+│  crayon                                             │
 ├─────────────────────────────────────────────────────┤
 │  Workflows                                          │
 │  ┌─────────────────────────────────────────────────┐│
@@ -535,7 +535,7 @@ For MVP, the UI is extremely minimal.
 **Trigger options (MVP):**
 - Button click in UI
 - Webhook POST with JSON body
-- CLI: `0pflow run icp-scoring --input '{"company_url": "..."}'`
+- CLI: `crayon run icp-scoring --input '{"company_url": "..."}'`
 
 ---
 
@@ -577,13 +577,13 @@ For MVP, the UI is extremely minimal.
 ## MVP Implementation Plan
 
 ### Phase 1: Project Scaffolding
-- Initialize monorepo structure for 0pflow packages
+- Initialize monorepo structure for crayon packages
 - Set up TypeScript, DBOS dependencies
 - Create example user app based on T3 scaffolding (Next.js 16, tRPC, Drizzle, better-auth)
 - Add `specs/workflows/`, `specs/agents/`, `src/nodes/`, `generated/workflows/` to example app
 
 ### Phase 2: SDK Core
-- `create0pflow()` factory - returns instance with config (workflow dir, DBOS setup)
+- `createCrayon()` factory - returns instance with config (workflow dir, DBOS setup)
 - `Workflow.create()` API for defining workflows
 - `WorkflowContext` with core methods (`runAgent`, `runNode`, `call`, `log`)
 - Workflow discovery from `generated/workflows/`
@@ -607,17 +607,17 @@ For MVP, the UI is extremely minimal.
 - TODO emission for ambiguous specs
 
 ### Phase 6: CLI
-- `0pflow run <workflow> --input '{...}'` - trigger a workflow
-- `0pflow list` - list available workflows
-- `0pflow runs` - list previous workflow runs
-- `0pflow runs <run-id>` - get details of a specific run
+- `crayon run <workflow> --input '{...}'` - trigger a workflow
+- `crayon list` - list available workflows
+- `crayon runs` - list previous workflow runs
+- `crayon runs <run-id>` - get details of a specific run
 
 ### Phase 7: Validator (Claude Code Skill)
 - Structure validation (required sections present)
 - Reference validation (nodes exist, types align)
 - Human description ↔ implementation consistency check
 
-### Phase 8: Minimal UI (@0pflow/ui)
+### Phase 8: Minimal UI (@crayon/ui)
 - React components that accept data via props (framework-agnostic)
 - WorkflowList, WorkflowTriggerButton components
 - User wires up data fetching (tRPC, SWR, etc.) in their app

@@ -14,7 +14,7 @@ const inputSchema = {
     .string()
     .describe(
       "The integration ID to look up (e.g., 'salesforce', 'slack'). " +
-      "Must match an integration_id in the opflow_connections table.",
+      "Must match an integration_id in the ocrayon_connections table.",
     ),
   workflow_name: z
     .string()
@@ -81,7 +81,7 @@ export const getConnectionInfoFactory: ApiFactory<
       title: "Get Connection Info",
       description:
         "Get metadata for a configured integration connection. " +
-        "Resolves the connection ID from the opflow_connections table, " +
+        "Resolves the connection ID from the ocrayon_connections table, " +
         "then fetches connection details via IntegrationProvider (local Nango or cloud).",
       inputSchema,
       outputSchema,

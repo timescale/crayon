@@ -5,12 +5,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
-import { create0pflow, Workflow, Node, type Pflow } from "../index.js";
+import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
 // Schema used by tests (must match default from getSchemaName())
-const TEST_SCHEMA = "opflow_dbos";
+const TEST_SCHEMA = "ocrayon_dbos";
 
 async function resetDatabase(): Promise<void> {
   const client = new pg.Client({ connectionString: DATABASE_URL });
@@ -37,7 +37,7 @@ async function countWorkflowExecutions(workflowName: string): Promise<number> {
   }
 }
 
-describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
+describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
   // Define nodes
   const fetchData = Node.create({
     name: "fetch-data",
@@ -96,15 +96,15 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
     },
   });
 
-  let pflow: Pflow;
+  let crayon: Crayon;
 
   beforeAll(async () => {
     // Drop DBOS schema for clean test state
     await resetDatabase();
 
-    pflow = await create0pflow({
+    crayon = await createCrayon({
       databaseUrl: DATABASE_URL!,
-      appName: "opflow",
+      appName: "ocrayon",
       workflows: {
         research: researchWorkflow,
         outer: outerWorkflow,
@@ -115,11 +115,11 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
   }, 30000); // 30s timeout for DBOS init
 
   afterAll(async () => {
-    await pflow?.shutdown();
+    await crayon?.shutdown();
   });
 
   it("complete workflow with multiple nodes", async () => {
-    const result = await pflow.triggerWorkflow("research", {
+    const result = await crayon.triggerWorkflow("research", {
       url: "https://example.com",
     });
 
@@ -130,13 +130,13 @@ describe.skipIf(!DATABASE_URL)("0pflow e2e", () => {
   });
 
   it("nested workflow calls", async () => {
-    const result = await pflow.triggerWorkflow("outer", { value: 5 });
+    const result = await crayon.triggerWorkflow("outer", { value: 5 });
     expect(result).toBe(11); // (5 * 2) + 1
   });
 
   it("records exactly one workflow execution per trigger", async () => {
     // Trigger the workflow once
-    await pflow.triggerWorkflow("research", {
+    await crayon.triggerWorkflow("research", {
       url: "https://count-test.example.com",
     });
 

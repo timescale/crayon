@@ -3,7 +3,7 @@ set -e
 
 # Dev script: starts ngrok + local auth-server.
 # The ngrok URL is injected as PUBLIC_URL so the create route
-# sets OPFLOW_SERVER_URL on new Fly machines.
+# sets CRAYON_SERVER_URL on new Fly machines.
 #
 # Usage: ./scripts/dev-auth.sh
 #
@@ -42,7 +42,7 @@ echo "  ngrok URL: $PUBLIC_URL"
 echo "==================================="
 echo ""
 echo "To create a cloud workspace against this local server:"
-echo "  OPFLOW_SERVER_URL=$PUBLIC_URL pnpm --filter 0pflow exec 0pflow cloud run"
+echo "  CRAYON_SERVER_URL=$PUBLIC_URL pnpm --filter crayon exec crayon cloud run"
 echo ""
 
 # 3. Start auth-server with PUBLIC_URL injected

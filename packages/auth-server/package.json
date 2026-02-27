@@ -1,5 +1,5 @@
 {
-  "name": "@0pflow/auth-server",
+  "name": "@crayon/auth-server",
   "version": "0.0.1",
   "private": true,
   "scripts": {

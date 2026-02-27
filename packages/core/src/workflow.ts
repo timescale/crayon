@@ -121,9 +121,9 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
  * configureWorkflowRuntime().
  * @internal
  */
-const POOL_KEY = Symbol.for("opflow.getWorkflowPool()");
-const PROVIDER_KEY = Symbol.for("opflow.getWorkflowIntegrationProvider()");
-const SCHEMA_KEY = Symbol.for("opflow.getWorkflowAppSchema()");
+const POOL_KEY = Symbol.for("ocrayon.getWorkflowPool()");
+const PROVIDER_KEY = Symbol.for("ocrayon.getWorkflowIntegrationProvider()");
+const SCHEMA_KEY = Symbol.for("ocrayon.getWorkflowAppSchema()");
 
 function getWorkflowPool(): pg.Pool | null {
   return (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] ?? null;
@@ -162,7 +162,7 @@ export interface NodeWrapper<TInput = unknown, TOutput = unknown> {
 
 // Global cache for workflow executables to prevent duplicate DBOS registration
 // when bundlers (Turbopack) re-evaluate the same module in multiple chunks.
-const WORKFLOW_CACHE_KEY = Symbol.for("opflow.workflowCache");
+const WORKFLOW_CACHE_KEY = Symbol.for("ocrayon.workflowCache");
 function getWorkflowCache(): Map<string, WorkflowExecutable> {
   const g = globalThis as Record<symbol, Map<string, WorkflowExecutable>>;
   if (!g[WORKFLOW_CACHE_KEY]) g[WORKFLOW_CACHE_KEY] = new Map();

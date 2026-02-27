@@ -7,7 +7,7 @@ log() { echo "[$(( $(date +%s%3N) - BOOT_START ))ms] $*"; }
 APP_DIR="/data/app"
 APP_NAME="${APP_NAME:-my-app}"
 DEV_USER="${DEV_USER:?DEV_USER must be set}"  # e.g., user-abc123
-OPFLOW="$(npm prefix -g)/bin/0pflow"  # globally installed binary
+CRAYON="$(npm prefix -g)/bin/crayon"  # globally installed binary
 
 # ── Create isolated Linux user ──────────────────────────────────
 log "Creating user $DEV_USER..."
@@ -73,8 +73,8 @@ chown -R "$DEV_USER:devs" "$DEV_HOME"
 if [ ! -f "$APP_DIR/package.json" ]; then
   log "Scaffolding new project: $APP_NAME"
   install -d -o "$DEV_USER" -g devs "$APP_DIR"
-  log "  Running 0pflow init..."
-  su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$OPFLOW" init '$APP_NAME' --dir . --no-install"
+  log "  Running crayon init..."
+  su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$CRAYON" init '$APP_NAME' --dir . --no-install"
 
   # Copy pre-cached /node_modules onto the volume in the background.
   # -L dereferences symlinks so all files land as real writable files (fixes
@@ -112,11 +112,11 @@ fi
 #   echo "$BAD_FILES"
 # fi
 
-# ── Pin 0pflow to image version (every boot) ────────────────────────────
+# ── Pin crayon to image version (every boot) ────────────────────────────
 # Remove any local copy so Node.js resolves via parent-directory lookup
-# to /node_modules/0pflow (symlinked to the global install baked into the image).
+# to /node_modules/crayon (symlinked to the global install baked into the image).
 # This avoids a symlink in the app's node_modules that npm would try to chmod.
-rm -rf "$APP_DIR/node_modules/0pflow"
+rm -rf "$APP_DIR/node_modules/crayon"
 
 # ── SSH server setup ──────────────────────────────────────────
 # Persist host keys on volume so they survive redeployments (avoids "host key changed" warnings)
@@ -167,4 +167,4 @@ log "Starting dev server..."
 cd "$APP_DIR"
 export HOME="$(eval echo "~$DEV_USER")"
 export PATH="$DEV_HOME/.local/bin:$PATH"
-exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$OPFLOW" dev --host --dangerously-skip-permissions"
+exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$CRAYON" dev --host --dangerously-skip-permissions"

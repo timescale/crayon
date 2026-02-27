@@ -4,7 +4,7 @@ import { apiCall } from "./cloud-client.js";
 import { getConnectionDisplayName } from "./connection-labels.js";
 
 /**
- * IntegrationProvider backed by the 0pflow cloud server (hosted mode).
+ * IntegrationProvider backed by the crayon cloud server (hosted mode).
  * All Nango operations are proxied through the server — no NANGO_SECRET_KEY needed locally.
  */
 export class CloudIntegrationProvider implements IntegrationProvider {

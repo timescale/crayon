@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
 import { listRuns, getRun } from "../runs.js";
-import { create0pflow, Workflow, Node, type Pflow } from "../../index.js";
+import { createCrayon, Workflow, Node, type Crayon } from "../../index.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 // Use a dedicated schema for runs tests
@@ -41,12 +41,12 @@ const echoWorkflow = Workflow.create({
 });
 
 describe.skipIf(!DATABASE_URL)("runs", () => {
-  let pflow: Pflow;
+  let crayon: Crayon;
 
   beforeAll(async () => {
     await resetDatabase();
 
-    pflow = await create0pflow({
+    crayon = await createCrayon({
       databaseUrl: DATABASE_URL!,
       appName: TEST_APP_NAME,
       workflows: { "echo-workflow": echoWorkflow },
@@ -54,11 +54,11 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
     });
 
     // Run a workflow so there's data to query
-    await pflow.triggerWorkflow("echo-workflow", { message: "hello" });
+    await crayon.triggerWorkflow("echo-workflow", { message: "hello" });
   }, 30000);
 
   afterAll(async () => {
-    await pflow?.shutdown();
+    await crayon?.shutdown();
   });
 
   it("lists recent workflow runs", async () => {

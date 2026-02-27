@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Initialize the 0pflow monorepo with core package structure and an example app.
+**Goal:** Initialize the crayon monorepo with core package structure and an example app.
 
-**Architecture:** Monorepo with three packages (`core`, `ui`, `cli`) plus a `skills/` directory for Claude Code skills. An `examples/uptime-app/` directory contains a T3-stack app demonstrating 0pflow usage with a simple URL uptime checker workflow.
+**Architecture:** Monorepo with three packages (`core`, `ui`, `cli`) plus a `skills/` directory for Claude Code skills. An `examples/uptime-app/` directory contains a T3-stack app demonstrating crayon usage with a simple URL uptime checker workflow.
 
 **Tech Stack:** TypeScript, pnpm workspaces, Biome (linting/formatting), Vitest (testing), DBOS, Vercel AI SDK
 
@@ -23,7 +23,7 @@
 
 ```json
 {
-  "name": "0pflow-monorepo",
+  "name": "crayon-monorepo",
   "private": true,
   "type": "module",
   "scripts": {
@@ -164,7 +164,7 @@ git commit -m "chore: add root TypeScript configuration"
 
 ```json
 {
-  "name": "0pflow",
+  "name": "crayon",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -211,12 +211,12 @@ git commit -m "chore: add root TypeScript configuration"
 **Step 3: Create packages/core/src/index.ts**
 
 ```typescript
-// 0pflow - AI-native workflow engine
+// crayon - AI-native workflow engine
 export const VERSION = "0.1.0";
 
 // Placeholder exports - will be implemented in Phase 2
 export type { Workflow, WorkflowContext } from "./types.js";
-export { create0pflow } from "./factory.js";
+export { createCrayon } from "./factory.js";
 ```
 
 **Step 4: Create placeholder type file packages/core/src/types.ts**
@@ -253,20 +253,20 @@ export interface WorkflowContext {
 ```typescript
 import type { Workflow } from "./types.js";
 
-export interface PflowConfig {
+export interface CrayonConfig {
   workflowDir: string;
 }
 
-export interface Pflow {
+export interface Crayon {
   listWorkflows: () => Promise<string[]>;
   getWorkflow: (name: string) => Promise<Workflow | undefined>;
   triggerWorkflow: <T = unknown>(name: string, input: unknown) => Promise<T>;
 }
 
 /**
- * Create a 0pflow instance
+ * Create a crayon instance
  */
-export async function create0pflow(_config: PflowConfig): Promise<Pflow> {
+export async function createCrayon(_config: CrayonConfig): Promise<Crayon> {
   // Placeholder implementation - will be completed in Phase 2
   return {
     listWorkflows: async () => [],
@@ -298,7 +298,7 @@ git commit -m "feat: add core package structure with placeholder types"
 
 ```json
 {
-  "name": "@0pflow/ui",
+  "name": "@crayon/ui",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -345,7 +345,7 @@ git commit -m "feat: add core package structure with placeholder types"
 **Step 3: Create packages/ui/src/index.ts**
 
 ```typescript
-// @0pflow/ui - React components for 0pflow dashboards
+// @crayon/ui - React components for crayon dashboards
 export { WorkflowList } from "./components/WorkflowList.js";
 export { TriggerButton } from "./components/TriggerButton.js";
 ```
@@ -436,11 +436,11 @@ git commit -m "feat: add UI package with WorkflowList and TriggerButton componen
 
 ```json
 {
-  "name": "@0pflow/cli",
+  "name": "@crayon/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "0pflow": "./dist/index.js"
+    "crayon": "./dist/index.js"
   },
   "files": [
     "dist"
@@ -450,7 +450,7 @@ git commit -m "feat: add UI package with WorkflowList and TriggerButton componen
     "test": "vitest run"
   },
   "dependencies": {
-    "0pflow": "workspace:*",
+    "crayon": "workspace:*",
     "commander": "^12.0.0"
   },
   "devDependencies": {
@@ -482,8 +482,8 @@ import { Command } from "commander";
 const program = new Command();
 
 program
-  .name("0pflow")
-  .description("CLI for 0pflow workflow engine")
+  .name("crayon")
+  .description("CLI for crayon workflow engine")
   .version("0.1.0");
 
 program
@@ -554,7 +554,7 @@ Invoke this skill when:
 1. Read workflow spec from `specs/workflows/<name>.md`
 2. Parse frontmatter (name, version)
 3. Extract inputs, steps, and outputs sections
-4. Generate TypeScript workflow using the 0pflow SDK
+4. Generate TypeScript workflow using the crayon SDK
 5. Write to `generated/workflows/<name>.ts`
 
 ## Compiler Principles
@@ -569,7 +569,7 @@ Invoke this skill when:
 Generated workflows follow this structure:
 
 ```typescript
-import { Workflow, WorkflowContext } from '0pflow';
+import { Workflow, WorkflowContext } from 'crayon';
 
 interface <Name>Inputs {
   // ... from ## Inputs section
@@ -691,7 +691,7 @@ git commit -m "feat: add compile-workflow and validate-spec skills"
 
 ## Task 8: Create Example Uptime App (T3 Stack)
 
-The example app is a full T3-stack app (matching test40 structure) with 0pflow directories added.
+The example app is a full T3-stack app (matching test40 structure) with crayon directories added.
 
 **Files to create:**
 - `examples/uptime-app/package.json`
@@ -711,7 +711,7 @@ The example app is a full T3-stack app (matching test40 structure) with 0pflow d
 - `examples/uptime-app/src/app/layout.tsx`
 - `examples/uptime-app/src/app/page.tsx`
 - `examples/uptime-app/src/app/api/trpc/[trpc]/route.ts`
-- 0pflow directories: `specs/workflows/`, `specs/agents/`, `src/nodes/`, `src/tools/`, `generated/workflows/`
+- crayon directories: `specs/workflows/`, `specs/agents/`, `src/nodes/`, `src/tools/`, `generated/workflows/`
 
 **Step 1: Create examples/uptime-app/package.json**
 
@@ -733,8 +733,8 @@ The example app is a full T3-stack app (matching test40 structure) with 0pflow d
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "0pflow": "workspace:*",
-    "@0pflow/ui": "workspace:*",
+    "crayon": "workspace:*",
+    "@crayon/ui": "workspace:*",
     "@t3-oss/env-nextjs": "^0.11.0",
     "@tanstack/react-query": "^5.90.0",
     "@trpc/client": "^11.8.0",
@@ -933,14 +933,14 @@ export const publicProcedure = t.procedure;
 
 **Step 10: Create examples/uptime-app/src/server/api/routers/check.ts**
 
-This router integrates with 0pflow to trigger the url-check workflow.
+This router integrates with crayon to trigger the url-check workflow.
 
 ```typescript
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc.js";
 import { urls, checks } from "~/server/db/schema.js";
 import { eq, desc } from "drizzle-orm";
-import { pflow } from "~/server/pflow.js";
+import { crayon } from "~/server/crayon.js";
 
 export const checkRouter = createTRPCRouter({
   listUrls: publicProcedure.query(async ({ ctx }) => {
@@ -963,7 +963,7 @@ export const checkRouter = createTRPCRouter({
       await ctx.db.delete(urls).where(eq(urls.id, input.id));
     }),
 
-  // This triggers the 0pflow url-check workflow
+  // This triggers the crayon url-check workflow
   checkUrl: publicProcedure
     .input(z.object({ urlId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -972,8 +972,8 @@ export const checkRouter = createTRPCRouter({
       });
       if (!url) throw new Error("URL not found");
 
-      // Trigger 0pflow workflow instead of inline fetch
-      const result = await pflow.triggerWorkflow("url-check", {
+      // Trigger crayon workflow instead of inline fetch
+      const result = await crayon.triggerWorkflow("url-check", {
         url: url.url,
       });
 
@@ -1003,15 +1003,15 @@ export const checkRouter = createTRPCRouter({
 });
 ```
 
-**Step 11: Create examples/uptime-app/src/server/pflow.ts**
+**Step 11: Create examples/uptime-app/src/server/crayon.ts**
 
-This initializes the 0pflow instance for the app.
+This initializes the crayon instance for the app.
 
 ```typescript
-import { create0pflow } from "0pflow";
+import { createCrayon } from "crayon";
 
-// Initialize 0pflow with workflow directory
-export const pflow = await create0pflow({
+// Initialize crayon with workflow directory
+export const crayon = await createCrayon({
   workflowDir: "./generated/workflows",
 });
 ```
@@ -1151,8 +1151,8 @@ import type { Metadata } from "next";
 import { TRPCReactProvider } from "~/trpc/react.js";
 
 export const metadata: Metadata = {
-  title: "Uptime App - 0pflow Example",
-  description: "Simple URL uptime checker demonstrating 0pflow workflows",
+  title: "Uptime App - crayon Example",
+  description: "Simple URL uptime checker demonstrating crayon workflows",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -1178,7 +1178,7 @@ export default async function Home() {
     <HydrateClient>
       <main style={{ padding: "2rem", fontFamily: "system-ui" }}>
         <h1>Uptime Checker</h1>
-        <p>Simple URL monitoring app demonstrating 0pflow workflows.</p>
+        <p>Simple URL monitoring app demonstrating crayon workflows.</p>
         <p>
           <code>specs/workflows/url-check.md</code> - Workflow to check URL status
         </p>
@@ -1188,7 +1188,7 @@ export default async function Home() {
 }
 ```
 
-**Step 19: Create 0pflow directories with .gitkeep files**
+**Step 19: Create crayon directories with .gitkeep files**
 
 Create these directories with empty .gitkeep files:
 - `examples/uptime-app/specs/workflows/.gitkeep`
@@ -1199,7 +1199,7 @@ Create these directories with empty .gitkeep files:
 
 **Step 20: Create example workflow spec: examples/uptime-app/specs/workflows/url-check.md**
 
-This is the actual 0pflow workflow that checks URL status.
+This is the actual crayon workflow that checks URL status.
 
 ```markdown
 ---
@@ -1239,7 +1239,7 @@ Make an HTTP HEAD request to the URL and capture the response.
 This is the function node referenced by the workflow.
 
 ```typescript
-import type { NodeDefinition } from "0pflow";
+import type { NodeDefinition } from "crayon";
 
 interface HttpHeadInput {
   url: string;
@@ -1391,7 +1391,7 @@ git commit -m "chore: add pnpm lockfile"
 After completing all tasks, the directory structure will be:
 
 ```
-0pflow/
+crayon/
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── .npmrc
@@ -1425,7 +1425,7 @@ After completing all tasks, the directory structure will be:
 │   └── validate-spec/
 │       └── SKILL.md
 ├── examples/
-│   └── uptime-app/                  # T3 stack + 0pflow
+│   └── uptime-app/                  # T3 stack + crayon
 │       ├── package.json
 │       ├── tsconfig.json
 │       ├── next.config.js
@@ -1433,19 +1433,19 @@ After completing all tasks, the directory structure will be:
 │       ├── biome.jsonc
 │       ├── .env.example
 │       │
-│       ├── specs/                   # ← 0pflow workflow/agent specs
+│       ├── specs/                   # ← crayon workflow/agent specs
 │       │   ├── workflows/
 │       │   │   └── url-check.md     # URL checking workflow spec
 │       │   └── agents/
 │       │
-│       ├── generated/               # ← 0pflow compiled output
+│       ├── generated/               # ← crayon compiled output
 │       │   └── workflows/
 │       │       └── url-check.ts     # Compiled from spec
 │       │
 │       └── src/
 │           ├── env.js
-│           ├── nodes/               # ← 0pflow function nodes
-│           ├── tools/               # ← 0pflow agent tools
+│           ├── nodes/               # ← crayon function nodes
+│           ├── tools/               # ← crayon agent tools
 │           │
 │           ├── server/              # T3 stack server code
 │           │   ├── db/
@@ -1455,7 +1455,7 @@ After completing all tasks, the directory structure will be:
 │           │       ├── trpc.ts
 │           │       ├── root.ts
 │           │       └── routers/
-│           │           └── check.ts # Triggers 0pflow workflow
+│           │           └── check.ts # Triggers crayon workflow
 │           │
 │           ├── trpc/
 │           │   ├── react.tsx
@@ -1470,4 +1470,4 @@ After completing all tasks, the directory structure will be:
     └── plans/
 ```
 
-**Key integration point:** The tRPC router (`check.ts`) triggers 0pflow workflows. The workflow spec (`specs/workflows/url-check.md`) defines the URL checking logic, which compiles to `generated/workflows/url-check.ts`.
+**Key integration point:** The tRPC router (`check.ts`) triggers crayon workflows. The workflow spec (`specs/workflows/url-check.md`) defines the URL checking logic, which compiles to `generated/workflows/url-check.ts`.

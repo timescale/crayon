@@ -4,7 +4,7 @@ import type { ConnectionCredentials } from "../types.js";
  * Abstraction over integration/credential operations.
  *
  * LocalIntegrationProvider calls Nango directly (self-hosted mode).
- * CloudIntegrationProvider calls the 0pflow cloud server (hosted mode).
+ * CloudIntegrationProvider calls the crayon cloud server (hosted mode).
  *
  * Connection *mapping* (workflow/node → connection_id) is NOT part of this
  * interface — that stays in the user's local app DB via resolver.ts.
@@ -37,7 +37,7 @@ export interface IntegrationProvider {
  * Auto-detect and create the appropriate IntegrationProvider.
  *
  * - NANGO_SECRET_KEY set → LocalIntegrationProvider (direct Nango)
- * - Otherwise → CloudIntegrationProvider (proxies through 0pflow cloud)
+ * - Otherwise → CloudIntegrationProvider (proxies through crayon cloud)
  *
  * Optionally pass a nangoSecretKey to override env detection.
  */

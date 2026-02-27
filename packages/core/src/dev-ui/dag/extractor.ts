@@ -65,7 +65,7 @@ interface ImportInfo {
  * Determine executable type from import path.
  */
 function inferType(importSource: string): DAGNode["type"] {
-  if (importSource === "0pflow" || importSource === "0pflow/nodes") return "node";
+  if (importSource === "crayon" || importSource === "crayon/nodes") return "node";
   if (importSource.includes("agents/")) return "agent";
   if (importSource.includes("workflows/")) return "workflow";
   if (importSource.includes("nodes/")) return "node";

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Reserve an ID from the sequence (no row inserted yet)
     const seqResult = await db.query(`SELECT nextval('deployments_id_seq') AS id`);
     const deploymentId = seqResult.rows[0].id as number;
-    const flyAppName = `opflow-${deploymentId}`;
+    const flyAppName = `ocrayon-${deploymentId}`;
     const appUrl = `https://${flyAppName}.fly.dev`;
 
     // Create Fly app first — if this fails, no DB row is left behind

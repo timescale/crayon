@@ -8,7 +8,7 @@ Guide for generating typed PostgreSQL query nodes using the `postgres` (postgres
 
 **Never guess at table names, column names, or data types.** Every database has different schemas.
 
-During **node refinement** (`/0pflow:refine-node`), when a workflow needs database data:
+During **node refinement** (`/crayon:refine-node`), when a workflow needs database data:
 
 1. **Announce:** "This node needs PostgreSQL data. I'll explore the database schema to see exactly which tables and columns are available."
 2. Run the exploration commands below to discover the schema
@@ -21,7 +21,7 @@ During **node refinement** (`/0pflow:refine-node`), when a workflow needs databa
    - No string concatenation or interpolation outside of `sql` template literals
 5. **STOP HERE during refinement** - do not proceed to creating the actual node
 
-The actual query nodes are created later during `/0pflow:compile-workflow`, using the SQL query from the spec.
+The actual query nodes are created later during `/crayon:compile-workflow`, using the SQL query from the spec.
 
 ---
 
@@ -191,7 +191,7 @@ All `${value}` expressions use postgres.js tagged template literals, which autom
 ```typescript
 // src/nodes/postgres-get-<table>.ts
 import { z } from "zod";
-import { Node } from "0pflow";
+import { Node } from "crayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresGet<Table> = Node.create({
@@ -230,7 +230,7 @@ export const postgresGet<Table> = Node.create({
 ```typescript
 // src/nodes/postgres-list-<table>.ts
 import { z } from "zod";
-import { Node } from "0pflow";
+import { Node } from "crayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresList<Table> = Node.create({
@@ -282,7 +282,7 @@ export const postgresList<Table> = Node.create({
 ```typescript
 // src/nodes/postgres-create-<table>.ts
 import { z } from "zod";
-import { Node } from "0pflow";
+import { Node } from "crayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresCreate<Table> = Node.create({

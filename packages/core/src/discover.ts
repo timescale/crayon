@@ -18,7 +18,7 @@ export interface DiscoverResult {
 
 /**
  * Discover all workflows, agents, and nodes in a project directory.
- * Returns the exact shape that create0pflow() expects.
+ * Returns the exact shape that createCrayon() expects.
  */
 export async function discover(projectDir: string): Promise<DiscoverResult> {
   // Discover agents and nodes first so they're in jiti's module cache.

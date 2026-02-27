@@ -1,15 +1,15 @@
 {
-  "name": "0pflow",
+  "name": "crayon",
   "version": "0.1.0",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/timescale/0pflow"
+    "url": "https://github.com/timescale/crayon"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "0pflow": "./dist/cli/index.js"
+    "crayon": "./dist/cli/index.js"
   },
   "exports": {
     ".": {

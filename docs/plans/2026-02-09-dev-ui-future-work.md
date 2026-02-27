@@ -42,5 +42,5 @@ Follow-up items from the visual workflow DAG UI design discussion. V1 implements
 
 ## Distribution
 
-- **`pflow dev` in example app template** — When `create-workflow` skill scaffolds a new project, include `@0pflow/dev-ui` as a devDependency and add a `dev:ui` script.
-- **Standalone binary** — Consider packaging `pflow dev` as a standalone binary (e.g., via pkg or bun compile) so users don't need to install the dev-ui package separately.
+- **`crayon dev` in example app template** — When `create-workflow` skill scaffolds a new project, include `@crayon/dev-ui` as a devDependency and add a `dev:ui` script.
+- **Standalone binary** — Consider packaging `crayon dev` as a standalone binary (e.g., via pkg or bun compile) so users don't need to install the dev-ui package separately.

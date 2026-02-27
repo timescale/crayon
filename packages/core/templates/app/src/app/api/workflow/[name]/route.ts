@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getPflow } from "~/lib/pflow";
+import { getCrayon } from "~/lib/crayon";
 
 export async function GET(
   _request: NextRequest,
@@ -7,8 +7,8 @@ export async function GET(
 ) {
   try {
     const { name } = await params;
-    const pflow = await getPflow();
-    const result = await pflow.triggerWorkflow(name, {});
+    const crayon = await getCrayon();
+    const result = await crayon.triggerWorkflow(name, {});
     return NextResponse.json({ status: "completed", result });
   } catch (error) {
     return NextResponse.json(
@@ -24,9 +24,9 @@ export async function POST(
 ) {
   try {
     const { name } = await params;
-    const pflow = await getPflow();
+    const crayon = await getCrayon();
     const body: unknown = await request.json();
-    const result = await pflow.triggerWorkflow(name, body);
+    const result = await crayon.triggerWorkflow(name, body);
     return NextResponse.json({ status: "completed", result });
   } catch (error) {
     return NextResponse.json(

@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DBOS } from "@dbos-inc/dbos-sdk";
-import { create0pflow } from "../index.js";
+import { createCrayon } from "../index.js";
 import { discoverWorkflows, discoverNodes } from "./discovery.js";
 import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
@@ -84,8 +84,8 @@ function captureStdout(): (data: string) => void {
 const program = new Command();
 
 program
-  .name("0pflow")
-  .description("CLI for 0pflow workflow engine")
+  .name("crayon")
+  .description("CLI for crayon workflow engine")
   .version(version);
 
 // ============ Run command ============
@@ -119,7 +119,7 @@ program
 // ============ Init command ============
 program
   .command("init <name>")
-  .description("Scaffold a new 0pflow project (non-interactive)")
+  .description("Scaffold a new crayon project (non-interactive)")
   .option("-d, --dir <path>", "Directory to scaffold in", ".")
   .option("--no-install", "Skip npm install")
   .action(async (name: string, options: { dir: string; install: boolean }) => {
@@ -296,12 +296,12 @@ workflow
         workflows.map(w => [w.name, w])
       );
 
-      // Create 0pflow instance and run
+      // Create crayon instance and run
       if (!options.json) {
         console.log(pc.dim(`Running ${workflowName}...`));
       }
 
-      const pflow = await create0pflow({
+      const crayon = await createCrayon({
         databaseUrl: process.env.DATABASE_URL!,
         appName: getAppSchema(),
         workflows: workflowRegistry,
@@ -311,7 +311,7 @@ workflow
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          pflow.triggerWorkflow(wf.name, inputs),
+          crayon.triggerWorkflow(wf.name, inputs),
         );
 
         if (writeJson) {
@@ -322,7 +322,7 @@ workflow
           console.log(JSON.stringify(result, null, 2));
         }
       } finally {
-        await pflow.shutdown();
+        await crayon.shutdown();
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -434,12 +434,12 @@ node
       }
       const inputs = validation.data;
 
-      // Create 0pflow instance
+      // Create crayon instance
       if (!options.json) {
         console.log(pc.dim(`Running node ${nodeName}...`));
       }
 
-      const pflow = await create0pflow({
+      const crayon = await createCrayon({
         databaseUrl: process.env.DATABASE_URL!,
         appName: getAppSchema(),
         nodes,
@@ -448,7 +448,7 @@ node
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          pflow.triggerNode(nodeName, inputs, { workflowName: options.workflow }),
+          crayon.triggerNode(nodeName, inputs, { workflowName: options.workflow }),
         );
 
         if (writeJson) {
@@ -459,7 +459,7 @@ node
           console.log(JSON.stringify(result, null, 2));
         }
       } finally {
-        await pflow.shutdown();
+        await crayon.shutdown();
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -645,7 +645,7 @@ mcp
 // ============ Install/Uninstall commands ============
 program
   .command("install")
-  .description("Install 0pflow plugin to Claude Code")
+  .description("Install crayon plugin to Claude Code")
   .option("-f, --force", "Force reinstall even if already installed")
   .option("-v, --verbose", "Show detailed output")
   .action(async (options: { force?: boolean; verbose?: boolean }) => {
@@ -654,7 +654,7 @@ program
 
 program
   .command("uninstall")
-  .description("Uninstall 0pflow plugin from Claude Code")
+  .description("Uninstall crayon plugin from Claude Code")
   .option("-v, --verbose", "Show detailed output")
   .action(async (options: { verbose?: boolean }) => {
     await runUninstall({ verbose: options.verbose });
@@ -663,7 +663,7 @@ program
 // ============ Auth commands ============
 program
   .command("login")
-  .description("Authenticate with 0pflow cloud (opens browser)")
+  .description("Authenticate with crayon cloud (opens browser)")
   .action(async () => {
     const { authenticate, isAuthenticated, AuthRequiredError } = await import(
       "../connections/cloud-auth.js"
@@ -683,7 +683,7 @@ program
         console.log(
           `\n${pc.yellow("Waiting for browser approval...")}\n\n` +
             `If the browser didn't open, visit:\n${pc.cyan(err.authUrl)}\n\n` +
-            `Then run ${pc.bold("0pflow login")} again.`,
+            `Then run ${pc.bold("crayon login")} again.`,
         );
       } else {
         console.error(pc.red(`Login failed: ${err instanceof Error ? err.message : err}`));
@@ -694,7 +694,7 @@ program
 
 program
   .command("logout")
-  .description("Remove stored 0pflow cloud credentials")
+  .description("Remove stored crayon cloud credentials")
   .action(async () => {
     const { logout, isAuthenticated } = await import("../connections/cloud-auth.js");
 
@@ -704,7 +704,7 @@ program
     }
 
     logout();
-    console.log(pc.green("Logged out. Credentials removed from ~/.0pflow/credentials"));
+    console.log(pc.green("Logged out. Credentials removed from ~/.crayon/credentials"));
   });
 
 program.parse();

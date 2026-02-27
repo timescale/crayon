@@ -35,12 +35,12 @@ export interface ModelConfig {
 
 /**
  * Default model configuration
- * Uses PFLOW_MODEL_PROVIDER and PFLOW_MODEL_ID env vars
+ * Uses CRAYON_MODEL_PROVIDER and CRAYON_MODEL_ID env vars
  * Falls back to OpenAI GPT-4o
  */
 export function getDefaultModelConfig(): ModelConfig {
-  const provider = (process.env.PFLOW_MODEL_PROVIDER ?? "openai") as ModelProvider;
-  const modelId = process.env.PFLOW_MODEL_ID ?? "gpt-4o";
+  const provider = (process.env.CRAYON_MODEL_PROVIDER ?? "openai") as ModelProvider;
+  const modelId = process.env.CRAYON_MODEL_ID ?? "gpt-4o";
 
   return { provider, modelId };
 }

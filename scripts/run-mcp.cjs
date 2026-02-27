@@ -3,9 +3,9 @@ const { spawn } = require("child_process");
 const { existsSync, readFileSync } = require("fs");
 const { join, dirname } = require("path");
 
-const settingsFile = join(process.env.HOME, ".config/0pflow/settings.json");
+const settingsFile = join(process.env.HOME, ".config/crayon/settings.json");
 
-let cmd = ["npx", "-y", "0pflow@latest", "mcp", "start"];
+let cmd = ["npx", "-y", "crayon@latest", "mcp", "start"];
 
 if (existsSync(settingsFile)) {
   try {

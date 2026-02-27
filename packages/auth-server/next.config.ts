@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  transpilePackages: ["0pflow"],
+  transpilePackages: ["crayon"],
 };
 
 export default nextConfig;

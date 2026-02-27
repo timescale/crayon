@@ -1,4 +1,4 @@
-# 0pflow Auth Server
+# crayon Auth Server
 
 Hosted credential proxy that lets users access integrations (Salesforce, HubSpot, etc.) without needing their own Nango account. Authenticates users via GitHub OAuth and proxies Nango API calls. Also handles user app deployments to Fly.io via `flyctl`.
 
@@ -9,14 +9,14 @@ Hosted credential proxy that lets users access integrations (Salesforce, HubSpot
 1. Go to **GitHub Settings > Developer settings > OAuth Apps > New OAuth App**
    - https://github.com/settings/applications/new
 2. Fill in:
-   - **Application name:** `0pflow` (or whatever you want)
+   - **Application name:** `crayon` (or whatever you want)
    - **Homepage URL:** `http://localhost:3000`
    - **Authorization callback URL:** `http://localhost:3000/api/auth/github/callback`
 3. Click **Register application**
 4. Copy the **Client ID**
 5. Click **Generate a new client secret** and copy it
 
-> For production, update the Homepage URL and callback URL to `https://opflow-auth.fly.dev`.
+> For production, update the Homepage URL and callback URL to `https://ocrayon-auth.fly.dev`.
 
 ### 2. Configure environment
 
@@ -43,15 +43,15 @@ The auth server needs a PostgreSQL database for users and auth sessions. You can
 
 #### `DATABASE_DATA_URL` — shared workspace database (optional)
 
-When set, users running `0pflow cloud run` can choose **"Use managed database"** instead of providing their own Tiger database. The auth server will automatically provision a dedicated PostgreSQL schema and role in this shared database for each new workspace.
+When set, users running `crayon cloud run` can choose **"Use managed database"** instead of providing their own Tiger database. The auth server will automatically provision a dedicated PostgreSQL schema and role in this shared database for each new workspace.
 
 - Must be an admin connection string (e.g. `tsdbadmin` on TimescaleDB Cloud)
-- Each workspace gets an isolated schema named after its Fly app (e.g. `opflow_dev_a1b2c3d4`)
+- Each workspace gets an isolated schema named after its Fly app (e.g. `ocrayon_dev_a1b2c3d4`)
 - The provisioned `DATABASE_URL` and `DATABASE_SCHEMA` are injected directly as Fly secrets on the workspace machine — the credentials are never stored on the auth server
 
 ```bash
 # Set on the deployed auth server
-flyctl secrets set DATABASE_DATA_URL="postgresql://tsdbadmin:...@host/tsdb" -a opflow-auth
+flyctl secrets set DATABASE_DATA_URL="postgresql://tsdbadmin:...@host/tsdb" -a ocrayon-auth
 ```
 
 ### 4. Install and run
@@ -93,10 +93,10 @@ The auth server runs on Fly.io so it can invoke `flyctl` for user app deployment
 cd packages/auth-server
 
 # Create the Fly app
-flyctl apps create opflow-auth
+flyctl apps create ocrayon-auth
 
 # Set secrets from .env.local
-flyctl secrets import -a opflow-auth < .env.local
+flyctl secrets import -a ocrayon-auth < .env.local
 
 # Deploy
 flyctl deploy
@@ -112,8 +112,8 @@ flyctl deploy
 ### After deploying
 
 Update your GitHub OAuth App at https://github.com/settings/developers:
-- **Homepage URL:** `https://opflow-auth.fly.dev`
-- **Authorization callback URL:** `https://opflow-auth.fly.dev/api/auth/github/callback`
+- **Homepage URL:** `https://ocrayon-auth.fly.dev`
+- **Authorization callback URL:** `https://ocrayon-auth.fly.dev/api/auth/github/callback`
 
 ## API Routes
 
@@ -138,31 +138,31 @@ Update your GitHub OAuth App at https://github.com/settings/developers:
 
 ## Cloud Dev
 
-Cloud dev machines let users run a full 0pflow dev environment (dev UI + embedded Claude Code terminal) on a Fly.io machine with persistent storage.
+Cloud dev machines let users run a full crayon dev environment (dev UI + embedded Claude Code terminal) on a Fly.io machine with persistent storage.
 
 ### Building the Docker image
 
-The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude Code, and 0pflow with pre-cached `node_modules`.
+The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude Code, and crayon with pre-cached `node_modules`.
 
 **Development (local build):**
 
 ```bash
-# Build 0pflow and pack a tarball into the docker context
-pnpm --filter 0pflow build
+# Build crayon and pack a tarball into the docker context
+pnpm --filter crayon build
 cd packages/core && npm pack --pack-destination docker/
 
 # Build and push with local code
 cd docker
-flyctl deploy --build-only --push --image-label latest --build-arg OPFLOW_SOURCE=local
+flyctl deploy --build-only --push --image-label latest --build-arg CRAYON_SOURCE=local
 ```
 
 **Production (npm registry):**
 
 ```bash
 # One-time: create a Fly app to host the image
-flyctl apps create opflow-cloud-dev-image --org tiger-data
+flyctl apps create ocrayon-cloud-dev-image --org tiger-data
 
-# Build and push using published 0pflow@dev from npm
+# Build and push using published crayon@dev from npm
 cd packages/core/docker
 flyctl deploy --build-only --push --image-label latest
 ```
@@ -170,29 +170,29 @@ flyctl deploy --build-only --push --image-label latest
 To use a different registry/tag, set `CLOUD_DEV_IMAGE` on the auth server:
 
 ```bash
-flyctl secrets set CLOUD_DEV_IMAGE=registry.fly.io/opflow-cloud-dev-image:latest -a opflow-auth
+flyctl secrets set CLOUD_DEV_IMAGE=registry.fly.io/ocrayon-cloud-dev-image:latest -a ocrayon-auth
 ```
 
 ### Testing cloud dev locally
 
 **Prerequisites:**
 - Tiger CLI installed and authenticated (`tiger auth login`)
-- 0pflow cloud authenticated (`0pflow login`)
+- crayon cloud authenticated (`crayon login`)
 - Claude Code installed and signed in (or `ANTHROPIC_API_KEY` set)
 - Auth server running locally or deployed
 
 ```bash
 # Create a cloud dev environment (interactive)
-0pflow cloud-dev
+crayon cloud-dev
 
 # Check status
-0pflow cloud-dev --status
+crayon cloud-dev --status
 
 # Stop the machine (preserves volume data)
-0pflow cloud-dev --stop
+crayon cloud-dev --stop
 
 # Destroy the machine and Fly app (deletes everything)
-0pflow cloud-dev --destroy
+crayon cloud-dev --destroy
 ```
 
 ### Testing the Docker image locally
@@ -205,7 +205,7 @@ docker run --rm -it \
   -e DATABASE_URL="postgresql://..." \
   -e DATABASE_SCHEMA=test-app \
   -v /tmp/cloud-dev-data:/data \
-  registry.fly.io/opflow-cloud-dev-image:latest
+  registry.fly.io/ocrayon-cloud-dev-image:latest
 ```
 
 This scaffolds a project into `/tmp/cloud-dev-data/app/` and starts the dev server on port 4173.
@@ -228,10 +228,10 @@ Tables are auto-created by `ensureSchema()` on first request.
 
 ## How it connects to the core package
 
-Users of the `@0pflow/core` package set `OPFLOW_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
+Users of the `@crayon/core` package set `CRAYON_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
 
 ```
-User's app (OPFLOW_SERVER_URL=https://opflow-auth.fly.dev)
+User's app (CRAYON_SERVER_URL=https://ocrayon-auth.fly.dev)
   → CloudIntegrationProvider
     → GET /api/credentials/salesforce?connection_id=X
       → Auth server fetches from Nango with its own NANGO_SECRET_KEY

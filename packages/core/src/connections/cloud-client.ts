@@ -1,5 +1,5 @@
 /**
- * HTTP client for the 0pflow cloud server.
+ * HTTP client for the crayon cloud server.
  *
  * Adapted from the Pencil MCP client pattern:
  *   /Users/cevian/Development/pencil/packages/mcp-server/src/client.ts
@@ -19,7 +19,7 @@ export class AuthError extends Error {
   constructor(message?: string) {
     super(
       message ??
-        "Not authenticated with 0pflow cloud. Run `0pflow login` or set OPFLOW_TOKEN.",
+        "Not authenticated with crayon cloud. Run `crayon login` or set CRAYON_TOKEN.",
     );
     this.name = "AuthError";
   }
@@ -36,7 +36,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Make an authenticated HTTP call to the 0pflow cloud server.
+ * Make an authenticated HTTP call to the crayon cloud server.
  * Returns the parsed response data (the `data` field from the response).
  * Throws AuthError if not authenticated, ApiError if the request fails.
  */

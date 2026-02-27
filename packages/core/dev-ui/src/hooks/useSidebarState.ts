@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-const STORAGE_KEY = "0pflow-sidebar-collapsed";
+const STORAGE_KEY = "crayon-sidebar-collapsed";
 
 export function useSidebarState() {
   const [collapsed, setCollapsed] = useState(() => {

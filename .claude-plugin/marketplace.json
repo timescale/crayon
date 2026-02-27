@@ -1,5 +1,5 @@
 {
-    "name": "0pflow",
+    "name": "crayon",
     "owner": {
       "name": "TigerData",
       "url": "https://tigerdata.com",
@@ -12,16 +12,16 @@
     },
     "plugins": [
       {
-        "name": "0pflow",
+        "name": "crayon",
         "source": "./",
-        "description": "An agentic workflow engine for GTM/RevOps automation. Includes tools for workflow compilation and integration with the 0pflow SDK.",
+        "description": "An agentic workflow engine for GTM/RevOps automation. Includes tools for workflow compilation and integration with the crayon SDK.",
         "version": "0.1.0",
         "author": {
           "name": "TigerData",
           "url": "https://tigerdata.com"
         },
         "homepage": "https://tigerdata.com",
-        "repository": "https://github.com/timescale/0pflow",
+        "repository": "https://github.com/timescale/crayon",
         "license": "Apache-2.0",
         "keywords": [
           "workflow",
@@ -30,8 +30,8 @@
           "GTM",
           "RevOps",
           "agentic",
-          "Opflow",
-          "0pflow",
+          "Crayon",
+          "crayon",
           "Integration"
         ],
         "category": "workflow",

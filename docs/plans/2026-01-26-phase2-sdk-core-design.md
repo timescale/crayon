@@ -6,7 +6,7 @@
 
 ## Overview
 
-Phase 2 implements the core 0pflow SDK that discovers, registers, and executes workflows with DBOS durability. The key design decision is a unified `ctx.run()` API with full TypeScript type safety for all executable types.
+Phase 2 implements the core crayon SDK that discovers, registers, and executes workflows with DBOS durability. The key design decision is a unified `ctx.run()` API with full TypeScript type safety for all executable types.
 
 ## Design Decisions
 
@@ -24,12 +24,12 @@ Phase 2 implements the core 0pflow SDK that discovers, registers, and executes w
 ### Initialization
 
 ```typescript
-import { create0pflow } from '0pflow';
+import { createCrayon } from 'crayon';
 import { workflows } from '@/generated/workflows';
 import { agents } from '@/generated/agents';
 import { nodes } from '@/nodes';
 
-export const pflow = await create0pflow({
+export const crayon = await createCrayon({
   workflows,
   agents,
   nodes,
@@ -40,16 +40,16 @@ export const pflow = await create0pflow({
 ### Instance Methods
 
 ```typescript
-pflow.listWorkflows()              // Returns workflow names
-pflow.getWorkflow(name)            // Returns workflow metadata
-pflow.triggerWorkflow(name, inputs) // Executes by name (webhooks/UI)
+crayon.listWorkflows()              // Returns workflow names
+crayon.getWorkflow(name)            // Returns workflow metadata
+crayon.triggerWorkflow(name, inputs) // Executes by name (webhooks/UI)
 ```
 
 ### Workflow Definition
 
 ```typescript
 import { z } from 'zod';
-import { Workflow } from '0pflow';
+import { Workflow } from 'crayon';
 
 export const icpScoring = Workflow.create({
   name: 'icp-scoring',
@@ -142,7 +142,7 @@ export const nodes = { calculateScore, formatReport };
 ### Initialization
 
 ```typescript
-export async function create0pflow(config: PflowConfig): Promise<Pflow> {
+export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
   await DBOS.launch({
     databaseUrl: config.databaseUrl,
   });
@@ -187,7 +187,7 @@ function createWorkflowContext(): WorkflowContext {
 ```
 packages/core/src/
 ├── index.ts           # Public exports
-├── factory.ts         # create0pflow() implementation
+├── factory.ts         # createCrayon() implementation
 ├── context.ts         # WorkflowContext implementation
 ├── executable.ts      # Executable interface + Node.create(), Workflow.create()
 ├── agent.ts           # Agent.create() (stub for Phase 2)
@@ -202,7 +202,7 @@ packages/core/src/
 
 | Component | Status |
 |-----------|--------|
-| `create0pflow()` | Full implementation |
+| `createCrayon()` | Full implementation |
 | `Workflow.create()` | Full implementation |
 | `Node.create()` | Full implementation |
 | `Agent.create()` | Stub (throws "Phase 3") |

@@ -19,8 +19,8 @@ describe("model-config", () => {
 
   describe("getDefaultModelConfig()", () => {
     it("returns openai/gpt-4o by default", () => {
-      delete process.env.PFLOW_MODEL_PROVIDER;
-      delete process.env.PFLOW_MODEL_ID;
+      delete process.env.CRAYON_MODEL_PROVIDER;
+      delete process.env.CRAYON_MODEL_ID;
 
       const config = getDefaultModelConfig();
 
@@ -29,8 +29,8 @@ describe("model-config", () => {
     });
 
     it("reads from environment variables", () => {
-      process.env.PFLOW_MODEL_PROVIDER = "anthropic";
-      process.env.PFLOW_MODEL_ID = "claude-3-opus";
+      process.env.CRAYON_MODEL_PROVIDER = "anthropic";
+      process.env.CRAYON_MODEL_ID = "claude-3-opus";
 
       const config = getDefaultModelConfig();
 

@@ -1,5 +1,5 @@
 // packages/core/src/factory.ts
-import type { Pflow, PflowConfig, WorkflowContext } from "./types.js";
+import type { Crayon, CrayonConfig, WorkflowContext } from "./types.js";
 import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
@@ -9,16 +9,16 @@ import { createIntegrationProvider } from "./connections/integration-provider.js
 import pg from "pg";
 
 // Global singleton to survive across Turbopack chunk duplication.
-// Module-level `let` in user's pflow.ts breaks across chunks, but globalThis is shared.
-const PFLOW_INSTANCE_KEY = Symbol.for("opflow.pflowInstance");
+// Module-level `let` in user's crayon.ts breaks across chunks, but globalThis is shared.
+const CRAYON_INSTANCE_KEY = Symbol.for("ocrayon.crayonInstance");
 
 /**
- * Create a 0pflow instance
+ * Create a crayon instance
  */
-export async function create0pflow(config: PflowConfig): Promise<Pflow> {
+export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
   // Return cached instance if already initialized
-  // (handles Turbopack chunk duplication where pflow.ts module-level singleton breaks)
-  const cached = (globalThis as Record<symbol, Pflow>)[PFLOW_INSTANCE_KEY];
+  // (handles Turbopack chunk duplication where crayon.ts module-level singleton breaks)
+  const cached = (globalThis as Record<symbol, Crayon>)[CRAYON_INSTANCE_KEY];
   if (cached) return cached;
 
   // Build registry from provided executables (before DBOS init)
@@ -70,7 +70,7 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
     appSchema,
   });
 
-  const pflow: Pflow = {
+  const crayon: Crayon = {
     listWorkflows: () => registry.listWorkflows(),
 
     getWorkflow: (name: string) => registry.getWorkflow(name),
@@ -128,6 +128,6 @@ export async function create0pflow(config: PflowConfig): Promise<Pflow> {
   };
 
   // Cache on globalThis so duplicate module copies return the same instance
-  (globalThis as Record<symbol, Pflow>)[PFLOW_INSTANCE_KEY] = pflow;
-  return pflow;
+  (globalThis as Record<symbol, Crayon>)[CRAYON_INSTANCE_KEY] = crayon;
+  return crayon;
 }

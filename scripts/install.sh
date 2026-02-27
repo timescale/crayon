@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 0pflow bootstrap installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/timescale/0pflow/main/scripts/install.sh | bash
+# crayon bootstrap installer
+# Usage: curl -fsSL https://raw.githubusercontent.com/timescale/crayon/main/scripts/install.sh | bash
 {
 
 set -euo pipefail
@@ -120,18 +120,18 @@ install_claude() {
 # ── Shell alias ──────────────────────────────────────────────────────────────
 
 setup_alias() {
-  local alias_line="alias 0pflow='npx -y --prefer-online --loglevel=error 0pflow@dev'"
-  local alias_comment="# 0pflow CLI alias"
+  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error crayon@dev'"
+  local alias_comment="# crayon CLI alias"
   local added_to=""
 
   add_to_rc() {
     local rc_file="$1"
     if [ -f "$rc_file" ] || [ "${2:-}" = "create" ]; then
-      if grep -qF "alias 0pflow=" "$rc_file" 2>/dev/null; then
+      if grep -qF "alias crayon=" "$rc_file" 2>/dev/null; then
         # Replace existing alias (remove old comment + alias lines)
         local tmp
         tmp=$(mktemp)
-        grep -vF "alias 0pflow=" "$rc_file" | grep -vF "# 0pflow CLI alias" > "$tmp"
+        grep -vF "alias crayon=" "$rc_file" | grep -vF "# crayon CLI alias" > "$tmp"
         printf '\n%s\n%s\n' "$alias_comment" "$alias_line" >> "$tmp"
         mv "$tmp" "$rc_file"
       else
@@ -189,7 +189,7 @@ main() {
   printf "\n"
   printf "${GREEN}${BOLD}  Installation complete!${RESET}\n\n" >&2
   printf "${BOLD}  To get started, run:${RESET}\n\n" >&2
-  printf "${CYAN}    source ${rc_file} && 0pflow cloud run${RESET}\n\n" >&2
+  printf "${CYAN}    source ${rc_file} && crayon cloud run${RESET}\n\n" >&2
 }
 
 main "$@"

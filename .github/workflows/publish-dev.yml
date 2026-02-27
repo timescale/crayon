@@ -36,7 +36,7 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Build
-        run: pnpm --filter 0pflow build
+        run: pnpm --filter crayon build
 
       - name: Publish dev build
         working-directory: packages/core

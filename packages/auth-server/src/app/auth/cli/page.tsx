@@ -23,9 +23,9 @@ function CliAuthContent() {
 
   return (
     <div style={{ fontFamily: "system-ui", maxWidth: 400, margin: "80px auto", textAlign: "center" }}>
-      <h2>0pflow CLI Authorization</h2>
+      <h2>crayon CLI Authorization</h2>
       <p style={{ color: "#666", marginBottom: 24 }}>
-        Authorize your CLI to access 0pflow cloud services.
+        Authorize your CLI to access crayon cloud services.
       </p>
       <p style={{ fontFamily: "monospace", fontSize: 24, letterSpacing: 4, margin: "24px 0" }}>
         {cliCode}

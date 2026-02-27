@@ -66,9 +66,9 @@ export type LogLevel = "info" | "warn" | "error" | "debug";
 type AnyExecutable = Executable<any, any>;
 
 /**
- * Configuration for create0pflow()
+ * Configuration for createCrayon()
  */
-export interface PflowConfig {
+export interface CrayonConfig {
   /** Database connection URL for DBOS durability */
   databaseUrl: string;
   /** Application name (used for DB schema naming and connection table) */
@@ -86,9 +86,9 @@ export interface PflowConfig {
 }
 
 /**
- * The 0pflow instance returned by create0pflow()
+ * The crayon instance returned by createCrayon()
  */
-export interface Pflow {
+export interface Crayon {
   /** List all registered workflow names */
   listWorkflows: () => string[];
   /** Get a workflow by name */
@@ -101,6 +101,6 @@ export interface Pflow {
   getNode: (name: string) => AnyExecutable | undefined;
   /** Trigger a node by name (wrapped in workflow for durability) */
   triggerNode: <T = unknown>(name: string, inputs: unknown, options?: { workflowName?: string }) => Promise<T>;
-  /** Shutdown the 0pflow instance and DBOS */
+  /** Shutdown the crayon instance and DBOS */
   shutdown: () => Promise<void>;
 }

@@ -1,5 +1,5 @@
 /**
- * CLI authentication for the 0pflow cloud server.
+ * CLI authentication for the crayon cloud server.
  *
  * Adapted from the Pencil MCP auth pattern:
  *   /Users/cevian/Development/pencil/packages/mcp-server/src/auth.ts
@@ -9,18 +9,18 @@
  *   2. Creates session on server → gets {code, secret}
  *   3. Opens browser to /auth/cli?cli_code=X
  *   4. User signs in (GitHub OAuth) and approves
- *   5. Polls server until approved → saves token to ~/.0pflow/credentials
+ *   5. Polls server until approved → saves token to ~/.crayon/credentials
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { exec } from "node:child_process";
 
-const CREDENTIALS_DIR = join(homedir(), ".0pflow");
+const CREDENTIALS_DIR = join(homedir(), ".crayon");
 const CREDENTIALS_FILE = join(CREDENTIALS_DIR, "credentials");
 const PENDING_AUTH_FILE = join(CREDENTIALS_DIR, "pending_auth");
 const DEFAULT_SERVER_URL =
-  process.env.OPFLOW_SERVER_URL ?? "https://opflow-auth.fly.dev";
+  process.env.CRAYON_SERVER_URL ?? "https://ocrayon-auth.fly.dev";
 
 const POLL_INTERVAL_MS = 2000;
 const QUICK_POLL_ATTEMPTS = 8; // ~16 seconds
@@ -98,15 +98,15 @@ function clearPendingAuth(): void {
  */
 export function getToken(): string | null {
   // Environment variable takes precedence (for cloud deployments)
-  if (process.env.OPFLOW_TOKEN) {
-    return process.env.OPFLOW_TOKEN;
+  if (process.env.CRAYON_TOKEN) {
+    return process.env.CRAYON_TOKEN;
   }
   const creds = readCredentials();
   return creds?.token ?? null;
 }
 
 /**
- * Save an API token and server URL to ~/.0pflow/credentials.
+ * Save an API token and server URL to ~/.crayon/credentials.
  */
 export function saveToken(token: string, serverUrl?: string): void {
   ensureDir();
@@ -129,8 +129,8 @@ export function isAuthenticated(): boolean {
  */
 export function getServerUrl(): string {
   // Environment variable takes precedence (matches getToken() behavior)
-  if (process.env.OPFLOW_SERVER_URL) {
-    return process.env.OPFLOW_SERVER_URL;
+  if (process.env.CRAYON_SERVER_URL) {
+    return process.env.CRAYON_SERVER_URL;
   }
   const creds = readCredentials();
   return creds?.serverUrl ?? DEFAULT_SERVER_URL;
