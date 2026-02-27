@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       if (state === "started" || state === "running") {
         // Ping the app URL to verify it responds
         try {
-          const resp = await fetch(`${appUrl!}/dev/`, {
+          const resp = await fetch(`${appUrl!}/dev/__health`, {
             signal: AbortSignal.timeout(5000),
           });
           if (resp.ok || resp.status < 500) {

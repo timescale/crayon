@@ -1,17 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 import { randomHex } from "@/lib/auth";
+import { signDevUIToken } from "@/lib/jwt";
+
+function errorPage(message: string): string {
+  return `<html><body style="font-family: system-ui; max-width: 400px; margin: 80px auto; text-align: center;">
+    <h2>Authentication Failed</h2>
+    <p>${message}</p>
+  </body></html>`;
+}
 
 /**
- * GET /api/auth/github/callback?code=X&state=CLI_CODE
- * GitHub OAuth callback. Creates/finds user, approves the CLI session.
+ * GET /api/auth/github/callback?code=X&state=STATE
+ * GitHub OAuth callback. Handles both CLI auth and dev-ui auth flows.
+ *
+ * CLI flow:  state = <cli_code>       → approves CLI session
+ * Dev UI:   state = devui:<fly_app>   → signs JWT, redirects to machine
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const githubCode = searchParams.get("code");
-  const cliCode = searchParams.get("state"); // CLI session code passed as state
+  const state = searchParams.get("state");
 
-  if (!githubCode || !cliCode) {
+  if (!githubCode || !state) {
     return NextResponse.json(
       { error: "Missing code or state parameter" },
       { status: 400 },
@@ -73,7 +84,50 @@ export async function GET(req: NextRequest) {
 
   const userId = userResult.rows[0].id as string;
 
-  // Approve the CLI session
+  // ── Dev UI flow ──────────────────────────────────────────────────
+  if (state.startsWith("devui:")) {
+    const flyAppName = state.slice("devui:".length);
+
+    // Validate fly app name format
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(flyAppName)) {
+      return new NextResponse(errorPage("Invalid app name."), {
+        status: 400,
+        headers: { "Content-Type": "text/html" },
+      });
+    }
+
+    // Check membership
+    const memberResult = await db.query(
+      `SELECT dmm.role
+       FROM dev_machine_members dmm
+       JOIN dev_machines dm ON dm.id = dmm.machine_id
+       WHERE dm.fly_app_name = $1 AND dmm.user_id = $2`,
+      [flyAppName, userId],
+    );
+
+    if (memberResult.rows.length === 0) {
+      return new NextResponse(
+        errorPage(
+          "Access denied. You are not a member of this dev environment.",
+        ),
+        { status: 403, headers: { "Content-Type": "text/html" } },
+      );
+    }
+
+    // Sign JWT with Ed25519 private key
+    const jwt = await signDevUIToken({
+      sub: userId,
+      app: flyAppName,
+      login: githubUser.login,
+    });
+
+    // Redirect to the dev-server's callback endpoint
+    const callbackUrl = `https://${flyAppName}.fly.dev/dev/__auth/callback?token=${encodeURIComponent(jwt)}`;
+    return NextResponse.redirect(callbackUrl);
+  }
+
+  // ── CLI flow (existing) ──────────────────────────────────────────
+  const cliCode = state;
   const sessionToken = randomHex(32); // 64-char hex
 
   const updateResult = await db.query(
