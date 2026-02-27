@@ -28,7 +28,11 @@ interface AuthClaims {
  * Returns true if auth is required (cloud mode with public key configured).
  */
 export function isAuthEnabled(): boolean {
-  return !!(FLY_APP_NAME && process.env.DEV_UI_JWT_PUBLIC_KEY);
+  if (!FLY_APP_NAME) return false;
+  if (!process.env.DEV_UI_JWT_PUBLIC_KEY) {
+    throw new Error("Running on Fly but DEV_UI_JWT_PUBLIC_KEY is not set — cannot start without auth");
+  }
+  return true;
 }
 
 function getCookie(req: IncomingMessage, name: string): string | undefined {

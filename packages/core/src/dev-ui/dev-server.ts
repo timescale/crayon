@@ -311,12 +311,6 @@ export async function startDevServer(options: DevServerOptions) {
   });
 
   const flyAppName = process.env.FLY_APP_NAME;
-  if (flyAppName && !process.env.DEV_UI_JWT_PUBLIC_KEY) {
-    console.warn(
-      "[dev-server] WARNING: Running in cloud mode without DEV_UI_JWT_PUBLIC_KEY. " +
-        "Dev UI is accessible without authentication. Recreate this machine to enable auth.",
-    );
-  }
   const url = flyAppName
     ? `https://${flyAppName}.fly.dev/dev/`
     : `http://localhost:${actualPort}/dev/`;
