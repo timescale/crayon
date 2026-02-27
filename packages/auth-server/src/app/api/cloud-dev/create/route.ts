@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
     //    The `compute` hint asks Fly to pin the volume to a host that can also run a
     //    machine with those specs, but it's not always honoured (412 on machine create).
     //    When that happens we delete the volume and try the next region.
-    const machineGuest = { cpu_kind: "shared", cpus: 6, memory_mb: 1536 };
+    const machineGuest = { cpu_kind: "shared", cpus: 6, memory_mb: 3072 };
     const regionCandidates = [FLY_REGION, "ewr", "bos"].filter(
       (r, i, arr) => arr.indexOf(r) === i,
     );
