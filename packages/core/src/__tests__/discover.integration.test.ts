@@ -24,10 +24,10 @@ beforeAll(async () => {
   await mkdir(join(tempDir, "src", "nodes"), { recursive: true });
   await mkdir(join(tempDir, "agents"), { recursive: true });
 
-  // Symlink node_modules/@crayon/core → core package root (equivalent to npm link)
-  // This lets jiti resolve `import from "@crayon/core"` in the temp dir
-  await mkdir(join(tempDir, "node_modules", "@crayon"), { recursive: true });
-  await symlink(CORE_PKG, join(tempDir, "node_modules", "@crayon", "core"), "dir");
+  // Symlink node_modules/runcrayon → core package root (equivalent to npm link)
+  // This lets jiti resolve `import from "runcrayon"` in the temp dir
+  await mkdir(join(tempDir, "node_modules"), { recursive: true });
+  await symlink(CORE_PKG, join(tempDir, "node_modules", "runcrayon"), "dir");
 
   // Also symlink zod so test fixtures can import it
   const zodPkg = resolve(CORE_PKG, "node_modules", "zod");
@@ -38,7 +38,7 @@ beforeAll(async () => {
     join(tempDir, "generated", "workflows", "test-workflow.ts"),
     `
 import { z } from "zod";
-import { Workflow } from "@crayon/core";
+import { Workflow } from "runcrayon";
 
 export const testWorkflow = Workflow.create({
   name: "test-workflow",
@@ -58,7 +58,7 @@ export const testWorkflow = Workflow.create({
     join(tempDir, "src", "nodes", "test-node.ts"),
     `
 import { z } from "zod";
-import { Node } from "@crayon/core";
+import { Node } from "runcrayon";
 
 export const testNode = Node.create({
   name: "test-node",

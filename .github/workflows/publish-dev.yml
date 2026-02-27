@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'packages/core/**'
-      - 'packages/cli/**'
   workflow_dispatch:
     inputs:
       npm_tag:
@@ -37,27 +36,13 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Build
-        run: |
-          pnpm --filter @crayon/core build
-          pnpm --filter @crayon/cli build
+        run: pnpm --filter runcrayon build
 
-      - name: Publish @crayon/core
+      - name: Publish runcrayon
         working-directory: packages/core
         run: |
           BASE_VERSION=$(node -p "require('./package.json').version")
           NPM_TAG="${{ inputs.npm_tag || 'dev' }}"
           DEV_VERSION="${BASE_VERSION}-${NPM_TAG}.${GITHUB_SHA::7}"
           pnpm version "$DEV_VERSION" --no-git-tag-version
-          npm publish --tag "$NPM_TAG" --access public --provenance
-
-      - name: Publish @crayon/cli
-        working-directory: packages/cli
-        run: |
-          BASE_VERSION=$(node -p "require('./package.json').version")
-          NPM_TAG="${{ inputs.npm_tag || 'dev' }}"
-          DEV_VERSION="${BASE_VERSION}-${NPM_TAG}.${GITHUB_SHA::7}"
-          pnpm version "$DEV_VERSION" --no-git-tag-version
-          # Point @crayon/core dep to the just-published dev version
-          CORE_VERSION=$(node -p "require('../core/package.json').version")
-          npm pkg set "dependencies.@crayon/core=$CORE_VERSION"
           npm publish --tag "$NPM_TAG" --access public --provenance

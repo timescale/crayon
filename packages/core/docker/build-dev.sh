@@ -16,11 +16,11 @@ else
 fi
 
 echo "==> Building crayon..."
-pnpm --filter @crayon/core build
+pnpm --filter runcrayon build
 
 echo "==> Packing tarball..."
 cd "$CORE_DIR"
-rm -f docker/crayon-core-*.tgz
+rm -f docker/runcrayon-*.tgz
 npm pack --pack-destination docker/
 
 echo "==> Building and pushing Docker image (tag: $TAG)..."

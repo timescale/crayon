@@ -436,7 +436,7 @@ git commit -m "feat: add UI package with WorkflowList and TriggerButton componen
 
 ```json
 {
-  "name": "@crayon/cli",
+  "name": "runcrayon",
   "version": "0.1.0",
   "type": "module",
   "bin": {

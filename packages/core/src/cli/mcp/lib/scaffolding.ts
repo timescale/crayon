@@ -65,7 +65,7 @@ export async function scaffoldApp({
     if (isDevMode()) {
       const corePath = join(monorepoRoot, "packages", "core");
       await execAsync("npm link", corePath);
-      await execAsync("npm link @crayon/core", appPath);
+      await execAsync("npm link runcrayon", appPath);
     }
 
     if (installDeps) {

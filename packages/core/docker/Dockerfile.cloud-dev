@@ -11,17 +11,17 @@ RUN apt-get update && apt-get install -y python3 make g++ git curl openssh-serve
 # This means users can run `npm install` without extra flags and still hit the cache.
 RUN npm config set cache /npm-cache --global
 
-# @crayon/core — install from local tarball or npm depending on build arg.
+# runcrayon — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
-COPY entrypoint.sh crayon-core-*.tgz /tmp/build/
-RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/crayon-core-*.tgz 1>/dev/null 2>&1; then \
-      npm install -g /tmp/build/crayon-core-*.tgz && \
+COPY entrypoint.sh runcrayon-*.tgz /tmp/build/
+RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/null 2>&1; then \
+      npm install -g /tmp/build/runcrayon-*.tgz && \
       # Stamp a -dev suffix so scaffolding uses the "dev" dist-tag in package.json
-      GLOBAL_PKG="$(npm root -g)/@crayon/core/package.json" && \
+      GLOBAL_PKG="$(npm root -g)/runcrayon/package.json" && \
       node -e "const f='$GLOBAL_PKG'; const p=JSON.parse(require('fs').readFileSync(f,'utf8')); p.version+='-dev.local'; require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"; \
     else \
-      npm install -g @crayon/core@dev; \
+      npm install -g runcrayon@dev; \
     fi && \
     rm -rf /tmp/build
 
@@ -30,15 +30,15 @@ RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/crayon-core-*.tgz 1>/dev/
 # The template package.json has Handlebars placeholders (e.g. {{crayon_version}})
 # that must be resolved before npm install can parse it.
 RUN GLOBAL_MODULES="$(npm root -g)" && \
-    TEMPLATE_DIR="$GLOBAL_MODULES/@crayon/core/templates/app" && \
+    TEMPLATE_DIR="$GLOBAL_MODULES/runcrayon/templates/app" && \
     mkdir -p /tmp/cache-build && cp "$TEMPLATE_DIR/package.json" /tmp/cache-build/ && \
     cd /tmp/cache-build && sed -i 's/{{crayon_version}}/dev/g' package.json && \
     sed -i 's/{{app_name}}/cache-app/g' package.json && \
     npm install && \
     mv node_modules / && \
     rm -rf /tmp/cache-build && \
-    rm -rf /node_modules/@crayon/core && \
-    ln -s "$GLOBAL_MODULES/@crayon/core" /node_modules/@crayon/core
+    rm -rf /node_modules/runcrayon && \
+    ln -s "$GLOBAL_MODULES/runcrayon" /node_modules/runcrayon
 
 # /node_modules found by Node.js via parent-directory resolution from /data/app.
 # /npm-cache is pre-populated during build; world-writable so DEV_USER can use it.

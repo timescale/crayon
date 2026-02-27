@@ -148,7 +148,7 @@ The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude
 
 ```bash
 # Build crayon and pack a tarball into the docker context
-pnpm --filter @crayon/core build
+pnpm --filter runcrayon build
 cd packages/core && npm pack --pack-destination docker/
 
 # Build and push with local code
@@ -228,7 +228,7 @@ Tables are auto-created by `ensureSchema()` on first request.
 
 ## How it connects to the core package
 
-Users of the `@crayon/core` package set `CRAYON_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
+Users of the `runcrayon` package set `CRAYON_SERVER_URL` to point at this server. The core package's `CloudIntegrationProvider` then routes all Nango operations through this server instead of calling Nango directly.
 
 ```
 User's app (CRAYON_SERVER_URL=https://crayon-auth.fly.dev)

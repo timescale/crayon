@@ -69,7 +69,7 @@ pnpm crayon history bc44c8b1
 crayon/
 ├── packages/
 │   ├── core/       # SDK + runtime (crayon)
-│   ├── cli/        # CLI tool (@crayon/cli)
+│   ├── cli/        # CLI tool (runcrayon)
 │   └── ui/         # UI components (@crayon/ui)
 ├── skills/         # Claude Code skills
 │   ├── spec-author/

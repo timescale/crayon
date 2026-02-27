@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "[ ! -f /tmp/node_modules.lock ] || flock /tmp/node_modules.lock true",
-    "postinstall": "rm -rf node_modules/@crayon/core",
+    "postinstall": "rm -rf node_modules/runcrayon",
     "prebuild": "crayon build",
     "build": "next build",
     "check": "biome check .",
@@ -23,7 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@crayon/core": "{{crayon_version}}",
+    "runcrayon": "{{crayon_version}}",
     "@nangohq/node": "^0.45.0",
     "@dbos-inc/otel": "latest",
     "@t3-oss/env-nextjs": "^0.13.10",

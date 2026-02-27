@@ -120,7 +120,7 @@ install_claude() {
 # ── Shell alias ──────────────────────────────────────────────────────────────
 
 setup_alias() {
-  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error @crayon/cli@dev'"
+  local alias_line="alias crayon='npx -y --prefer-online --loglevel=error runcrayon@dev'"
   local alias_comment="# crayon CLI alias"
   local added_to=""
 

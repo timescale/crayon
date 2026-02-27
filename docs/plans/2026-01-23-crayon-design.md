@@ -73,7 +73,7 @@ crayon/
 │   │   │   └── dashboard.tsx ← React components (fetch via props/hooks)
 │   │   └── package.json
 │   │
-│   └── cli/                  ← CLI tool (@crayon/cli)
+│   └── cli/                  ← CLI tool (runcrayon)
 │       └── package.json
 │
 └── skills/                   ← Claude Code skills
