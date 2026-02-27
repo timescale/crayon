@@ -191,7 +191,7 @@ All `${value}` expressions use postgres.js tagged template literals, which autom
 ```typescript
 // src/nodes/postgres-get-<table>.ts
 import { z } from "zod";
-import { Node } from "crayon";
+import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresGet<Table> = Node.create({
@@ -230,7 +230,7 @@ export const postgresGet<Table> = Node.create({
 ```typescript
 // src/nodes/postgres-list-<table>.ts
 import { z } from "zod";
-import { Node } from "crayon";
+import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresList<Table> = Node.create({
@@ -282,7 +282,7 @@ export const postgresList<Table> = Node.create({
 ```typescript
 // src/nodes/postgres-create-<table>.ts
 import { z } from "zod";
-import { Node } from "crayon";
+import { Node } from "runcrayon";
 import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresCreate<Table> = Node.create({

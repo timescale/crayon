@@ -24,7 +24,7 @@ Phase 2 implements the core crayon SDK that discovers, registers, and executes w
 ### Initialization
 
 ```typescript
-import { createCrayon } from 'crayon';
+import { createCrayon } from 'runcrayon';
 import { workflows } from '@/generated/workflows';
 import { agents } from '@/generated/agents';
 import { nodes } from '@/nodes';
@@ -49,7 +49,7 @@ crayon.triggerWorkflow(name, inputs) // Executes by name (webhooks/UI)
 
 ```typescript
 import { z } from 'zod';
-import { Workflow } from 'crayon';
+import { Workflow } from 'runcrayon';
 
 export const icpScoring = Workflow.create({
   name: 'icp-scoring',

@@ -569,7 +569,7 @@ Invoke this skill when:
 Generated workflows follow this structure:
 
 ```typescript
-import { Workflow, WorkflowContext } from 'crayon';
+import { Workflow, WorkflowContext } from 'runcrayon';
 
 interface <Name>Inputs {
   // ... from ## Inputs section
@@ -1008,7 +1008,7 @@ export const checkRouter = createTRPCRouter({
 This initializes the crayon instance for the app.
 
 ```typescript
-import { createCrayon } from "crayon";
+import { createCrayon } from "runcrayon";
 
 // Initialize crayon with workflow directory
 export const crayon = await createCrayon({
@@ -1239,7 +1239,7 @@ Make an HTTP HEAD request to the URL and capture the response.
 This is the function node referenced by the workflow.
 
 ```typescript
-import type { NodeDefinition } from "crayon";
+import type { NodeDefinition } from "runcrayon";
 
 interface HttpHeadInput {
   url: string;

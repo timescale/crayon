@@ -116,8 +116,8 @@ Generated `url-summarizer.ts`:
 ```typescript
 // generated/workflows/url-summarizer.ts
 import { z } from "zod";
-import { Workflow } from "crayon";
-import { webRead } from "crayon";
+import { Workflow } from "runcrayon";
+import { webRead } from "runcrayon";
 import { pageSummarizer } from "../../specs/agents/page-summarizer.js";
 
 // Input schema

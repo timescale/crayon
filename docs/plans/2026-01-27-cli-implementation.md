@@ -252,7 +252,7 @@ Expected: FAIL with "Cannot find module '../discovery.js'"
 import fs from "fs";
 import path from "path";
 import { createJiti } from "jiti";
-import type { Executable } from "crayon";
+import type { Executable } from "runcrayon";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type WorkflowExecutable = Executable<any, any>;
@@ -609,7 +609,7 @@ git commit -m "feat(cli): implement list command"
 **Step 1: Add run command after list command**
 
 ```typescript
-import { createCrayon } from "crayon";
+import { createCrayon } from "runcrayon";
 import { resolveEnv } from "./env.js";
 
 program

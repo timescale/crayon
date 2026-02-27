@@ -91,7 +91,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 | Type | Location | Import Pattern |
 |------|----------|----------------|
-| `(builtin)` | Built-in nodes from crayon | `import { webRead } from "crayon"` |
+| `(builtin)` | Built-in nodes from crayon | `import { webRead } from "runcrayon"` |
 | `(node)` | User-defined in `src/nodes/` or `nodes/` | `import { nodeName } from "../../src/nodes/<name>"` |
 | `(agent)` | `agents/<name>.ts` | `import { agentName } from "../../agents/<name>"` |
 
@@ -105,7 +105,7 @@ For each task's `**Node:**` reference, determine what it is and where it lives.
 
 2. **For builtin nodes:**
    - Check if it's a built-in node (`web_read`, etc.)
-   - Import from `"crayon"`
+   - Import from `"runcrayon"`
 
 3. **For user-defined nodes:**
    - Look for `src/nodes/<name>.ts`
@@ -123,7 +123,7 @@ When an agent's description contains a `**Tools needed:**` section (added by `/c
 
 | Tool Type | Import Pattern | tools record entry |
 |-----------|----------------|--------------------|
-| `(builtin)` | `import { webRead } from "crayon"` | `web_read: webRead` |
+| `(builtin)` | `import { webRead } from "runcrayon"` | `web_read: webRead` |
 | `(provider)` | `import { createOpenAI } from "@ai-sdk/openai"; const openai = createOpenAI();` | `web_search: openai.tools.webSearch()` |
 | `(user node in src/nodes/<file>.ts)` | `import { name } from "../../src/nodes/<file>"` | `enrich_company: enrichCompany` |
 

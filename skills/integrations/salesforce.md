@@ -208,7 +208,7 @@ Create `src/integrations/salesforce/client.ts`:
 ```typescript
 import { GraphQLClient } from "graphql-request";
 import { getSdk, type Sdk } from "./generated/graphql.js";
-import type { WorkflowContext } from "crayon";
+import type { WorkflowContext } from "runcrayon";
 
 const API_VERSION = "v59.0";
 
@@ -235,7 +235,7 @@ export async function makeSalesforceSdk(ctx: WorkflowContext): Promise<Sdk> {
 ```typescript
 // src/nodes/salesforce-get-<object>.ts
 import { z } from "zod";
-import { Node } from "crayon";
+import { Node } from "runcrayon";
 import { makeSalesforceSdk } from "../integrations/salesforce/client.js";
 import type { Get<Object>Query } from "../integrations/salesforce/generated/graphql.js";
 

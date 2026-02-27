@@ -85,7 +85,7 @@ crayon/
 **Core SDK API (plain TypeScript functions, no framework dependencies):**
 
 ```typescript
-import { createCrayon } from 'crayon';
+import { createCrayon } from 'runcrayon';
 
 // Create instance at app startup (configures DBOS, discovers workflows)
 const crayon = await createCrayon({ workflowDir: './generated/workflows' });
@@ -260,7 +260,7 @@ The runtime executes compiled TypeScript workflows using DBOS for durability.
 **SDK surface (intentionally minimal):**
 
 ```typescript
-import { Workflow, WorkflowContext } from 'crayon';
+import { Workflow, WorkflowContext } from 'runcrayon';
 
 export const icpScoring = Workflow.create({
   name: 'icp-scoring',

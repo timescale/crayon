@@ -598,7 +598,7 @@ Given company research and social proof, create a compelling email sequence.
 ### `src/tools/browser/navigate.ts`
 
 ```typescript
-import { ToolDefinition } from 'crayon';
+import { ToolDefinition } from 'runcrayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const navigate: ToolDefinition = {
@@ -622,7 +622,7 @@ export const navigate: ToolDefinition = {
 ### `src/tools/browser/click.ts`
 
 ```typescript
-import { ToolDefinition } from 'crayon';
+import { ToolDefinition } from 'runcrayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const click: ToolDefinition = {
@@ -646,7 +646,7 @@ export const click: ToolDefinition = {
 ### `src/tools/browser/getText.ts`
 
 ```typescript
-import { ToolDefinition } from 'crayon';
+import { ToolDefinition } from 'runcrayon';
 import { getBrowser } from '../lib/browser-factory';
 
 export const getText: ToolDefinition = {
@@ -674,7 +674,7 @@ export const getText: ToolDefinition = {
 ### `src/tools/embeddings/similaritySearch.ts`
 
 ```typescript
-import { ToolDefinition } from 'crayon';
+import { ToolDefinition } from 'runcrayon';
 import { db } from '../lib/db';
 
 export const similaritySearch: ToolDefinition = {
@@ -710,7 +710,7 @@ For steps that don't need agentic behavior, we use function nodes.
 ### `src/nodes/find-similar-customers.ts`
 
 ```typescript
-import { NodeDefinition } from 'crayon';
+import { NodeDefinition } from 'runcrayon';
 import { generateEmbedding } from '../tools/embeddings/generate';
 import { db } from '../lib/db';
 
@@ -748,7 +748,7 @@ export const findSimilarCustomers: NodeDefinition<FindSimilarInput> = {
 ### `src/nodes/download-transcripts.ts`
 
 ```typescript
-import { NodeDefinition } from 'crayon';
+import { NodeDefinition } from 'runcrayon';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -803,7 +803,7 @@ The compiler generates TypeScript from specs. Example for company-research:
 ### `generated/workflows/company-research.ts`
 
 ```typescript
-import { Workflow, WorkflowContext } from 'crayon';
+import { Workflow, WorkflowContext } from 'runcrayon';
 
 interface CompanyResearchInputs {
   company_name: string;
