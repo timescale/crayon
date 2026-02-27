@@ -80,11 +80,11 @@ export function buildMcpCommand(): McpCommandResult {
     };
   }
 
-  // If running from npx cache or node_modules, use npx crayon@version
-  if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/crayon")) {
+  // If running from npx cache or node_modules, use npx runcrayon@version
+  if (scriptPath.includes(".npm/_npx") || scriptPath.includes("node_modules/runcrayon")) {
     const ver = getNpmVersionForMcp();
     return {
-      command: ["npx", "-y", `crayon@${ver}`, "mcp", "start"],
+      command: ["npx", "-y", `runcrayon@${ver}`, "mcp", "start"],
       isLocal: false,
     };
   }
@@ -155,7 +155,7 @@ export function addMarketplace(mcpResult: McpCommandResult, stdio: "inherit" | "
   try {
     const marketplaceSource = mcpResult.isLocal && mcpResult.packageRoot
       ? mcpResult.packageRoot
-      : "timescale/crayon";
+      : "timescale/0pflow";
     execSync(`claude plugin marketplace add ${marketplaceSource}`, { stdio });
     return { success: true };
   } catch (err) {
@@ -266,7 +266,7 @@ export async function runInstall(options: InstallOptions = {}): Promise<void> {
   }
 
   if (pluginResult.success) {
-    const initCmd = `npx -y crayon@${getNpmVersionForMcp()} run`;
+    const initCmd = `npx -y runcrayon@${getNpmVersionForMcp()} run`;
 
     printBanner();
     console.log(pc.green("✓"), "Installed successfully");
