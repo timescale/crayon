@@ -12,7 +12,7 @@ export const env = createEnv({
     FLY_ORG: z.string().min(1),
     FLY_REGION: z.string().min(1).optional(),
     CLOUD_DEV_IMAGE: z.string().min(1).optional(),
-    PUBLIC_URL: z.string().url().optional(),
+    PUBLIC_URL: z.string().min(1),
     DEV_UI_JWT_PRIVATE_KEY: z.string().min(1),
   },
   client: {

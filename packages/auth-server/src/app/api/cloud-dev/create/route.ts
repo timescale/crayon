@@ -192,12 +192,8 @@ export async function POST(req: NextRequest) {
       secrets.CRAYON_SERVER_URL = process.env.PUBLIC_URL;
     }
     // Pass Ed25519 public key so the dev-server can verify JWTs
-    try {
-      // Encode PEM as single line with literal \n — flyctl secrets import is line-based
-      secrets.DEV_UI_JWT_PUBLIC_KEY = (await getPublicKeyPEM()).replace(/\n/g, "\\n");
-    } catch (err) {
-      console.warn(`[cloud-dev/create] JWT public key unavailable: ${err instanceof Error ? err.message : String(err)}`);
-    }
+    // Encode PEM as single line with literal \n — flyctl secrets import is line-based
+    secrets.DEV_UI_JWT_PUBLIC_KEY = (await getPublicKeyPEM()).replace(/\n/g, "\\n");
     const secretsFile = join(tmpdir(), `secrets-${flyAppName}.env`);
     writeFileSync(secretsFile, Object.entries(secrets).map(([k, v]) => `${k}=${v}`).join("\n"));
     try {
