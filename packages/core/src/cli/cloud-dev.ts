@@ -122,8 +122,9 @@ export async function runCloudRun(): Promise<void> {
     if (choice !== "__new__") {
       const existing = existingSandboxes.find((m) => m.app_name === choice);
       if (existing?.app_url) {
-        p.log.info(`URL: ${pc.cyan(existing.app_url)}`);
-        openInBrowser(existing.app_url);
+        const devUrl = existing.app_url.replace(/\/$/, "") + "/dev/";
+        p.log.info(`URL: ${pc.cyan(devUrl)}`);
+        openInBrowser(devUrl);
       }
       p.log.info(`Status: ${pc.bold(existing?.fly_state ?? "unknown")}`);
       p.outro(pc.green("Sandbox ready."));
@@ -227,10 +228,11 @@ export async function runCloudRun(): Promise<void> {
         )) as { status: string; url?: string; error?: string };
 
         if (statusResult.status === "running") {
-          const url = statusResult.url ?? createResult.appUrl;
+          const baseUrl = statusResult.url ?? createResult.appUrl;
+          const devUrl = baseUrl.replace(/\/$/, "") + "/dev/";
           s.stop(pc.green("Sandbox is running!"));
-          p.log.info(`URL: ${pc.cyan(url)}`);
-          openInBrowser(url);
+          p.log.info(`URL: ${pc.cyan(devUrl)}`);
+          openInBrowser(devUrl);
           p.outro(pc.green("Cloud dev environment is ready!"));
           return;
         }
@@ -249,7 +251,7 @@ export async function runCloudRun(): Promise<void> {
     }
 
     s.stop(pc.yellow("Sandbox is still starting"));
-    p.log.info(`URL: ${pc.cyan(createResult.appUrl)}`);
+    p.log.info(`URL: ${pc.cyan(createResult.appUrl.replace(/\/$/, "") + "/dev/")}`);
     p.log.info("Sandbox is taking longer than expected. Check status with:");
     p.log.info("  crayon cloud status");
     p.outro(pc.yellow("Cloud dev environment is starting..."));

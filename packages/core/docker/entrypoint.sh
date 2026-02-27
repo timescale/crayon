@@ -76,9 +76,13 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   log "  Running crayon init..."
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$CRAYON" init '$APP_NAME' --dir . --no-install"
 
-  # Copy pre-cached /node_modules onto the volume.
-  # Runs before the dev server starts so Turbopack can resolve packages.
-  log "  Populating node_modules..."
+  # Copy pre-cached /node_modules onto the volume in the background.
+  # The dev server starts immediately — Node.js resolves packages via parent-directory
+  # lookup to /node_modules in the image root. The copy seeds the volume so that later
+  # `npm install <pkg>` only fetches the new package instead of reinstalling everything.
+  # The app's preinstall hook (package.json) blocks on this same lock file, so any
+  # `npm install` invoked before the copy finishes will wait rather than racing.
+  log "  Starting node_modules population in background..."
   touch /tmp/node_modules.lock
   (
     exec 9>/tmp/node_modules.lock
@@ -92,7 +96,7 @@ if [ ! -f "$APP_DIR/package.json" ]; then
       rm -rf "$APP_DIR/node_modules_temp"
       log "  node_modules already exists, discarding temp copy"
     fi
-  )
+  ) &
 
   log "  Scaffold complete"
 fi
