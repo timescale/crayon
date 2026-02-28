@@ -567,7 +567,7 @@ export async function runRun(): Promise<void> {
         } else {
           s.stop(pc.yellow("Database not ready yet"));
           p.log.warn(
-            `Run later: crayon run won't retry. Use the MCP tools or set up manually.`,
+            `Run later: crayon local run won't retry. Use the MCP tools or set up manually.`,
           );
         }
       } else {
@@ -597,6 +597,6 @@ export async function runRun(): Promise<void> {
   p.outro(pc.green(`Project created at ${directory}`));
   console.log();
   console.log(pc.bold("  To launch later:"));
-  console.log(pc.cyan(`  cd ${directory} && crayon run`));
+  console.log(pc.cyan(`  cd ${directory} && crayon local run`));
   console.log();
 }

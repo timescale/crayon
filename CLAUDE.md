@@ -100,7 +100,7 @@ my-app/
 
 ### CLI (`cli/`)
 - `index.ts` - Commander.js CLI entry point
-- `run.ts` - Interactive `crayon run` (create or launch project)
+- `run.ts` - Interactive `crayon local run` (create or launch project)
 - `discovery.ts` - Workflow/node/agent discovery via jiti
 - `runs.ts` / `trace.ts` - Run history and trace viewing
 
@@ -119,7 +119,7 @@ my-app/
 
 | Command | Description |
 |---------|-------------|
-| `crayon run` | Interactive: create new project or launch existing |
+| `crayon local run` | Interactive: create new project or launch existing |
 | `crayon dev` | Start Dev UI with live DAG + embedded Claude Code |
 | `crayon workflow list` | List workflows (`--json` supported) |
 | `crayon workflow run <name>` | Run workflow with `-i <json>` |

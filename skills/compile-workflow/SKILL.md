@@ -240,7 +240,7 @@ Tell the user:
 1. "Updated `src/crayon/workflows/<name>.ts`"
 2. If any missing nodes/agents were created: list the new files
 3. If agent tools were updated from descriptions: list which agents were updated
-4. "To test it, just say **run it** and I'll trigger it for you." — do NOT suggest `crayon run` or opening the Dev UI manually
+4. "To test it, just say **run it** and I'll trigger it for you." — do NOT suggest using the CLI or opening the Dev UI manually
 
 ---
 

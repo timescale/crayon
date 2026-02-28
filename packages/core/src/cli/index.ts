@@ -88,8 +88,10 @@ program
   .description("CLI for crayon workflow engine")
   .version(version);
 
-// ============ Run command ============
-program
+// ============ Local commands ============
+const local = program.command("local").description("Local development commands");
+
+local
   .command("run")
   .description("Create a new project or launch an existing one")
   .action(async () => {

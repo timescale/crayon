@@ -16,13 +16,13 @@ Design and write a workflow with embedded description fields for crayon.
 Check the current working directory and handle one of three cases:
 
 **Case 1: Empty directory** (no files, or only dotfiles like `.git`)
-→ Tell the user to run `crayon run` first to scaffold a new project, then re-invoke this skill. **Stop here.**
+→ Tell the user this skill must be run inside a crayon project. **Stop here.**
 
 **Case 2: Existing crayon project** (has `src/crayon/workflows/` or `src/crayon/agents/` directories)
 → Good to go. Continue to step 2.
 
 **Case 3: Existing non-crayon directory** (has files/projects but no crayon structure — e.g., home directory, another repo)
-→ Tell the user to run `crayon run` in a subdirectory first, then re-invoke this skill from inside that directory. **Stop here.**
+→ Tell the user this skill must be run from inside a crayon project directory. **Stop here.**
 
 ### 2. Discover Integrations
 
