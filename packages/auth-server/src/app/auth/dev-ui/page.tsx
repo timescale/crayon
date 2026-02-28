@@ -3,35 +3,29 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-function CliAuthContent() {
+function DevUIAuthContent() {
   const searchParams = useSearchParams();
-  const cliCode = searchParams.get("cli_code");
+  const app = searchParams.get("app");
 
-  if (!cliCode) {
+  if (!app) {
     return (
       <div style={{ fontFamily: "system-ui", maxWidth: 400, margin: "80px auto", textAlign: "center" }}>
         <h2>Invalid Request</h2>
-        <p>Missing CLI authorization code.</p>
+        <p>Missing app parameter.</p>
       </div>
     );
   }
 
-  // Build GitHub OAuth URL with cli_code as state
-  // No redirect_uri — GitHub uses the one registered in the OAuth app settings
+  // Prefix state with "devui:" so the GitHub callback can distinguish this flow
+  const state = `devui:${app}`;
   const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-  const githubUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&state=cli:${cliCode}&scope=read:user,user:email`;
+  const githubUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&state=${encodeURIComponent(state)}&scope=read:user,user:email`;
 
   return (
     <div style={{ fontFamily: "system-ui", maxWidth: 400, margin: "80px auto", textAlign: "center" }}>
-      <h2>crayon CLI Authorization</h2>
+      <h2>Open your crayon cloud workspace</h2>
       <p style={{ color: "#666", marginBottom: 24 }}>
-        Authorize your CLI to access crayon cloud services.
-      </p>
-      <p style={{ fontFamily: "monospace", fontSize: 24, letterSpacing: 4, margin: "24px 0" }}>
-        {cliCode}
-      </p>
-      <p style={{ color: "#999", fontSize: 14, marginBottom: 24 }}>
-        Verify this code matches what you see in your terminal.
+        Verify your identity to open your workspace.
       </p>
       <a
         href={githubUrl}
@@ -51,10 +45,10 @@ function CliAuthContent() {
   );
 }
 
-export default function CliAuthPage() {
+export default function DevUIAuthPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <CliAuthContent />
+      <DevUIAuthContent />
     </Suspense>
   );
 }

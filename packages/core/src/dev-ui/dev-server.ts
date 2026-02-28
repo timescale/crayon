@@ -11,6 +11,13 @@ import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
 import { handleDeployRequest } from "./deploy-api.js";
 import { proxyToUserApp } from "./proxy.js";
+import {
+  isAuthEnabled,
+  handleAuthCallback,
+  authenticateRequest as authenticateDevRequest,
+  redirectToAuth,
+  sendUnauthorized,
+} from "./auth.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
 import { ensureConnectionsTable } from "../connections/schema.js";
 import { getAppSchema } from "../cli/app.js";
@@ -97,6 +104,32 @@ export async function startDevServer(options: DevServerOptions) {
     if (url === "/dev" || url.startsWith("/dev/")) {
       // Strip /dev prefix so existing API handlers work unchanged
       const devPath = url === "/dev" ? "/" : url.slice(4); // "/dev/api/runs" → "/api/runs"
+
+      // ── Unauthenticated routes ────────────────────────────────────
+      // Health check for status polling (must bypass auth)
+      if (devPath === "/__health") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+
+      // ── Auth gate (cloud only) ────────────────────────────────────
+      if (isAuthEnabled()) {
+        // Auth callback must be unauthenticated (it's the redirect target)
+        const authHandled = await handleAuthCallback(req, res, devPath, fullUrl);
+        if (authHandled) return;
+
+        // All other /dev/ routes require authentication
+        const claims = await authenticateDevRequest(req);
+        if (!claims) {
+          if (devPath.startsWith("/api/")) {
+            sendUnauthorized(res);
+          } else {
+            redirectToAuth(res);
+          }
+          return;
+        }
+      }
 
       // Claude command hint (no database required)
       if (devPath === "/api/claude-command" && req.method === "GET") {

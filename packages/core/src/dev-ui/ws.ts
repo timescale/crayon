@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "node:http";
 import type { ProjectDAGs, WorkflowDAG } from "./dag/types.js";
+import { isAuthEnabled, authenticateRequest } from "./auth.js";
 
 export type WSMessage =
   | { type: "full-sync"; data: ProjectDAGs }
@@ -21,7 +22,25 @@ export function createWSServer(
   httpServer: Server,
   onClientMessage?: (ws: WebSocket, message: WSClientMessage) => void,
 ) {
-  const wss = new WebSocketServer({ server: httpServer, path: "/dev/ws" });
+  const wss = new WebSocketServer({
+    server: httpServer,
+    path: "/dev/ws",
+    verifyClient: isAuthEnabled()
+      ? (info, callback) => {
+          authenticateRequest(info.req)
+            .then((claims) => {
+              if (!claims) {
+                callback(false, 401, "Unauthorized");
+              } else {
+                callback(true);
+              }
+            })
+            .catch(() => {
+              callback(false, 500, "Internal Server Error");
+            });
+        }
+      : undefined,
+  });
 
   wss.on("connection", (ws) => {
     if (onClientMessage) {

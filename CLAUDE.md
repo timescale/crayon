@@ -152,6 +152,10 @@ To test local core changes on a cloud dev machine:
    ```bash
    cd packages/auth-server && pnpm dev
    ```
+   Ensure `packages/auth-server/.env.local` has these set:
+   - `DEV_UI_JWT_PRIVATE_KEY` — Ed25519 private key (see auth-server README for generation command)
+   - `PUBLIC_URL=http://localhost:3000` — tells cloud machines where to redirect browsers for auth
+   - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `NEXT_PUBLIC_GITHUB_CLIENT_ID` — use a **local dev GitHub OAuth app** with callback URL `http://localhost:3000/api/auth/github/callback` (separate from the production app, so GitHub redirects back to localhost after OAuth)
 
 3. **Create a new cloud machine using the local auth server:**
    ```bash

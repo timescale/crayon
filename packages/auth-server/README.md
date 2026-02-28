@@ -4,19 +4,25 @@ Hosted credential proxy that lets users access integrations (Salesforce, HubSpot
 
 ## Setup
 
-### 1. Create a GitHub OAuth App
+### 1. Create GitHub OAuth Apps
 
-1. Go to **GitHub Settings > Developer settings > OAuth Apps > New OAuth App**
-   - https://github.com/settings/applications/new
+You need two separate OAuth apps — one for local development and one for production. This is required because GitHub redirects to the registered callback URL and `localhost` and the production domain can't share an app.
+
+**Local dev app** (for `.env.local`):
+1. Go to https://github.com/settings/applications/new
 2. Fill in:
-   - **Application name:** `crayon` (or whatever you want)
+   - **Application name:** `crayon local`
    - **Homepage URL:** `http://localhost:3000`
    - **Authorization callback URL:** `http://localhost:3000/api/auth/github/callback`
-3. Click **Register application**
-4. Copy the **Client ID**
-5. Click **Generate a new client secret** and copy it
+3. Copy the Client ID and generate a client secret
 
-> For production, update the Homepage URL and callback URL to `https://crayon.fly.dev`.
+**Production app** (for Fly secrets):
+1. Go to https://github.com/settings/applications/new
+2. Fill in:
+   - **Application name:** `crayon`
+   - **Homepage URL:** `https://crayon.fly.dev`
+   - **Authorization callback URL:** `https://crayon.fly.dev/api/auth/github/callback`
+3. Copy the Client ID and generate a client secret
 
 ### 2. Configure environment
 
@@ -35,7 +41,32 @@ GITHUB_CLIENT_SECRET=<from step 1>
 NEXT_PUBLIC_GITHUB_CLIENT_ID=<same Client ID — needed for the browser page>
 FLY_API_TOKEN=<Fly.io API token — for managing user app deployments>
 FLY_ORG=personal
+PUBLIC_URL=http://localhost:3000
+DEV_UI_JWT_PRIVATE_KEY=<Ed25519 private key — see below>
 ```
+
+#### `PUBLIC_URL` — auth server public URL
+
+The URL injected into cloud dev machines as `CRAYON_SERVER_URL`, so their browser-based auth redirects land on this server. For local development set it to `http://localhost:3000` — the Fly machine never calls it directly, only the user's browser does.
+
+#### `DEV_UI_JWT_PRIVATE_KEY` — Ed25519 signing key
+
+Used to sign JWTs for cloud dev UI authentication. Generate a keypair with:
+
+```bash
+node -e "
+  const { privateKey } = require('crypto').generateKeyPairSync('ed25519');
+  console.log(privateKey.export({ type: 'pkcs8', format: 'pem' }));
+"
+```
+
+Copy the output (including `-----BEGIN/END PRIVATE KEY-----` lines) into `.env.local`, with newlines replaced by `\n`:
+
+```env
+DEV_UI_JWT_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMC4CAQ...\n-----END PRIVATE KEY-----\n
+```
+
+The corresponding public key is derived automatically and injected into each cloud dev machine as `DEV_UI_JWT_PUBLIC_KEY` at creation time.
 
 ### 3. Set up the database
 
@@ -95,8 +126,24 @@ cd packages/auth-server
 # Create the Fly app
 flyctl apps create crayon
 
-# Set secrets from .env.local
-flyctl secrets import -a crayon < .env.local
+# Set production secrets (different from .env.local which uses local dev values)
+flyctl secrets set \
+  DATABASE_URL="<production db url>" \
+  DATABASE_DATA_URL="<shared db url>" \
+  NANGO_SECRET_KEY="<nango key>" \
+  GITHUB_CLIENT_ID="<production github app client id>" \
+  GITHUB_CLIENT_SECRET="<production github app client secret>" \
+  NEXT_PUBLIC_GITHUB_CLIENT_ID="<production github app client id>" \
+  FLY_API_TOKEN="<fly token>" \
+  FLY_ORG="<fly org>" \
+  PUBLIC_URL="https://crayon.fly.dev" \
+  -a crayon
+
+# Generate and set a production Ed25519 keypair
+flyctl secrets set DEV_UI_JWT_PRIVATE_KEY="$(node -e "
+  const { privateKey } = require('crypto').generateKeyPairSync('ed25519');
+  process.stdout.write(privateKey.export({ type: 'pkcs8', format: 'pem' }).replace(/\n/g, '\\\\n'));
+")" -a crayon
 
 # Deploy
 flyctl deploy
