@@ -5,7 +5,7 @@ import { homedir, userInfo } from "node:os";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { apiCall } from "../connections/cloud-client.js";
-import { isAuthenticated, authenticate } from "../connections/cloud-auth.js";
+import { isAuthenticated, authenticateForCli } from "../connections/cloud-auth.js";
 
 // ── Browser helper ───────────────────────────────────────────────
 
@@ -85,10 +85,14 @@ export async function runCloudRun(): Promise<void> {
   // ── Step 1: Authenticate with crayon cloud ────────────────────
   if (!isAuthenticated()) {
     p.log.info("Authenticating with crayon cloud...");
-    await authenticate();
-    if (!isAuthenticated()) {
-      p.log.error("Not authenticated. Run `crayon login` first.");
-      process.exit(1);
+    const authResult = await authenticateForCli();
+    if (authResult.status === "pending") {
+      p.log.warn(
+        `Browser opened for authentication.\n\n` +
+          `If the browser didn't open, visit:\n${authResult.authUrl}\n\n` +
+          `After approving, re-run: ${pc.bold("crayon cloud run")}`,
+      );
+      process.exit(0);
     }
   }
 
@@ -317,10 +321,14 @@ async function selectMachine(opts?: { excludeStopped?: boolean }): Promise<strin
 
 async function ensureAuth(): Promise<void> {
   if (!isAuthenticated()) {
-    await authenticate();
-    if (!isAuthenticated()) {
-      p.log.error("Not authenticated. Run `crayon login` first.");
-      process.exit(1);
+    const authResult = await authenticateForCli();
+    if (authResult.status === "pending") {
+      p.log.warn(
+        `Browser opened for authentication.\n\n` +
+          `If the browser didn't open, visit:\n${authResult.authUrl}\n\n` +
+          `After approving, re-run this command.`,
+      );
+      process.exit(0);
     }
   }
 }

@@ -23,7 +23,7 @@ const DEFAULT_SERVER_URL =
   process.env.CRAYON_SERVER_URL ?? "https://crayon.fly.dev";
 
 const POLL_INTERVAL_MS = 2000;
-const QUICK_POLL_ATTEMPTS = 8; // ~16 seconds
+const QUICK_POLL_ATTEMPTS = 60; // ~2 minutes
 
 interface Credentials {
   token: string;
@@ -216,72 +216,49 @@ export class AuthRequiredError extends Error {
 }
 
 /**
- * Perform browser-based CLI authentication (two-phase, non-blocking).
+ * Perform browser-based CLI authentication.
  *
- * Phase 1 (no pending session):
- *   - Creates a session, opens browser, polls briefly (~16s)
- *   - If approved quickly: saves token, returns
- *   - If not: saves pending session, throws AuthRequiredError with URL
- *
- * Phase 2 (pending session exists):
- *   - Checks if the pending session was approved
- *   - If approved: saves token, clears pending, returns
- *   - If not: throws AuthRequiredError with URL again
+ * Resumes a pending session if one exists (e.g. from a previous run that timed
+ * out), otherwise creates a new one. Opens the browser and polls for up to
+ * ~2 minutes. Throws AuthRequiredError if the user doesn't approve in time.
  */
 export async function authenticate(): Promise<void> {
   const serverUrl = DEFAULT_SERVER_URL;
 
-  // Phase 2: Check if a pending session was approved
-  const pending = readPendingAuth();
-  if (pending) {
-    const result = await checkPendingSession(
-      pending.serverUrl,
-      pending.code,
-      pending.secret,
-    );
-    if (result) {
-      saveToken(result.token, pending.serverUrl);
-      clearPendingAuth();
-      process.stderr.write("Authentication successful! Token saved.\n");
-      return;
+  // Resume a pending session if one exists, otherwise create a new one
+  let pending = readPendingAuth();
+  if (!pending) {
+    const createResponse = await fetch(`${serverUrl}/api/auth/cli/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      throw new Error(`Failed to create auth session: ${errorText}`);
     }
 
-    // Still pending — tell user to approve
-    throw new AuthRequiredError(pending.authUrl);
+    const createData = (await createResponse.json()) as {
+      data: { code: string; secret: string };
+    };
+    const { code, secret } = createData.data;
+    const authUrl = `${serverUrl}/auth/cli?cli_code=${code}`;
+
+    pending = { code, secret, authUrl, serverUrl, createdAt: Date.now() };
+    savePendingAuth(pending);
   }
-
-  // Phase 1: Create a new session
-  const createResponse = await fetch(`${serverUrl}/api/auth/cli/session`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!createResponse.ok) {
-    const errorText = await createResponse.text();
-    throw new Error(`Failed to create auth session: ${errorText}`);
-  }
-
-  const createData = (await createResponse.json()) as {
-    data: { code: string; secret: string };
-  };
-  const { code, secret } = createData.data;
-
-  const authUrl = `${serverUrl}/auth/cli?cli_code=${code}`;
-
-  // Save pending session so Phase 2 can pick it up
-  savePendingAuth({ code, secret, authUrl, serverUrl, createdAt: Date.now() });
 
   // Open browser and print URL
-  process.stderr.write(`\nOpen this URL to authenticate:\n  ${authUrl}\n\n`);
-  openBrowser(authUrl);
+  process.stderr.write(`\nOpen this URL to authenticate:\n  ${pending.authUrl}\n\n`);
+  openBrowser(pending.authUrl);
 
-  // Quick poll: give the user ~16 seconds to approve
+  // Poll until approved or timed out
   for (let attempt = 0; attempt < QUICK_POLL_ATTEMPTS; attempt++) {
     await sleep(POLL_INTERVAL_MS);
 
-    const result = await checkPendingSession(serverUrl, code, secret);
+    const result = await checkPendingSession(pending.serverUrl, pending.code, pending.secret);
     if (result) {
-      saveToken(result.token, serverUrl);
+      saveToken(result.token, pending.serverUrl);
       clearPendingAuth();
       process.stderr.write("Authentication successful! Token saved.\n");
       return;
@@ -289,7 +266,28 @@ export async function authenticate(): Promise<void> {
   }
 
   // Not approved yet — throw with helpful message
-  throw new AuthRequiredError(authUrl);
+  throw new AuthRequiredError(pending.authUrl);
+}
+
+export type AuthResult =
+  | { status: "success" }
+  | { status: "pending"; authUrl: string };
+
+/**
+ * Run the interactive CLI auth flow. Returns a result instead of throwing
+ * AuthRequiredError, so callers don't need to import or handle that class.
+ * Real errors (network failures, etc.) are still thrown.
+ */
+export async function authenticateForCli(): Promise<AuthResult> {
+  try {
+    await authenticate();
+    return { status: "success" };
+  } catch (err) {
+    if (err instanceof AuthRequiredError) {
+      return { status: "pending", authUrl: err.authUrl };
+    }
+    throw err;
+  }
 }
 
 /**

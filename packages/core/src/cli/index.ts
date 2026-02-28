@@ -663,7 +663,7 @@ program
   .command("login")
   .description("Authenticate with crayon cloud (opens browser)")
   .action(async () => {
-    const { authenticate, isAuthenticated, AuthRequiredError } = await import(
+    const { isAuthenticated, authenticateForCli } = await import(
       "../connections/cloud-auth.js"
     );
 
@@ -672,21 +672,16 @@ program
       return;
     }
 
-    try {
-      console.log(pc.dim("Opening browser for authentication..."));
-      await authenticate();
+    console.log(pc.dim("Opening browser for authentication..."));
+    const result = await authenticateForCli();
+    if (result.status === "success") {
       console.log(pc.green("Logged in successfully."));
-    } catch (err) {
-      if (err instanceof AuthRequiredError) {
-        console.log(
-          `\n${pc.yellow("Waiting for browser approval...")}\n\n` +
-            `If the browser didn't open, visit:\n${pc.cyan(err.authUrl)}\n\n` +
-            `Then run ${pc.bold("crayon login")} again.`,
-        );
-      } else {
-        console.error(pc.red(`Login failed: ${err instanceof Error ? err.message : err}`));
-        process.exit(1);
-      }
+    } else {
+      console.log(
+        `\n${pc.yellow("Waiting for browser approval...")}\n\n` +
+          `If the browser didn't open, visit:\n${pc.cyan(result.authUrl)}\n\n` +
+          `Then run ${pc.bold("crayon login")} again.`,
+      );
     }
   });
 
