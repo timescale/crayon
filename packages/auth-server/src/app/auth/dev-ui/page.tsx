@@ -23,9 +23,9 @@ function DevUIAuthContent() {
 
   return (
     <div style={{ fontFamily: "system-ui", maxWidth: 400, margin: "80px auto", textAlign: "center" }}>
-      <h2>Dev UI Authorization</h2>
+      <h2>Open your crayon cloud workspace</h2>
       <p style={{ color: "#666", marginBottom: 24 }}>
-        Sign in to access the dev environment.
+        Verify your identity to open your workspace.
       </p>
       <a
         href={githubUrl}
