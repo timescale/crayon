@@ -76,12 +76,12 @@ if [ ! -f "$APP_DIR/package.json" ]; then
   log "  Running crayon init..."
   su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && "$CRAYON" init '$APP_NAME' --dir . --no-install"
 
-  # Copy pre-cached /node_modules onto the volume in the background.
-  # The dev server starts immediately — Node.js resolves packages via parent-directory
-  # lookup to /node_modules in the image root. The copy seeds the volume so that later
-  # `npm install <pkg>` only fetches the new package instead of reinstalling everything.
-  # The app's preinstall hook (package.json) blocks on this same lock file, so any
-  # `npm install` invoked before the copy finishes will wait rather than racing.
+  # Symlink to image's /node_modules so Turbopack resolves packages immediately.
+  # (Turbopack doesn't do parent-directory node_modules resolution like Node.js does.)
+  # Background copy replaces symlink with real dir so npm install works later.
+  ln -s /node_modules "$APP_DIR/node_modules"
+  chown -h "$DEV_USER:devs" "$APP_DIR/node_modules"
+
   log "  Starting node_modules population in background..."
   touch /tmp/node_modules.lock
   (
@@ -90,12 +90,13 @@ if [ ! -f "$APP_DIR/package.json" ]; then
     rm -rf "$APP_DIR/node_modules_temp"
     cp -r /node_modules/. "$APP_DIR/node_modules_temp/"
     chown -R "$DEV_USER:devs" "$APP_DIR/node_modules_temp"
-    if mv "$APP_DIR/node_modules_temp" "$APP_DIR/node_modules" 2>/dev/null; then
-      log "  node_modules population complete"
-    else
-      rm -rf "$APP_DIR/node_modules_temp"
-      log "  node_modules already exists, discarding temp copy"
-    fi
+    # Replace symlink with real directory
+    rm "$APP_DIR/node_modules"
+    mv "$APP_DIR/node_modules_temp" "$APP_DIR/node_modules"
+    # Pin runcrayon to global install in the real copy
+    rm -rf "$APP_DIR/node_modules/runcrayon"
+    ln -s "$(npm root -g)/runcrayon" "$APP_DIR/node_modules/runcrayon"
+    log "  node_modules population complete"
   ) &
 
   log "  Scaffold complete"
@@ -110,7 +111,9 @@ fi
 
 # ── Pin runcrayon to image version (every boot) ──────────────────────────
 # Replace any stale copy with a symlink to the global install baked into the image.
-if [ -d "$APP_DIR/node_modules" ]; then
+# Skip when node_modules is a symlink (first boot) — /node_modules/runcrayon already
+# points to the global install via the image's own symlink.
+if [ -d "$APP_DIR/node_modules" ] && [ ! -L "$APP_DIR/node_modules" ]; then
   rm -rf "$APP_DIR/node_modules/runcrayon" "$APP_DIR/node_modules/crayon"
   ln -s "$(npm root -g)/runcrayon" "$APP_DIR/node_modules/runcrayon"
 fi
