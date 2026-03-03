@@ -92,6 +92,47 @@ const CLOUD_DEV_IMAGE =
   process.env.CLOUD_DEV_IMAGE ?? "registry.fly.io/crayon-cloud-dev-image:latest";
 
 /**
+ * For each Fly edge region, nearby fallback regions to try if the primary
+ * region lacks capacity. Ordered by geographic proximity.
+ */
+const REGION_FALLBACKS: Record<string, string[]> = {
+  // North America
+  iad: ["ewr", "ord"],
+  ewr: ["iad", "ord"],
+  ord: ["iad", "ewr"],
+  dfw: ["ord", "iad"],
+  lax: ["sjc", "dfw"],
+  sjc: ["lax", "dfw"],
+  yyz: ["ewr", "ord"],
+  // Europe
+  ams: ["fra", "cdg"],
+  cdg: ["fra", "ams"],
+  fra: ["ams", "cdg"],
+  lhr: ["ams", "cdg"],
+  arn: ["fra", "ams"],
+  // Asia-Pacific
+  nrt: ["sin", "sjc"],
+  sin: ["nrt", "bom"],
+  bom: ["sin", "fra"],
+  syd: ["sin", "nrt"],
+  // South America & Africa
+  gru: ["ewr", "iad"],
+  jnb: ["fra", "lhr"],
+};
+
+/** Build ordered region candidates from the user's nearest Fly edge. */
+function getRegionCandidates(flyRegionHeader: string | null): string[] {
+  const primary = flyRegionHeader ?? FLY_REGION;
+  const fallbacks = REGION_FALLBACKS[primary] ?? [FLY_REGION, "ewr"];
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+  for (const r of [primary, ...fallbacks]) {
+    if (!seen.has(r)) { seen.add(r); candidates.push(r); }
+  }
+  return candidates;
+}
+
+/**
  * POST /api/cloud-dev/create
  * Create a cloud dev machine for the authenticated user.
  */
@@ -219,8 +260,10 @@ export async function POST(req: NextRequest) {
     //    machine with those specs, but it's not always honoured (412 on machine create).
     //    When that happens we delete the volume and try the next region.
     const machineGuest = { cpu_kind: "shared", cpus: 6, memory_mb: 3072 };
-    const regionCandidates = [FLY_REGION, "ewr", "bos"].filter(
-      (r, i, arr) => arr.indexOf(r) === i,
+    const flyRegionHeader = req.headers.get("fly-region");
+    const regionCandidates = getRegionCandidates(flyRegionHeader);
+    console.log(
+      `[cloud-dev/create] Region candidates: [${regionCandidates.join(", ")}] (edge: ${flyRegionHeader ?? "none"})`,
     );
     const machineServicesConfig: CreateMachineConfig["services"] = [
       {
@@ -258,8 +301,8 @@ export async function POST(req: NextRequest) {
           guest: machineGuest,
           mounts: [{ volume: currentVolumeId, path: "/data" }],
         }, region);
-        if (region !== FLY_REGION) {
-          console.log(`[cloud-dev/create] Provisioned in fallback region: ${region}`);
+        if (region !== regionCandidates[0]) {
+          console.log(`[cloud-dev/create] Provisioned in fallback region: ${region} (preferred: ${regionCandidates[0]})`);
         }
         break;
       } catch (err) {

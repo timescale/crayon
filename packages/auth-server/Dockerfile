@@ -9,15 +9,16 @@ ENV FLYCTL_INSTALL="/root/.fly"
 ENV PATH="$FLYCTL_INSTALL/bin:$PATH"
 
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
+RUN corepack enable
+COPY package.json ./
+RUN pnpm install
 COPY . .
 
 # NEXT_PUBLIC_* vars must be present at build time to be inlined into client JS
 ARG NEXT_PUBLIC_GITHUB_CLIENT_ID
 ENV NEXT_PUBLIC_GITHUB_CLIENT_ID=$NEXT_PUBLIC_GITHUB_CLIENT_ID
 
-RUN npm run build
+RUN pnpm build
 
 # Standalone output needs static assets copied alongside server.js
 RUN cp -r .next/static .next/standalone/.next/static
