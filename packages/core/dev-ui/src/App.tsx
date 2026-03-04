@@ -22,7 +22,7 @@ export function App() {
   const connectionsApi = useConnections();
   const router = useHashRouter();
   const sidebar = useSidebarState();
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [rightTab, setRightTab] = useState<"test" | "runs">("test");
 
