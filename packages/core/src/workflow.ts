@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { Executable, WorkflowContext, LogLevel, ConnectionCredentials } from "./types.js";
-import { resolveConnectionId } from "./connections/index.js";
+import { resolveConnectionId, upsertConnection } from "./connections/index.js";
 import type { IntegrationProvider } from "./connections/integration-provider.js";
 import type pg from "pg";
 
@@ -87,7 +87,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
         );
       }
 
-      const connectionId = await resolveConnectionId(
+      let connectionId = await resolveConnectionId(
         config.sql,
         config.workflowName,
         _currentNodeName,
@@ -96,11 +96,28 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
       );
 
       if (!connectionId) {
-        throw new Error(
-          `No connection configured for integration "${integrationId}" ` +
-          `(workflow="${config.workflowName}", node="${_currentNodeName}"). ` +
-          `Configure it in the Dev UI or set a global default.`,
-        );
+        // Auto-select if exactly one connection exists for this integration
+        const available = await config.integrationProvider.listConnections(integrationId);
+        if (available.length === 1) {
+          connectionId = available[0].connection_id;
+          // Persist as global default so subsequent calls skip this lookup
+          await upsertConnection(
+            config.sql,
+            { workflow_name: "*", node_name: "*", integration_id: integrationId, connection_id: connectionId },
+            config.appSchema,
+          );
+        } else if (available.length === 0) {
+          throw new Error(
+            `No connections available for integration "${integrationId}". ` +
+            `Set up a connection in the Dev UI first.`,
+          );
+        } else {
+          throw new Error(
+            `Multiple connections available for integration "${integrationId}" ` +
+            `(${available.map(c => c.connection_id).join(", ")}). ` +
+            `Select one in the Dev UI or set a global default.`,
+          );
+        }
       }
 
       return config.integrationProvider.fetchCredentials(integrationId, connectionId);
