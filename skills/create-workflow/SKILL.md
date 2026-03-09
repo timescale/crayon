@@ -38,6 +38,8 @@ Then stop. Do not proceed to any subsequent steps.
 
 Once the tool succeeds, the returned integration IDs are what nodes declare in their `integrations: [...]` arrays.
 
+**IMPORTANT — stay in design mode:** Do NOT read integration-specific guides (e.g., `integrations/salesforce`), call `get_connection_info`, or research SDKs/libraries during this phase. You only need the integration IDs for node stub `integrations: [...]` arrays. All integration research and connection checks happen later in `/crayon:refine-node`.
+
 ### 3. Read Existing Context
 
 - Read `src/crayon/workflows/*.ts` — existing workflows to reuse or reference
