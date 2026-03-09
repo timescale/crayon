@@ -194,13 +194,9 @@ The pre-built image lives at `packages/core/docker/`. It bundles Node.js, Claude
 **Development (local build):**
 
 ```bash
-# Build crayon and pack a tarball into the docker context
-pnpm --filter runcrayon build
-cd packages/core && npm pack --pack-destination docker/
-
-# Build and push with local code
-cd docker
-flyctl deploy --build-only --push --image-label latest --build-arg CRAYON_SOURCE=local
+# Build, pack, and push Docker image with local code (also updates CLOUD_DEV_IMAGE in auth-server/.env.local)
+cd packages/core/docker
+./build-dev.sh [tag]   # defaults to "latest" on main, branch-name otherwise
 ```
 
 **Production (npm registry):**

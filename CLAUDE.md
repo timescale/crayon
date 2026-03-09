@@ -164,9 +164,9 @@ To test local core changes on a cloud dev machine:
 
 4. **Open the dev UI** at `https://<fly-app-name>.fly.dev/dev/`
 
-To update an existing cloud machine to a new image:
+To update existing cloud machines to a new image:
 ```bash
-cd packages/core/docker && ./update-machines.sh <fly-app-name> [image]
+cd packages/core/docker && npx tsx update-all-machines.ts [image] [--app <fly-app-name>]
 ```
 
 ## Deployment

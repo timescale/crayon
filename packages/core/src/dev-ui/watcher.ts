@@ -16,6 +16,12 @@ function isWorkflowFile(filePath: string, projectRoot: string): boolean {
   return rel.startsWith("src/crayon/workflows/");
 }
 
+function isNodeOrAgentFile(filePath: string, projectRoot: string): boolean {
+  const rel = relative(projectRoot, resolve(projectRoot, filePath));
+  if (extname(rel) !== ".ts") return false;
+  return rel.startsWith("src/crayon/nodes/") || rel.startsWith("src/crayon/agents/");
+}
+
 export function createWatcher(options: WatcherOptions) {
   const { projectRoot, onMessage } = options;
 
@@ -113,9 +119,39 @@ export function createWatcher(options: WatcherOptions) {
     onMessage({ type: "workflow-removed", data: { filePath: relPath } });
   }
 
-  function handleFileChange(filePath: string) {
-    if (!isWorkflowFile(filePath, projectRoot)) return;
+  /**
+   * When a node/agent file changes, re-process all workflows that import it
+   * so their descriptions, names, and integrations get updated.
+   */
+  function reprocessWorkflowsImporting(changedFile: string) {
+    const changedAbs = resolve(projectRoot, changedFile);
+    const changedRel = relative(projectRoot, changedAbs);
+    // Strip .ts extension for matching against import paths (which are extensionless)
+    const changedBase = changedRel.replace(/\.ts$/, "");
 
+    for (const wf of state.workflows) {
+      const imports = wf.nodes
+        .filter((n) => n.importPath)
+        .some((n) => {
+          // Resolve the import path relative to the workflow file
+          const wfAbs = resolve(projectRoot, wf.filePath);
+          let importFile = n.importPath!;
+          if (importFile.endsWith(".js")) {
+            importFile = importFile.slice(0, -3);
+          }
+          const resolvedImport = relative(
+            projectRoot,
+            resolve(dirname(wfAbs), importFile),
+          );
+          return resolvedImport === changedBase;
+        });
+      if (imports) {
+        scheduleProcess(wf.filePath);
+      }
+    }
+  }
+
+  function scheduleProcess(filePath: string) {
     const existing = debounceTimers.get(filePath);
     if (existing) clearTimeout(existing);
 
@@ -129,6 +165,14 @@ export function createWatcher(options: WatcherOptions) {
     );
   }
 
+  function handleFileChange(filePath: string) {
+    if (isWorkflowFile(filePath, projectRoot)) {
+      scheduleProcess(filePath);
+    } else if (isNodeOrAgentFile(filePath, projectRoot)) {
+      reprocessWorkflowsImporting(filePath);
+    }
+  }
+
   function handleFileRemove(filePath: string) {
     if (!isWorkflowFile(filePath, projectRoot)) return;
     removeFile(filePath);
@@ -140,7 +184,13 @@ export function createWatcher(options: WatcherOptions) {
   const crayonWorkflowDir = resolve(projectRoot, "src/crayon/workflows");
   if (existsSync(crayonWorkflowDir)) watchDirs.push(crayonWorkflowDir);
 
-  // If directory doesn't exist yet, watch parent dir so we detect when it's created
+  // Also watch nodes/ and agents/ so we can update descriptions when those files change
+  const crayonNodesDir = resolve(projectRoot, "src/crayon/nodes");
+  if (existsSync(crayonNodesDir)) watchDirs.push(crayonNodesDir);
+  const crayonAgentsDir = resolve(projectRoot, "src/crayon/agents");
+  if (existsSync(crayonAgentsDir)) watchDirs.push(crayonAgentsDir);
+
+  // If no directories found yet, watch parent dir so we detect when they're created
   if (watchDirs.length === 0) {
     const crayonDir = resolve(projectRoot, "src/crayon");
     if (existsSync(crayonDir)) watchDirs.push(crayonDir);

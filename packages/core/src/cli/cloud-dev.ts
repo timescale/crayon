@@ -612,9 +612,9 @@ export async function handleMcp(appNameArg?: string): Promise<void> {
   launchClaude(projectDir);
 }
 
-export async function handleSSH(): Promise<void> {
+export async function handleSSH(appNameArg?: string, command?: string): Promise<void> {
   await ensureAuth();
-  const appName = await selectMachine({ excludeStopped: true });
+  const appName = appNameArg ?? (await selectMachine({ excludeStopped: true }));
 
   const s = p.spinner();
   s.start("Fetching SSH credentials...");
@@ -629,6 +629,6 @@ export async function handleSSH(): Promise<void> {
     process.exit(1);
   }
 
-  const exitCode = connectSSH(sshInfo);
+  const exitCode = connectSSH(sshInfo, command);
   process.exit(exitCode);
 }

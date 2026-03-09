@@ -174,11 +174,11 @@ cloud
   });
 
 cloud
-  .command("ssh")
+  .command("ssh [app-name] [command]")
   .description("SSH into a cloud workspace")
-  .action(async () => {
+  .action(async (appName?: string, command?: string) => {
     const { handleSSH } = await import("./cloud-dev.js");
-    await handleSSH();
+    await handleSSH(appName, command);
   });
 
 cloud
