@@ -12,7 +12,16 @@ export async function getPool(): Promise<pg.Pool> {
     pool = new pg.Pool({ connectionString, max: 10 });
   }
   if (!schemaReady) {
-    await ensureSchema();
+    try {
+      await ensureSchema();
+    } catch (err) {
+      // Reset so next call retries instead of returning a broken pool
+      pool = null;
+      const host = new URL(connectionString).host;
+      throw new Error(
+        `Failed to connect to metadata database (DATABASE_URL) at ${host}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
     schemaReady = true;
   }
   return pool;

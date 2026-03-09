@@ -55,6 +55,16 @@ export async function setupSchemaFromUrl(
   const pool = new pg.Pool({ connectionString: adminConnectionString, max: 1 });
 
   try {
+    // Verify connectivity before running DDL
+    try {
+      await pool.query("SELECT 1");
+    } catch (err) {
+      const host = new URL(adminConnectionString).host;
+      throw new Error(
+        `Failed to connect to data database (DATABASE_DATA_URL) at ${host}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     const existingUser = await pool.query(
       `SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = $1`,
       [pgName],
