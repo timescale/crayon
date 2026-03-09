@@ -50,8 +50,8 @@ This returns:
 
 **Do NOT write access tokens to `.env`.** Tokens are short-lived and fetched on the fly via the integration provider.
 
-**If `get_connection_info` fails** (no connection configured or authentication error), tell the user:
-"No Salesforce connection found. Open the Credentials page in the Dev UI sidebar to connect your Salesforce account (in a cloud sandbox, use the browser tab you already have open). Then re-run this."
+**If `get_connection_info` fails** (no connection configured or authentication error), tell the user that:
+No Salesforce connection found. Set it up by clicking on the node in the Dev UI canvas at `<sandbox-url>/dev/#/canvas/<workflow-name>`. Then say "continue" when ready.
 
 ### 3. Check for Dependencies
 
