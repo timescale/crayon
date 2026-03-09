@@ -134,14 +134,15 @@ export async function runCloudRun(): Promise<void> {
       // Open dev UI and register MCP + launch local Claude Code
       if (existing?.app_url) openInBrowser(existing.app_url.replace(/\/$/, "") + "/dev/");
 
+      const projectDir = ensureProjectDir(choice as string);
       const s = p.spinner();
       s.start("Registering sandbox MCP server...");
-      const ok = await registerSandboxMcp(choice as string);
+      const ok = await registerSandboxMcp(choice as string, projectDir);
       if (ok) {
         s.stop(pc.green("MCP server registered"));
         p.log.info("Launching Claude Code with sandbox access...");
         p.outro("");
-        launchClaude();
+        launchClaude(projectDir);
       } else {
         s.stop(pc.yellow("MCP registration failed"));
         p.outro(pc.green("Sandbox ready."));
@@ -253,13 +254,14 @@ export async function runCloudRun(): Promise<void> {
           openInBrowser(devUrl);
 
           // Register MCP and launch local Claude Code
+          const projectDir = ensureProjectDir(appName as string);
           s.start("Registering sandbox MCP server...");
-          const ok = await registerSandboxMcp(appName as string);
+          const ok = await registerSandboxMcp(appName as string, projectDir);
           if (ok) {
             s.stop(pc.green("MCP server registered"));
             p.log.info("Launching Claude Code with sandbox access...");
             p.outro("");
-            launchClaude();
+            launchClaude(projectDir);
           } else {
             s.stop(pc.yellow("MCP registration failed"));
             p.outro(pc.green("Cloud dev environment is ready!"));
@@ -523,7 +525,13 @@ function connectSSH(info: SSHKeyInfo, command?: string): number {
 
 const MCP_SERVER_NAME = "crayon-sandbox";
 
-async function registerSandboxMcp(appName: string): Promise<boolean> {
+function ensureProjectDir(appName: string): string {
+  const dir = join(homedir(), "crayon", appName);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+async function registerSandboxMcp(appName: string, projectDir: string): Promise<boolean> {
   let sshInfo: SSHKeyInfo;
   try {
     sshInfo = await getSSHKey(appName);
@@ -548,24 +556,28 @@ async function registerSandboxMcp(appName: string): Promise<boolean> {
     "crayon", "mcp", "sandbox",
   ];
 
-  // Register via claude mcp add (removes old one first if exists)
-  try {
-    execSync(`claude mcp remove ${MCP_SERVER_NAME} 2>/dev/null`, {
-      stdio: "ignore",
-    });
-  } catch {
-    // May not exist yet — ignore
+  // Remove any previous registration (both global and project-scoped)
+  for (const scope of ["user", "project"] as const) {
+    try {
+      execFileSync("claude", [
+        "mcp", "remove", "--scope", scope, MCP_SERVER_NAME,
+      ], { stdio: "ignore", cwd: projectDir });
+    } catch {
+      // May not exist yet — ignore
+    }
   }
 
+  // Register as project-scoped MCP server
   try {
     execFileSync("claude", [
       "mcp", "add",
+      "--scope", "project",
       "--transport", "stdio",
       MCP_SERVER_NAME,
       "--",
       "ssh",
       ...sshArgs,
-    ], { stdio: "ignore" });
+    ], { stdio: "ignore", cwd: projectDir });
     return true;
   } catch (err) {
     p.log.error(
@@ -575,8 +587,8 @@ async function registerSandboxMcp(appName: string): Promise<boolean> {
   }
 }
 
-function launchClaude(): void {
-  const result = spawnSync("claude", [], { stdio: "inherit" });
+function launchClaude(projectDir: string): void {
+  const result = spawnSync("claude", [], { stdio: "inherit", cwd: projectDir });
   process.exit(result.status ?? 0);
 }
 
@@ -587,7 +599,8 @@ export async function handleMcp(appNameArg?: string): Promise<void> {
   const s = p.spinner();
   s.start("Registering sandbox MCP server...");
 
-  const ok = await registerSandboxMcp(appName);
+  const projectDir = ensureProjectDir(appName);
+  const ok = await registerSandboxMcp(appName, projectDir);
   if (!ok) {
     s.stop(pc.red("Failed to register MCP server"));
     process.exit(1);
@@ -596,7 +609,7 @@ export async function handleMcp(appNameArg?: string): Promise<void> {
   s.stop(pc.green(`MCP server "${MCP_SERVER_NAME}" registered for ${appName}`));
   p.log.info("Launching Claude Code with sandbox access...");
   p.outro("");
-  launchClaude();
+  launchClaude(projectDir);
 }
 
 export async function handleSSH(): Promise<void> {
