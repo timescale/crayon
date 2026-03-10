@@ -62,11 +62,19 @@ export async function apiCall(
     "Content-Type": "application/json",
   };
 
-  const response = await fetch(`${serverUrl}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${serverUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    throw new ApiError(
+      0,
+      `Connection failed (${serverUrl}): ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
