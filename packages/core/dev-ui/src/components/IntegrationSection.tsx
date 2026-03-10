@@ -3,6 +3,7 @@ import { useNangoConnections } from "../hooks/useConnections";
 import type { useConnections } from "../hooks/useConnections";
 import { hasCustomForm, CUSTOM_FORM_INTEGRATIONS } from "../lib/custom-connection-forms";
 import { CustomConnectionForm } from "./CustomConnectionForm";
+import { IntegrationIcon } from "../lib/integration-icons";
 
 interface IntegrationSectionProps {
   integrationId: string;
@@ -153,9 +154,10 @@ export function IntegrationSection({
       <button
         onClick={handleConnect}
         disabled={connecting}
-        className="text-[11px] px-3 py-1 rounded-full border border-[#e8e4df] text-[#787068] hover:bg-[#f5f2ee] transition-colors cursor-pointer disabled:opacity-50 capitalize"
+        className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1 rounded-full border border-[#e8e4df] text-[#787068] hover:bg-[#f5f2ee] transition-colors cursor-pointer disabled:opacity-50 capitalize"
       >
-        {connecting ? "..." : `+ ${integrationId}`}
+        <IntegrationIcon integrationId={integrationId} />
+        {connecting ? "..." : integrationId}
       </button>
     );
   }
@@ -163,7 +165,8 @@ export function IntegrationSection({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] font-medium text-popover-foreground capitalize">
+        <span className="flex items-center gap-1.5 text-[12px] font-medium text-popover-foreground capitalize">
+          <IntegrationIcon integrationId={integrationId} />
           {integrationId}
         </span>
         <button
