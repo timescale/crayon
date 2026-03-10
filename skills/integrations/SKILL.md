@@ -13,7 +13,7 @@ This skill generates function nodes for querying external APIs. It creates prope
 
 | Integration | Auth Method | File |
 |-------------|-------------|------|
-| PostgreSQL | Connection String | `postgres.md` |
+| PostgreSQL | Connection String (via Credentials) | `postgres.md` |
 | Salesforce | OAuth2 Client Credentials | `salesforce.md` |
 
 **To use a listed integration:** Read this skill's corresponding file (e.g., `salesforce.md`).

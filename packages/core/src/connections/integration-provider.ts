@@ -31,6 +31,14 @@ export interface IntegrationProvider {
     integrationId: string,
     endUserId?: string,
   ): Promise<{ token: string }>;
+
+  /** Programmatically create a connection (for non-OAuth integrations like postgres) */
+  createConnection(params: {
+    integrationId: string;
+    connectionId: string;
+    credentials: Record<string, string>;
+    connectionConfig?: Record<string, string>;
+  }): Promise<{ connection_id: string }>;
 }
 
 /**

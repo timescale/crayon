@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNangoConnections } from "../hooks/useConnections";
 import type { useConnections } from "../hooks/useConnections";
+import { hasCustomForm, CUSTOM_FORM_INTEGRATIONS } from "../lib/custom-connection-forms";
+import { CustomConnectionForm } from "./CustomConnectionForm";
 
 interface IntegrationSectionProps {
   integrationId: string;
@@ -17,6 +19,7 @@ export function IntegrationSection({
 }: IntegrationSectionProps) {
   const { nangoConnections, loading: nangoLoading, refetch } = useNangoConnections(integrationId, connectionsApi.mutationVersion);
   const [connecting, setConnecting] = useState(false);
+  const [showCustomForm, setShowCustomForm] = useState(false);
   const [optimisticValue, setOptimisticValue] = useState<string | null>(null);
 
   const current = connectionsApi.getForNode(workflowName, nodeName, integrationId);
@@ -46,6 +49,12 @@ export function IntegrationSection({
   }, [nangoLoading, nangoConnections, current, handleSelect]);
 
   const handleConnect = useCallback(async () => {
+    // For integrations with custom forms, show the form instead of Nango Connect
+    if (hasCustomForm(integrationId)) {
+      setShowCustomForm(true);
+      return;
+    }
+
     setConnecting(true);
     try {
       const res = await fetch("/dev/api/nango/connect-session", {
@@ -91,6 +100,24 @@ export function IntegrationSection({
     }
   }, [integrationId, refetch, handleSelect, workflowName, connectionsApi]);
 
+  const handleCustomFormSuccess = useCallback(
+    async (connectionId: string) => {
+      setShowCustomForm(false);
+      refetch();
+      await handleSelect(connectionId);
+      // Also set global default when connecting from a node-specific context
+      if (workflowName !== "*") {
+        await connectionsApi.upsert({
+          workflow_name: "*",
+          node_name: "*",
+          integration_id: integrationId,
+          connection_id: connectionId,
+        });
+      }
+    },
+    [refetch, handleSelect, workflowName, connectionsApi, integrationId],
+  );
+
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
@@ -99,14 +126,21 @@ export function IntegrationSection({
         </span>
         <button
           onClick={handleConnect}
-          disabled={connecting}
+          disabled={connecting || showCustomForm}
           className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#e8e4df] text-[#787068] hover:bg-[#d4cfc8] transition-colors cursor-pointer disabled:opacity-50"
         >
           {connecting ? "..." : "Connect"}
         </button>
       </div>
 
-      {nangoConnections.length === 0 ? (
+      {showCustomForm && hasCustomForm(integrationId) ? (
+        <CustomConnectionForm
+          integrationId={integrationId}
+          config={CUSTOM_FORM_INTEGRATIONS[integrationId]}
+          onSuccess={handleCustomFormSuccess}
+          onCancel={() => setShowCustomForm(false)}
+        />
+      ) : nangoConnections.length === 0 ? (
         nangoLoading ? (
           <p className="text-[11px] text-[#a8a099] italic">Loading connections...</p>
         ) : (

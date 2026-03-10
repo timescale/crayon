@@ -2,6 +2,8 @@
 
 Guide for generating typed PostgreSQL query nodes using the `postgres` (postgres.js) library.
 
+Credentials are managed through the Dev UI Credentials page (stored in Nango as a Basic Auth integration). Nodes access credentials at runtime via `ctx.getConnection("postgres")`.
+
 ---
 
 ## Important: Schema-Driven Development
@@ -46,19 +48,19 @@ If not: "I don't see a PostgreSQL client in your project. Would you like me to s
 
 ### 3. Check for Credentials
 
-**Ask the user:** "Which environment variable in your `.env` file contains the PostgreSQL connection string for this integration?"
+Use the `getConnectionInfo` MCP tool to check if a postgres connection is configured:
 
-Common options:
-- `DATABASE_URL` - often the app's own database
-- `POSTGRES_URL` - general purpose
-- `<SERVICE>_DATABASE_URL` - service-specific (e.g., `ANALYTICS_DATABASE_URL`)
-
-If the user hasn't set one up yet, ask them to add it to `.env`:
 ```
-ANALYTICS_DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+getConnectionInfo({ integration_id: "postgres" })
 ```
 
-Record the chosen variable name in the spec. The generated client will use this variable.
+If no connection exists, tell the user:
+> "No PostgreSQL connection found. Please add one in the Dev UI Credentials page (click **Connect** next to PostgreSQL and enter your connection details)."
+
+Once configured, the connection provides:
+- `credentials.username` / `credentials.password` — database user
+- `connectionConfig.host` / `connectionConfig.port` / `connectionConfig.database` / `connectionConfig.sslmode` — connection parameters
+- `connectionConfig.nickname` — optional display name
 
 ### 4. Check for Dependencies
 
@@ -70,55 +72,56 @@ The project already includes `postgres` (postgres.js). No additional dependencie
 
 Use these commands to explore the database schema dynamically. No pre-generation needed.
 
-First, load the env var from `.env`:
+First, fetch the connection string using the `getConnectionInfo` MCP tool. Then compose the URL for `psql`:
+
 ```bash
-export $(grep ANALYTICS_DATABASE_URL .env | xargs)
+psql "postgresql://<username>:<password>@<host>:<port>/<database>?sslmode=<sslmode>" -c '\dt'
 ```
 
-Then replace `$ENV_VAR` in the commands below with the actual variable (e.g., `$ANALYTICS_DATABASE_URL`).
+Replace the placeholders with values from `getConnectionInfo` response.
 
 ### List All Schemas
 
 ```bash
-psql $ENV_VAR -c '\dn'
+psql "$CONN_URL" -c '\dn'
 ```
 
 ### List All Tables
 
 ```bash
-psql $ENV_VAR -c '\dt' # all tables in schemas in search_path
-psql $ENV_VAR -c '\dt myschema.*' # all tables in a specific schema
+psql "$CONN_URL" -c '\dt' # all tables in schemas in search_path
+psql "$CONN_URL" -c '\dt myschema.*' # all tables in a specific schema
 ```
 
 ### Search Tables by Keyword
 
 ```bash
-psql $ENV_VAR -c '\dt *user*' # all tables containing "user" in any schema in search_path
-psql $ENV_VAR -c '\dt myschema.*user*' # all tables containing "user" in a specific schema
+psql "$CONN_URL" -c '\dt *user*' # all tables containing "user" in any schema in search_path
+psql "$CONN_URL" -c '\dt myschema.*user*' # all tables containing "user" in a specific schema
 ```
 
 ### Search Columns by Keyword
 
 ```bash
-psql $ENV_VAR -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE column_name LIKE '%email%';"
+psql "$CONN_URL" -c "SELECT table_name, column_name, data_type FROM information_schema.columns WHERE column_name LIKE '%email%';"
 ```
 
 ### Describe a Table
 
 ```bash
-psql $ENV_VAR -c '\d users'
+psql "$CONN_URL" -c '\d users'
 ```
 
 ### Find Foreign Keys
 
 ```bash
-psql $ENV_VAR -c '\d+ users'
+psql "$CONN_URL" -c '\d+ users'
 ```
 
 ### Sample Data
 
 ```bash
-psql $ENV_VAR -c 'SELECT * FROM users LIMIT 3;'
+psql "$CONN_URL" -c 'SELECT * FROM users LIMIT 3;'
 ```
 
 ---
@@ -140,39 +143,26 @@ Create `src/crayon/integrations/postgres/client.ts`:
 
 ```typescript
 // src/crayon/integrations/postgres/client.ts
-// Replace <ENV_VAR> with the environment variable from the spec (e.g., ANALYTICS_DATABASE_URL)
 import postgres from "postgres";
-import { config } from "dotenv";
-import findConfig from "find-config";
+import type { ConnectionCredentials } from "runcrayon";
 
-const envPath = findConfig(".env");
-if (envPath) config({ path: envPath });
+const pools = new Map<string, postgres.Sql>();
 
-const DATABASE_URL = process.env.<ENV_VAR>;
-if (!DATABASE_URL) {
-  throw new Error("<ENV_VAR> environment variable is required");
-}
+export function getPostgresClient(conn: ConnectionCredentials): postgres.Sql {
+  const { host, port, database, sslmode } = conn.connectionConfig as Record<string, string>;
+  const { username, password } = conn.raw as Record<string, string>;
+  const url = `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}?sslmode=${sslmode || "require"}`;
 
-// Shared connection pool
-let sqlInstance: postgres.Sql | null = null;
-
-export function getPostgresClient(): postgres.Sql {
-  if (!sqlInstance) {
-    sqlInstance = postgres(DATABASE_URL, {
+  let sql = pools.get(url);
+  if (!sql) {
+    sql = postgres(url, {
       max: 10, // Connection pool size
       idle_timeout: 20,
       connect_timeout: 10,
     });
+    pools.set(url, sql);
   }
-  return sqlInstance;
-}
-
-// For graceful shutdown
-export async function closePostgresClient(): Promise<void> {
-  if (sqlInstance) {
-    await sqlInstance.end();
-    sqlInstance = null;
-  }
+  return sql;
 }
 ```
 
@@ -196,6 +186,7 @@ import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresGet<Table> = Node.create({
   name: "postgres-get-<table>",
+  integrations: ["postgres"],
   inputSchema: z.object({
     id: z.string().describe("<Table> ID"),
   }),
@@ -206,8 +197,9 @@ export const postgresGet<Table> = Node.create({
     created_at: z.string(),
     // ... other columns
   }).nullable(),
-  execute: async (_ctx, inputs) => {
-    const sql = getPostgresClient();
+  execute: async (ctx, inputs) => {
+    const conn = await ctx.getConnection("postgres");
+    const sql = getPostgresClient(conn);
 
     const rows = await sql`
       SELECT *
@@ -235,6 +227,7 @@ import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresList<Table> = Node.create({
   name: "postgres-list-<table>",
+  integrations: ["postgres"],
   inputSchema: z.object({
     limit: z.number().optional().default(100),
     offset: z.number().optional().default(0),
@@ -250,8 +243,9 @@ export const postgresList<Table> = Node.create({
     })),
     total: z.number(),
   }),
-  execute: async (_ctx, inputs) => {
-    const sql = getPostgresClient();
+  execute: async (ctx, inputs) => {
+    const conn = await ctx.getConnection("postgres");
+    const sql = getPostgresClient(conn);
 
     // Build query with optional filters
     const rows = await sql`
@@ -287,6 +281,7 @@ import { getPostgresClient } from "../integrations/postgres/client.js";
 
 export const postgresCreate<Table> = Node.create({
   name: "postgres-create-<table>",
+  integrations: ["postgres"],
   inputSchema: z.object({
     name: z.string(),
     // ... other required columns
@@ -297,8 +292,9 @@ export const postgresCreate<Table> = Node.create({
     created_at: z.string(),
     // ... return the created row
   }),
-  execute: async (_ctx, inputs) => {
-    const sql = getPostgresClient();
+  execute: async (ctx, inputs) => {
+    const conn = await ctx.getConnection("postgres");
+    const sql = getPostgresClient(conn);
 
     const [row] = await sql`
       INSERT INTO <table> (name)
@@ -338,15 +334,15 @@ Agent: I'm using the PostgreSQL integration skill.
 
 [Pre-flight] Checking for psql... Found.
 [Pre-flight] Checking for PostgreSQL client... Not found.
+[Pre-flight] Checking for credentials via getConnectionInfo...
 
-**Question:** Which environment variable contains the PostgreSQL connection string?
-
-User: ANALYTICS_DATABASE_URL
-
-Agent: I'll use `ANALYTICS_DATABASE_URL` and record it in the spec.
+Connection found:
+- Host: analytics-db.example.com
+- Database: analytics
+- Username: readonly_user
 
 **Exploring database:**
-$ psql $ANALYTICS_DATABASE_URL -c '\dt'
+$ psql "postgresql://readonly_user:***@analytics-db.example.com:5432/analytics?sslmode=require" -c '\dt'
 
  Schema |   Name   | Type
 --------+----------+-------
@@ -354,7 +350,7 @@ $ psql $ANALYTICS_DATABASE_URL -c '\dt'
  public | orders   | table
  public | products | table
 
-$ psql $ENV_VAR -c '\d users'
+$ psql "$CONN_URL" -c '\d users'
 
    Column   |           Type           | Nullable |    Default
 ------------+--------------------------+----------+----------------

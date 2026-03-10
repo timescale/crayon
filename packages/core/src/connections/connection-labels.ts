@@ -12,7 +12,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RawCredentials = Record<string, any>;
 
-type LabelResolver = (raw: RawCredentials) => string | undefined | Promise<string | undefined>;
+type LabelResolver = (raw: RawCredentials, connectionConfig?: RawCredentials) => string | undefined | Promise<string | undefined>;
 
 async function resolveGoogleEmail(raw: RawCredentials): Promise<string | undefined> {
   const accessToken = raw?.access_token;
@@ -38,16 +38,28 @@ const resolvers: Record<string, LabelResolver> = {
   "google-sheet": resolveGoogleEmail,
   salesforce: (r) =>
     r?.raw?.instance_url?.replace(/^https?:\/\//, ""),
+  postgres: (_r, connectionConfig) => {
+    if (connectionConfig?.nickname) return connectionConfig.nickname as string;
+    const host = connectionConfig?.host as string | undefined;
+    const port = connectionConfig?.port as string | undefined;
+    const database = connectionConfig?.database as string | undefined;
+    if (host) {
+      const portSuffix = port && port !== "5432" ? `:${port}` : "";
+      return database ? `${host}${portSuffix}/${database}` : `${host}${portSuffix}`;
+    }
+    return undefined;
+  },
 };
 
 export async function getConnectionDisplayName(
   integrationId: string,
   connectionId: string,
   rawCredentials: RawCredentials | undefined,
+  connectionConfig?: RawCredentials,
 ): Promise<string> {
-  if (rawCredentials) {
-    const resolver = resolvers[integrationId];
-    const name = await resolver?.(rawCredentials);
+  const resolver = resolvers[integrationId];
+  if (resolver) {
+    const name = await resolver(rawCredentials ?? {}, connectionConfig);
     if (name) return name;
   }
   return connectionId;

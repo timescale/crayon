@@ -59,7 +59,7 @@ export class LocalIntegrationProvider implements IntegrationProvider {
         let displayName = c.connection_id;
         try {
           const conn = await this.nango.getConnection(integrationId, c.connection_id);
-          displayName = await getConnectionDisplayName(integrationId, c.connection_id, conn.credentials);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, conn.credentials, conn.connection_config);
         } catch {
           // Fall back to connection_id if fetch fails
         }
@@ -81,6 +81,42 @@ export class LocalIntegrationProvider implements IntegrationProvider {
       allowed_integrations: [integrationId],
     });
     return { token: session.data.token };
+  }
+
+  async createConnection(params: {
+    integrationId: string;
+    connectionId: string;
+    credentials: Record<string, string>;
+    connectionConfig?: Record<string, string>;
+  }): Promise<{ connection_id: string }> {
+    const serverUrl = this.nango.serverUrl as string;
+    const secretKey = this.nango.secretKey as string;
+
+    const response = await fetch(`${serverUrl}/connections`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        provider_config_key: params.integrationId,
+        connection_id: params.connectionId,
+        credentials: {
+          type: "BASIC",
+          username: params.credentials.username,
+          password: params.credentials.password,
+        },
+        connection_config: params.connectionConfig,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const msg = (error as { error?: { message?: string } }).error?.message;
+      throw new Error(msg || `Failed to create connection: ${response.status}`);
+    }
+
+    return { connection_id: params.connectionId };
   }
 }
 

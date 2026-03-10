@@ -158,11 +158,14 @@ function ensureTigerAuth(): void {
 
 function isExistingcrayon(): boolean {
   try {
-    const pkgPath = join(process.cwd(), "package.json");
+    const cwd = process.cwd();
+    // Monorepo root has pnpm-workspace.yaml — not a user app
+    if (existsSync(join(cwd, "pnpm-workspace.yaml"))) return false;
+    const pkgPath = join(cwd, "package.json");
     if (!existsSync(pkgPath)) return false;
     const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-    return "crayon" in deps;
+    return "crayon" in deps || "runcrayon" in deps;
   } catch {
     return false;
   }
@@ -195,7 +198,7 @@ function discoverProjects(): ProjectInfo[] {
       if (!existsSync(pkgPath)) continue;
       const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if ("crayon" in deps) {
+      if ("crayon" in deps || "runcrayon" in deps) {
         projects.push({ name: entry, path: projectDir });
       }
     } catch {

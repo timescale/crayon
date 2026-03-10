@@ -40,7 +40,7 @@ export class CloudIntegrationProvider implements IntegrationProvider {
         let displayName = c.connection_id;
         try {
           const creds = await this.fetchCredentials(integrationId, c.connection_id);
-          displayName = await getConnectionDisplayName(integrationId, c.connection_id, creds.raw);
+          displayName = await getConnectionDisplayName(integrationId, c.connection_id, creds.raw, creds.connectionConfig);
         } catch {
           // Fall back to connection_id if fetch fails
         }
@@ -59,6 +59,21 @@ export class CloudIntegrationProvider implements IntegrationProvider {
     const data = (await apiCall("POST", "/api/nango/connect-session", {
       integration_id: integrationId,
     })) as { token: string };
+    return data;
+  }
+
+  async createConnection(params: {
+    integrationId: string;
+    connectionId: string;
+    credentials: Record<string, string>;
+    connectionConfig?: Record<string, string>;
+  }): Promise<{ connection_id: string }> {
+    const data = (await apiCall("POST", "/api/connections/create", {
+      integration_id: params.integrationId,
+      connection_id: params.connectionId,
+      credentials: params.credentials,
+      connection_config: params.connectionConfig,
+    })) as { connection_id: string };
     return data;
   }
 }

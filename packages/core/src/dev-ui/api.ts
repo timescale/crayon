@@ -168,6 +168,34 @@ export async function handleApiRequest(
     return true;
   }
 
+  // POST /api/nango/create-connection
+  if (url === "/api/nango/create-connection" && method === "POST") {
+    const body = (await parseBody(req)) as {
+      integration_id?: string;
+      connection_id?: string;
+      credentials?: Record<string, string>;
+      connection_config?: Record<string, string>;
+    };
+    if (!body.integration_id || !body.connection_id || !body.credentials) {
+      jsonResponse(res, 400, { error: "integration_id, connection_id, and credentials are required" });
+      return true;
+    }
+    try {
+      const result = await ctx.integrationProvider.createConnection({
+        integrationId: body.integration_id,
+        connectionId: body.connection_id,
+        credentials: body.credentials,
+        connectionConfig: body.connection_config,
+      });
+      jsonResponse(res, 200, result);
+    } catch (err) {
+      jsonResponse(res, 500, {
+        error: err instanceof Error ? err.message : "Failed to create connection",
+      });
+    }
+    return true;
+  }
+
   // ---- Run History endpoints ----
 
   /** Unwrap a superjson-wrapped error into a clean string (stack trace if available, else message) */
