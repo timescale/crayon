@@ -177,9 +177,17 @@ SSHCFG
 log "Starting sshd on port 2222..."
 /usr/sbin/sshd
 
+# ── Start user app in background ────────────────────────────────
+# node_modules is available immediately (symlink on first boot, real dir on subsequent boots),
+# so the app can start right away without waiting for the background copy.
+if [ -f "$APP_DIR/package.json" ]; then
+  log "Starting user app (npm run dev)..."
+  su -s /bin/bash "$DEV_USER" -c "cd '$APP_DIR' && npm run dev -- --hostname 0.0.0.0 2>&1 | tee -a /data/app.log &"
+fi
+
 # ── Start dev server as the user ────────────────────────────────
 log "Starting dev server..."
 cd "$APP_DIR"
 export HOME="$(eval echo "~$DEV_USER")"
 export PATH="$DEV_HOME/.local/bin:$PATH"
-exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$CRAYON" dev --host --dangerously-skip-permissions"
+exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$CRAYON" dev --host --verbose --dangerously-skip-permissions 2>&1 | tee -a /data/dev-ui.log"

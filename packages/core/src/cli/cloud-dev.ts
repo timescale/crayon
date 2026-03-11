@@ -510,6 +510,8 @@ function connectSSH(info: SSHKeyInfo, command?: string): number {
     "-o", "UserKnownHostsFile=/dev/null",
     "-o", "LogLevel=ERROR",
     "-o", "IdentitiesOnly=yes",
+    "-o", "ServerAliveInterval=30",
+    "-o", "ServerAliveCountMax=3",
     `${info.linuxUser}@${info.host}`,
   ];
 
@@ -552,6 +554,8 @@ async function registerSandboxMcp(appName: string, projectDir: string): Promise<
     "-o", "UserKnownHostsFile=/dev/null",
     "-o", "LogLevel=ERROR",
     "-o", "IdentitiesOnly=yes",
+    "-o", "ServerAliveInterval=30",
+    "-o", "ServerAliveCountMax=3",
     `${sshInfo.linuxUser}@${sshInfo.host}`,
     "crayon", "mcp", "sandbox",
   ];
