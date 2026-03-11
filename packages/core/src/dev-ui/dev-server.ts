@@ -134,6 +134,13 @@ export async function startDevServer(options: DevServerOptions) {
         }
       }
 
+      // MCP HTTP endpoint (Streamable HTTP transport)
+      if (devPath === "/mcp" || devPath === "/mcp/") {
+        const { handleMcpRequest } = await import("./mcp-handler.js");
+        await handleMcpRequest(req, res);
+        return;
+      }
+
       // Claude command hint (no database required)
       if (devPath === "/api/claude-command" && req.method === "GET") {
         const isCloud = !!process.env.FLY_APP_NAME;
@@ -344,6 +351,10 @@ export async function startDevServer(options: DevServerOptions) {
 
   const cleanup = async () => {
     ptyManager?.kill();
+    try {
+      const { cleanupMcp } = await import("./mcp-handler.js");
+      await cleanupMcp();
+    } catch { /* mcp-handler may not have been loaded */ }
     if (pool) {
       await pool.end();
     }

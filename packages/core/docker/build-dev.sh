@@ -24,6 +24,8 @@ else
   TAG="$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/-/g')"
 fi
 
+IMAGE="$REGISTRY:$TAG"
+echo "==> Image: $IMAGE"
 echo "==> Building crayon..."
 pnpm --filter runcrayon build
 
@@ -37,7 +39,6 @@ echo "==> Building and pushing Docker image (tag: $TAG)..."
 cd "$SCRIPT_DIR"
 flyctl deploy --build-only --push --image-label "$TAG" --build-arg CRAYON_SOURCE=local $EXTRA_FLAGS
 
-IMAGE="$REGISTRY:$TAG"
 echo "==> Updating CLOUD_DEV_IMAGE in $AUTH_ENV"
 if [ -f "$AUTH_ENV" ] && grep -q '^CLOUD_DEV_IMAGE=' "$AUTH_ENV"; then
   sed -i '' "s|^CLOUD_DEV_IMAGE=.*|CLOUD_DEV_IMAGE=$IMAGE|" "$AUTH_ENV"

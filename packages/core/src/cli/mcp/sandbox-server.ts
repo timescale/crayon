@@ -4,16 +4,16 @@ import { version } from "./config.js";
 import type { ServerContext } from "./types.js";
 import { getSandboxApiFactories } from "./sandbox-tools/index.js";
 
-const serverInfo = {
+export const PROJECT_ROOT = "/data/app";
+
+export const serverInfo = {
   name: "crayon-sandbox-tools",
   version,
 } as const;
 
 const context: ServerContext = {};
 
-const PROJECT_ROOT = "/data/app";
-
-function buildInstructions(): string {
+export function buildInstructions(): string {
   const sections: string[] = [];
 
   // ── Sandbox environment ──────────────────────────────────────

@@ -534,33 +534,38 @@ function ensureProjectDir(appName: string): string {
 }
 
 async function registerSandboxMcp(appName: string, projectDir: string): Promise<boolean> {
-  let sshInfo: SSHKeyInfo;
+  // 1. Look up the machine's app URL
+  let machines: DevMachine[];
   try {
-    sshInfo = await getSSHKey(appName);
+    machines = (await apiCall("GET", "/api/cloud-dev/list")) as DevMachine[];
+  } catch {
+    p.log.error("Failed to list workspaces");
+    return false;
+  }
+  const machine = machines.find((m) => m.app_name === appName);
+  if (!machine?.app_url) {
+    p.log.error(`Workspace "${appName}" not found`);
+    return false;
+  }
+
+  // 2. Get an MCP token (dev-UI JWT) from the auth server
+  let mcpToken: string;
+  try {
+    const result = (await apiCall(
+      "GET",
+      `/api/cloud-dev/mcp-token?appName=${encodeURIComponent(appName)}`,
+    )) as { token: string };
+    mcpToken = result.token;
   } catch (err) {
     p.log.error(
-      `Failed to get SSH key: ${err instanceof Error ? err.message : String(err)}`,
+      `Failed to get MCP token: ${err instanceof Error ? err.message : String(err)}`,
     );
     return false;
   }
 
-  // Ensure key is cached on disk (getSSHKey already does this)
-  const keyPath = getCachedKeyPath(appName);
+  const mcpUrl = `${machine.app_url.replace(/\/$/, "")}/dev/mcp`;
 
-  const sshArgs = [
-    "-i", keyPath,
-    "-p", String(sshInfo.port),
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "UserKnownHostsFile=/dev/null",
-    "-o", "LogLevel=ERROR",
-    "-o", "IdentitiesOnly=yes",
-    "-o", "ServerAliveInterval=30",
-    "-o", "ServerAliveCountMax=3",
-    `${sshInfo.linuxUser}@${sshInfo.host}`,
-    "crayon", "mcp", "sandbox",
-  ];
-
-  // Remove any previous registration (both global and project-scoped)
+  // 3. Remove any previous registration (both global and project-scoped)
   for (const scope of ["user", "project"] as const) {
     try {
       execFileSync("claude", [
@@ -571,16 +576,15 @@ async function registerSandboxMcp(appName: string, projectDir: string): Promise<
     }
   }
 
-  // Register as project-scoped MCP server
+  // 4. Register as HTTP transport with Bearer auth
   try {
     execFileSync("claude", [
       "mcp", "add",
       "--scope", "project",
-      "--transport", "stdio",
+      "--transport", "http",
       MCP_SERVER_NAME,
-      "--",
-      "ssh",
-      ...sshArgs,
+      mcpUrl,
+      "--header", `Authorization: Bearer ${mcpToken}`,
     ], { stdio: "ignore", cwd: projectDir });
     return true;
   } catch (err) {

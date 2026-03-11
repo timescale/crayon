@@ -53,9 +53,15 @@ RUN chmod -R a+rwx /npm-cache
 # runcrayon — install from local tarball or npm depending on build arg.
 # In dev mode, run: npm pack --pack-destination docker/ (from packages/core)
 # The wildcard COPY uses a dot file as fallback so it never fails when no .tgz exists.
-COPY entrypoint.sh runcrayon-*.tgz /tmp/build/
+COPY entrypoint.sh runcrayon-*.tgz tigerdata-mcp-boilerplate-*.tgz /tmp/build/
 RUN if [ "$CRAYON_SOURCE" = "local" ] && ls /tmp/build/runcrayon-*.tgz 1>/dev/null 2>&1; then \
       npm install -g /tmp/build/runcrayon-*.tgz && \
+      # Replace boilerplate with local tarball if present
+      if ls /tmp/build/tigerdata-mcp-boilerplate-*.tgz 1>/dev/null 2>&1; then \
+        BP_DIR="$(npm root -g)/runcrayon/node_modules/@tigerdata/mcp-boilerplate" && \
+        rm -rf "$BP_DIR" && mkdir -p "$BP_DIR" && \
+        tar -xzf /tmp/build/tigerdata-mcp-boilerplate-*.tgz -C "$BP_DIR" --strip-components=1; \
+      fi && \
       # Stamp a -dev suffix so scaffolding uses the "dev" dist-tag in package.json
       GLOBAL_PKG="$(npm root -g)/runcrayon/package.json" && \
       node -e "const f='$GLOBAL_PKG'; const p=JSON.parse(require('fs').readFileSync(f,'utf8')); p.version+='-dev.local'; require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"; \

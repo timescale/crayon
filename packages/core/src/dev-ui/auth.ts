@@ -133,6 +133,12 @@ export async function handleAuthCallback(
 export async function authenticateRequest(
   req: IncomingMessage,
 ): Promise<AuthClaims | null> {
+  // 1. Try Authorization: Bearer header (for MCP HTTP transport)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    return verifyToken(authHeader.slice(7));
+  }
+  // 2. Fall back to cookie (for browser-based dev UI)
   const token = getCookie(req, COOKIE_NAME);
   if (!token) return null;
   return verifyToken(token);
