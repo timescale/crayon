@@ -35,9 +35,8 @@ claude --plugin-dir /path/to/crayon
 
 ### MCP Tools
 
-12 tools exposed via `scripts/run-mcp.cjs` (prefixed `mcp__plugin_crayon_crayon-local-tools__`):
+9 tools exposed via MCP (crayon-sandbox):
 
-- `createApp` / `createDatabase` / `setupAppSchema` - Project scaffolding
 - `listIntegrations` / `getConnectionInfo` - OAuth connection management
 - `listWorkflows` / `runWorkflow` / `runNode` - Workflow execution
 - `listRuns` / `getRun` / `getTrace` - Run history and tracing
@@ -59,7 +58,7 @@ claude --plugin-dir /path/to/crayon
 | User node | `src/crayon/nodes/` in app | Custom logic functions |
 | Agent | `src/crayon/agents/` in app (.ts + colocated .md spec) | AI reasoning via Vercel AI SDK |
 
-### App Template Structure (scaffolded by `createApp`)
+### App Template Structure (scaffolded by `crayon init`)
 
 ```
 my-app/
