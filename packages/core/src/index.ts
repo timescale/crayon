@@ -4,7 +4,6 @@ export const VERSION = "0.1.0";
 
 // Factory
 export { createCrayon } from "./factory.js";
-export { getSchemaName } from "./dbos.js";
 
 // Discovery (CLI / non-bundled environments)
 export { discover } from "./discover.js";

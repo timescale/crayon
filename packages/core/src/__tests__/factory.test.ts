@@ -25,6 +25,7 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
 describe("createCrayon()", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.DATABASE_SCHEMA = "test";
     // Clear globalThis singleton so each test gets a fresh createCrayon()
     delete (globalThis as Record<symbol, unknown>)[Symbol.for("crayon.crayonInstance")];
     // Clear workflow cache so Workflow.create() re-registers

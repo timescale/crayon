@@ -1,8 +1,7 @@
 // packages/cli/src/trace.ts
 import pg from "pg";
 import pc from "picocolors";
-import { getSchemaName } from "../index.js";
-import { getAppName } from "./app.js";
+import { getDbosSchema } from "./app.js";
 import { getRun, type WorkflowRun } from "./runs.js";
 
 export interface WorkflowTrace extends WorkflowRun {
@@ -56,7 +55,7 @@ async function getTraceData(
   workflowUuid: string,
   schemaOverride?: string
 ): Promise<TraceResult> {
-  const schema = schemaOverride ?? getSchemaName(getAppName());
+  const schema = schemaOverride ?? getDbosSchema();
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();

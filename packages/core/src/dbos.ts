@@ -1,16 +1,10 @@
 // packages/core/src/dbos.ts
 import { DBOS } from "@dbos-inc/dbos-sdk";
+import { getDbosSchema } from "./cli/app.js";
 
 export interface DBOSConfig {
   databaseUrl: string;
-  appName?: string;
-}
-
-/** Get the schema name for a given app */
-export function getSchemaName(appName?: string): string {
-  const name = appName ?? "crayon";
-  // Convert to valid schema name: lowercase, replace non-alphanumeric with underscore
-  return `${name.toLowerCase().replace(/[^a-z0-9]/g, "_")}_dbos`;
+  appName: string;
 }
 
 /**
@@ -18,9 +12,9 @@ export function getSchemaName(appName?: string): string {
  */
 export async function initializeDBOS(config: DBOSConfig): Promise<void> {
   DBOS.setConfig({
-    name: config.appName ?? "crayon",
+    name: config.appName,
     systemDatabaseUrl: config.databaseUrl,
-    systemDatabaseSchemaName: getSchemaName(config.appName),
+    systemDatabaseSchemaName: getDbosSchema(),
     logLevel: process.env.LOG_LEVEL ?? "info",
   });
   await DBOS.launch();

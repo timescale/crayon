@@ -86,6 +86,7 @@ describe.skipIf(!DATABASE_URL)("crayon integration", () => {
   let crayon: Crayon;
 
   beforeAll(async () => {
+    process.env.DATABASE_SCHEMA = "integration_test";
     await resetDatabase();
 
     crayon = await createCrayon({

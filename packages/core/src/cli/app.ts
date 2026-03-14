@@ -59,3 +59,10 @@ export function getAppSchema(projectRoot?: string): string {
     );
   }
 }
+
+/**
+ * Get the DBOS system schema name (e.g. "my_app_dbos") from DATABASE_SCHEMA.
+ */
+export function getDbosSchema(projectRoot?: string): string {
+  return `${getAppSchema(projectRoot)}_dbos`;
+}

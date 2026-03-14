@@ -13,6 +13,7 @@ vi.mock("@dbos-inc/dbos-sdk", () => ({
 describe("DBOS integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.DATABASE_SCHEMA = "test";
   });
 
   describe("initializeDBOS()", () => {
@@ -20,7 +21,7 @@ describe("DBOS integration", () => {
       const { DBOS } = await import("@dbos-inc/dbos-sdk");
       const { initializeDBOS } = await import("../dbos.js");
 
-      await initializeDBOS({ databaseUrl: "postgres://localhost/test" });
+      await initializeDBOS({ databaseUrl: "postgres://localhost/test", appName: "test" });
 
       expect(DBOS.setConfig).toHaveBeenCalledWith(
         expect.objectContaining({

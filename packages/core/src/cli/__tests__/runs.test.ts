@@ -44,6 +44,7 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
   let crayon: Crayon;
 
   beforeAll(async () => {
+    process.env.DATABASE_SCHEMA = TEST_APP_NAME;
     await resetDatabase();
 
     crayon = await createCrayon({

@@ -9,7 +9,7 @@ import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Schema used by tests (must match default from getSchemaName())
+// Schema used by tests (must match DATABASE_SCHEMA env or getDbosSchema())
 const TEST_SCHEMA = "crayon_dbos";
 
 async function resetDatabase(): Promise<void> {
@@ -99,6 +99,7 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
   let crayon: Crayon;
 
   beforeAll(async () => {
+    process.env.DATABASE_SCHEMA = "crayon";
     // Drop DBOS schema for clean test state
     await resetDatabase();
 

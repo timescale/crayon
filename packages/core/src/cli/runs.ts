@@ -1,7 +1,6 @@
 // packages/cli/src/runs.ts
 import pg from "pg";
-import { getSchemaName } from "../index.js";
-import { getAppName } from "./app.js";
+import { getDbosSchema } from "./app.js";
 
 export interface WorkflowRun {
   workflow_uuid: string;
@@ -27,7 +26,7 @@ export async function listRuns(
   options: ListRunsOptions = {}
 ): Promise<WorkflowRun[]> {
   const { limit = 20, workflowName, schema: schemaOverride } = options;
-  const schema = schemaOverride ?? getSchemaName(getAppName());
+  const schema = schemaOverride ?? getDbosSchema();
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();
@@ -69,7 +68,7 @@ export async function getRun(
   runId: string,
   schemaOverride?: string
 ): Promise<GetRunResult> {
-  const schema = schemaOverride ?? getSchemaName(getAppName());
+  const schema = schemaOverride ?? getDbosSchema();
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();
