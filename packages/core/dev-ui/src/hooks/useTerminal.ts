@@ -1,7 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 
 export interface UseTerminalOptions {
   sendMessage: (msg: object) => void;
@@ -45,7 +44,78 @@ function createTerminal(sendRef: React.MutableRefObject<(msg: object) => void>) 
 
   const fitAddon = new FitAddon();
   term.loadAddon(fitAddon);
-  term.loadAddon(new WebLinksAddon());
+
+  // Custom link provider that detects URLs spanning multiple hard-wrapped lines.
+  // Claude Code hard-wraps long URLs with leading spaces on continuation lines.
+  // WebLinksAddon only matches within a single row, so these aren't clickable.
+  term.registerLinkProvider({
+    provideLinks(y: number, callback) {
+      const buf = term.buffer.active;
+      const getLineText = (row: number) =>
+        buf.getLine(row - 1)?.translateToString(true) ?? "";
+
+      // Check if a trimmed line looks like a URL continuation (URL chars, no spaces)
+      const isUrlContinuation = (text: string) =>
+        /^\s+\S/.test(text) && !/^\s*(https?:\/\/)/.test(text) &&
+        /^[\s\w%+.~:/?#\[\]@!$&'()*,;=_-]+$/.test(text);
+
+      // Walk backward from hovered line to find a line starting with https://
+      let startY = y;
+      for (let row = y; row >= Math.max(1, y - 10); row--) {
+        const trimmed = getLineText(row).trim();
+        if (/^https?:\/\//.test(trimmed)) {
+          startY = row;
+          break;
+        }
+        // Stop walking back if this line doesn't look like a URL continuation
+        if (row < y && !isUrlContinuation(getLineText(row))) break;
+      }
+
+      // Check if we actually found a URL start
+      const startText = getLineText(startY).trim();
+      if (!/^https?:\/\//.test(startText)) {
+        callback(undefined);
+        return;
+      }
+
+      // Collect the URL start line and continuation lines
+      const parts: string[] = [startText];
+      let endY = startY;
+      for (let row = startY + 1; row <= Math.min(buf.length, startY + 20); row++) {
+        const lineText = getLineText(row);
+        if (isUrlContinuation(lineText)) {
+          parts.push(lineText.trim());
+          endY = row;
+        } else {
+          break;
+        }
+      }
+
+      const fullUrl = parts.join("");
+      if (!/^https?:\/\/.{10,}/.test(fullUrl)) {
+        callback(undefined);
+        return;
+      }
+
+      // Find the x positions for the start and end
+      const startLineText = getLineText(startY);
+      const startX = startLineText.indexOf(startText) + 1; // 1-based
+      const endLineText = getLineText(endY);
+      const endTrimmed = endLineText.trimEnd();
+      const endX = endTrimmed.length; // 1-based, last char
+
+      callback([
+        {
+          range: {
+            start: { x: startX, y: startY },
+            end: { x: endX, y: endY },
+          },
+          text: fullUrl,
+          activate: () => window.open(fullUrl, "_blank"),
+        },
+      ]);
+    },
+  });
 
   term.onData((data) => {
     sendRef.current({ type: "pty-input", data });

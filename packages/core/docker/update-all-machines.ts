@@ -52,7 +52,15 @@ async function updateApp(app: string, image: string): Promise<{ app: string; ok:
       machinesJson.map(async (machine) => {
         console.log(`  [${app}] Updating machine ${machine.id} (state: ${machine.state ?? "unknown"})...`);
         await flyctlAsync(["machine", "update", machine.id, "--image", image, "-a", app, "--yes"]);
-        console.log(`  [${app}] Done: ${machine.id}`);
+        // Show the image digest after update
+        try {
+          const imageInfo = flyctl(`image show -a ${app} --json`);
+          const images = JSON.parse(imageInfo) as { MachineID?: string; Digest?: string }[];
+          const digest = images.find((i) => i.MachineID === machine.id)?.Digest ?? "unknown";
+          console.log(`  [${app}] Done: ${machine.id} → ${digest}`);
+        } catch {
+          console.log(`  [${app}] Done: ${machine.id}`);
+        }
       }),
     );
 
