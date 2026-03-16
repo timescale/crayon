@@ -53,7 +53,7 @@ export function ClaudeTerminal({ attachTo, fit, ptyAlive, hasData, restart }: Cl
   }, [ptyAlive, restart]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#1a1a1a] px-4 py-2">
+    <div className="relative h-full w-full overflow-hidden bg-[#1a1a1a]">
       <div ref={containerRef} className="h-full w-full" />
       {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center">

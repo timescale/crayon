@@ -40,7 +40,6 @@ function createTerminal(sendRef: React.MutableRefObject<(msg: object) => void>) 
     cursorBlink: false,
     cursorInactiveStyle: "none",
     scrollback: 10000,
-    convertEol: true,
   });
 
   const fitAddon = new FitAddon();
