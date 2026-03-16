@@ -376,6 +376,7 @@ function CreateWorkspaceModal({
         role: "owner",
         fly_state: "started",
       });
+      window.location.href = `/api/workspaces/open?app=${encodeURIComponent(phase.flyAppName)}&claude-code-panel=open`;
     }
   };
 
