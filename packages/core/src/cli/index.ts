@@ -182,11 +182,11 @@ cloud
   });
 
 cloud
-  .command("mcp [app-name]")
-  .description("Connect local Claude Code to a cloud sandbox via MCP")
+  .command("claude [app-name]")
+  .description("Start Claude Code connected to a cloud sandbox via MCP")
   .action(async (appName?: string) => {
-    const { handleMcp } = await import("./cloud-dev.js");
-    await handleMcp(appName);
+    const { handleClaude } = await import("./cloud-dev.js");
+    await handleClaude(appName);
   });
 
 // ============ Workflow commands ============

@@ -647,7 +647,7 @@ function launchClaude(projectDir: string): void {
   process.exit(result.status ?? 0);
 }
 
-export async function handleMcp(appNameArg?: string): Promise<void> {
+export async function handleClaude(appNameArg?: string): Promise<void> {
   await ensureAuth();
   const appName = appNameArg ?? (await selectMachine({ excludeStopped: true }));
 
