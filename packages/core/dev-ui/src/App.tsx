@@ -22,7 +22,10 @@ export function App() {
   const connectionsApi = useConnections();
   const router = useHashRouter();
   const sidebar = useSidebarState();
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("claude-code-panel") === "open";
+  });
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [rightTab, setRightTab] = useState<"test" | "runs">("test");
 

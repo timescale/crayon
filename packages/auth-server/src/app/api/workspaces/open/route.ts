@@ -61,7 +61,11 @@ export async function GET(req: NextRequest) {
       login,
     });
 
-    const callbackUrl = `https://${flyAppName}.fly.dev/dev/__auth/callback?token=${encodeURIComponent(jwt)}`;
+    const callbackParams = new URLSearchParams({ token: jwt });
+    // Pass through claude-code-panel param if present
+    const claudeCodePanel = req.nextUrl.searchParams.get("claude-code-panel");
+    if (claudeCodePanel) callbackParams.set("claude-code-panel", claudeCodePanel);
+    const callbackUrl = `https://${flyAppName}.fly.dev/dev/__auth/callback?${callbackParams}`;
     return NextResponse.redirect(callbackUrl);
   } catch (err) {
     return NextResponse.json(

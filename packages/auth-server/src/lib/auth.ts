@@ -12,37 +12,37 @@ export function randomHex(bytes: number): string {
 }
 
 /**
- * Authenticate a request by Bearer token.
+ * Authenticate a request by Bearer token or session cookie.
+ * Tries Bearer token first, then falls back to cookie auth.
  * Returns the user_id if valid, or a NextResponse error.
  */
 export async function authenticateRequest(
   req: NextRequest,
 ): Promise<{ userId: string } | NextResponse> {
   const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json(
-      { error: "Missing or invalid Authorization header" },
-      { status: 401 },
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    const db = await getPool();
+
+    const result = await db.query(
+      `SELECT user_id FROM cli_auth_sessions
+       WHERE session_token = $1 AND status = 'approved'`,
+      [token],
     );
+
+    if (result.rows.length > 0) {
+      return { userId: result.rows[0].user_id as string };
+    }
   }
 
-  const token = authHeader.slice(7);
-  const db = await getPool();
+  // Fall back to cookie auth
+  const cookieAuth = await authenticateWebSession(req);
+  if (cookieAuth) return cookieAuth;
 
-  const result = await db.query(
-    `SELECT user_id FROM cli_auth_sessions
-     WHERE session_token = $1 AND status = 'approved'`,
-    [token],
+  return NextResponse.json(
+    { error: "Missing or invalid authorization" },
+    { status: 401 },
   );
-
-  if (result.rows.length === 0) {
-    return NextResponse.json(
-      { error: "Invalid or expired token" },
-      { status: 401 },
-    );
-  }
-
-  return { userId: result.rows[0].user_id as string };
 }
 
 /**

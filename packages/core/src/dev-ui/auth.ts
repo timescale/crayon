@@ -122,7 +122,12 @@ export async function handleAuthCallback(
   }
 
   setAuthCookie(res, token);
-  res.writeHead(302, { Location: "/dev/" });
+  // Pass through known query params to the dev UI
+  const redirectParams = new URLSearchParams();
+  const claudeCodePanel = url.searchParams.get("claude-code-panel");
+  if (claudeCodePanel) redirectParams.set("claude-code-panel", claudeCodePanel);
+  const qs = redirectParams.toString();
+  res.writeHead(302, { Location: `/dev/${qs ? `?${qs}` : ""}` });
   res.end();
   return true;
 }

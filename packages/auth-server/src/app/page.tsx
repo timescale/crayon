@@ -176,14 +176,22 @@ function WaitlistView({ user }: { user: UserInfo }) {
 
 function DashboardView({
   user,
-  workspaces,
+  workspaces: initialWorkspaces,
 }: {
   user: UserInfo;
   workspaces: Workspace[];
 }) {
+  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.reload();
+  };
+
+  const handleCreated = (ws: Workspace) => {
+    setWorkspaces((prev) => [ws, ...prev]);
+    setShowCreateModal(false);
   };
 
   return (
@@ -214,114 +222,269 @@ function DashboardView({
           </span>
         </div>
 
-        {workspaces.length === 0 ? (
-          <div className="bg-white border border-border rounded-xl p-8 text-center shadow-sm">
-            <p className="text-muted-foreground text-[14px] mb-2">
-              No workspaces yet.
-            </p>
-            <p className="text-muted-foreground text-[13px]">
-              Create one from the CLI with{" "}
-              <code className="font-mono bg-muted px-1.5 py-0.5 rounded text-[12px]">
-                crayon
-              </code>
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {workspaces.map((ws) => (
-              <div
-                key={ws.fly_app_name}
-                className="bg-white border border-border rounded-xl px-5 py-4 shadow-sm flex items-center justify-between"
-              >
-                <div className="min-w-0">
-                  <div className="font-semibold text-[15px] truncate">
-                    {ws.app_name}
-                  </div>
-                  <div className="text-[12px] text-muted-foreground truncate">
-                    {ws.fly_app_name}
-                  </div>
+        <div className="flex flex-col gap-3">
+          {workspaces.map((ws) => (
+            <div
+              key={ws.fly_app_name}
+              className="bg-white border border-border rounded-xl px-5 py-4 shadow-sm flex items-center justify-between"
+            >
+              <div className="min-w-0">
+                <div className="font-semibold text-[15px] truncate">
+                  {ws.app_name}
                 </div>
-
-                <div className="flex items-center gap-5 shrink-0 ml-4">
-                  {/* Status */}
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full inline-block"
-                      style={{ backgroundColor: statusColor(ws.fly_state) }}
-                    />
-                    <span className="text-[12px] text-muted-foreground">
-                      {statusLabel(ws.fly_state)}
-                    </span>
-                  </div>
-
-                  {/* Open button */}
-                  <a
-                    href={`/api/workspaces/open?app=${encodeURIComponent(ws.fly_app_name)}`}
-                    className="inline-flex items-center px-4 py-1.5 bg-muted text-foreground text-[13px] rounded-lg hover:bg-[#e8e4df] transition-colors"
-                  >
-                    Open
-                  </a>
+                <div className="text-[12px] text-muted-foreground truncate">
+                  {ws.fly_app_name}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        <div className="mt-6 space-y-3">
-          <p className="text-[13px] text-muted-foreground">
-            Create a new workspace:
-          </p>
-          <CopyableCommand label="1. Install the CLI" command="curl -fsSL https://raw.githubusercontent.com/timescale/crayon/main/scripts/install.sh | bash" />
-          <CopyableCommand label="2. Launch a workspace" command="crayon" />
+              <div className="flex items-center gap-5 shrink-0 ml-4">
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full inline-block"
+                    style={{ backgroundColor: statusColor(ws.fly_state) }}
+                  />
+                  <span className="text-[12px] text-muted-foreground">
+                    {statusLabel(ws.fly_state)}
+                  </span>
+                </div>
+
+                {/* Open button */}
+                <a
+                  href={`/api/workspaces/open?app=${encodeURIComponent(ws.fly_app_name)}&claude-code-panel=open`}
+                  className="inline-flex items-center px-4 py-1.5 bg-muted text-foreground text-[13px] rounded-lg hover:bg-[#e8e4df] transition-colors"
+                >
+                  Open
+                </a>
+              </div>
+            </div>
+          ))}
+
+          {/* Create new workspace card */}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="border-2 border-dashed border-[#d4cfc8] rounded-xl px-5 py-4 flex items-center justify-between hover:border-[#a8a099] transition-colors cursor-pointer bg-transparent text-left"
+          >
+            <span className="text-[15px] font-semibold text-foreground">
+              Create a new workspace
+            </span>
+            <span className="inline-flex items-center px-4 py-1.5 bg-muted text-foreground text-[13px] rounded-lg">
+              New +
+            </span>
+          </button>
         </div>
       </main>
+
+      {showCreateModal && (
+        <CreateWorkspaceModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handleCreated}
+        />
+      )}
     </div>
   );
 }
 
-function CopyableCommand({ label, command }: { label?: string; command: string }) {
-  const [copied, setCopied] = useState(false);
+type ModalPhase =
+  | { step: "input" }
+  | { step: "creating" }
+  | { step: "starting"; appName: string; flyAppName: string; appUrl: string }
+  | { step: "ready"; appName: string; flyAppName: string; appUrl: string }
+  | { step: "error"; message: string };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(command).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+function CreateWorkspaceModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (ws: Workspace) => void;
+}) {
+  const [appName, setAppName] = useState("");
+  const [phase, setPhase] = useState<ModalPhase>({ step: "input" });
+
+  const busy = phase.step === "creating" || phase.step === "starting";
+
+  const handleCreate = async () => {
+    const trimmed = appName.trim();
+    if (!trimmed) return;
+
+    setPhase({ step: "creating" });
+
+    try {
+      const res = await fetch("/api/cloud-dev/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appName: trimmed }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPhase({ step: "error", message: data.error || "Failed to create workspace" });
+        return;
+      }
+
+      const flyAppName = data.data.flyAppName ?? "";
+      const appUrl = data.data.appUrl ?? "";
+
+      setPhase({ step: "starting", appName: trimmed, flyAppName, appUrl });
+
+      // Poll status until running
+      const pollUntilRunning = async () => {
+        for (let i = 0; i < 60; i++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          try {
+            const statusRes = await fetch(
+              `/api/cloud-dev/status?appName=${encodeURIComponent(trimmed)}`,
+            );
+            const statusData = await statusRes.json();
+            const status = statusData.data?.status;
+            if (status === "running") {
+              setPhase({ step: "ready", appName: trimmed, flyAppName, appUrl });
+              return;
+            }
+            if (status === "error") {
+              setPhase({
+                step: "error",
+                message: statusData.data?.error || "Workspace failed to start",
+              });
+              return;
+            }
+          } catch {
+            // Keep polling on fetch errors
+          }
+        }
+        // Timed out — still show as ready so user can try opening
+        setPhase({ step: "ready", appName: trimmed, flyAppName, appUrl });
+      };
+
+      pollUntilRunning();
+    } catch (err) {
+      setPhase({
+        step: "error",
+        message: err instanceof Error ? err.message : "Something went wrong",
+      });
+    }
+  };
+
+  const handleOpen = () => {
+    if (phase.step === "ready") {
+      onCreated({
+        app_name: phase.appName,
+        fly_app_name: phase.flyAppName,
+        app_url: phase.appUrl,
+        role: "owner",
+        fly_state: "started",
+      });
+    }
   };
 
   return (
-    <div>
-      {label && (
-        <p className="text-[12px] text-muted-foreground mb-1.5">{label}</p>
-      )}
-      <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg px-4 py-2.5 font-mono text-[12px] text-white/90">
-        <code className="flex-1 overflow-x-auto whitespace-nowrap">{command}</code>
-        <button
-          onClick={handleCopy}
-          className="shrink-0 text-white/50 hover:text-white transition-colors cursor-pointer"
-          title="Copy to clipboard"
-        >
-          {copied ? <CheckIcon /> : <CopyIcon />}
-        </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busy) onClose();
+      }}
+    >
+      <div className="bg-white rounded-xl shadow-lg border border-border w-full max-w-md mx-4 p-6">
+        <h2 className="text-[16px] font-semibold mb-1">New Workspace</h2>
+
+        {phase.step === "input" && (
+          <>
+            <p className="text-[13px] text-muted-foreground mb-5">
+              Give your workspace a name. This may take a minute.
+            </p>
+
+            <label className="block text-[11px] uppercase tracking-wider text-[#a8a099] font-medium mb-1.5">
+              Workspace Name
+            </label>
+            <input
+              type="text"
+              value={appName}
+              onChange={(e) => setAppName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreate();
+              }}
+              placeholder="my-project"
+              autoFocus
+              className="w-full px-3 py-2 border border-[#e8e4df] rounded-lg text-[14px] bg-[#faf9f7] placeholder:text-[#c4bfb8] focus:outline-none focus:border-[#a8a099]"
+            />
+
+            <div className="flex items-center justify-end gap-3 mt-5">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={!appName.trim()}
+                className="px-5 py-2 bg-[#1a1a1a] text-white text-[13px] rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer disabled:opacity-60"
+              >
+                Create
+              </button>
+            </div>
+          </>
+        )}
+
+        {(phase.step === "creating" || phase.step === "starting") && (
+          <div className="py-6 flex flex-col items-center gap-4">
+            <div className="animate-spin w-6 h-6 border-2 border-[#e8e4df] border-t-[#1a1a1a] rounded-full" />
+            <p className="text-[14px] text-muted-foreground">
+              {phase.step === "creating"
+                ? "Provisioning workspace..."
+                : "Starting workspace..."}
+            </p>
+            <p className="text-[12px] text-[#a8a099] text-center max-w-xs">
+              Each workspace runs in its own secure sandbox. First-time setup
+              takes a minute or two — after that, it starts instantly.
+            </p>
+          </div>
+        )}
+
+        {phase.step === "ready" && (
+          <div className="py-4 flex flex-col items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <p className="text-[15px] font-medium">Workspace is ready!</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleOpen}
+                className="px-5 py-2 bg-[#1a1a1a] text-white text-[13px] rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+              >
+                Open Workspace
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase.step === "error" && (
+          <>
+            <p className="mt-3 text-[13px] text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+              {phase.message}
+            </p>
+            <div className="flex items-center justify-end gap-3 mt-5">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setPhase({ step: "input" })}
+                className="px-5 py-2 bg-[#1a1a1a] text-white text-[13px] rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+              >
+                Try Again
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }
 
