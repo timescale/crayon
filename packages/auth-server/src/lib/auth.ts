@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getPool } from "./db";
 import crypto from "node:crypto";
 
+export const WEB_SESSION_COOKIE = "crayon_session";
+
 /**
  * Generate a cryptographically random hex string.
  */
@@ -40,5 +42,26 @@ export async function authenticateRequest(
     );
   }
 
+  return { userId: result.rows[0].user_id as string };
+}
+
+/**
+ * Authenticate a web request by session cookie.
+ * Returns the user_id if valid, or null if not authenticated.
+ */
+export async function authenticateWebSession(
+  req: NextRequest,
+): Promise<{ userId: string } | null> {
+  const token = req.cookies.get(WEB_SESSION_COOKIE)?.value;
+  if (!token) return null;
+
+  const db = await getPool();
+  const result = await db.query(
+    `SELECT user_id FROM web_sessions
+     WHERE session_token = $1 AND expires_at > NOW()`,
+    [token],
+  );
+
+  if (result.rows.length === 0) return null;
   return { userId: result.rows[0].user_id as string };
 }

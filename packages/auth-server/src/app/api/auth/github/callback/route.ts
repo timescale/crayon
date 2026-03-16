@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
-import { randomHex } from "@/lib/auth";
+import { randomHex, WEB_SESSION_COOKIE } from "@/lib/auth";
 import { signDevUIToken } from "@/lib/jwt";
 
 function errorPage(message: string): string {
@@ -84,6 +84,22 @@ export async function GET(req: NextRequest) {
 
   const userId = userResult.rows[0].id as string;
 
+  // Auto-approve if user is on the pre-approved waitlist
+  const approvedResult = await db.query(
+    `SELECT 1 FROM waitlist_approved
+     WHERE ($1::text IS NOT NULL AND lower(github_login) = lower($1::text))
+        OR ($2::text IS NOT NULL AND lower(email) = lower($2::text))
+     LIMIT 1`,
+    [githubUser.login, githubUser.email],
+  );
+
+  if (approvedResult.rows.length > 0) {
+    await db.query(
+      `UPDATE users SET approved = true WHERE id = $1 AND approved = false`,
+      [userId],
+    );
+  }
+
   // ── Dev UI flow ──────────────────────────────────────────────────
   if (state.startsWith("devui:")) {
     const flyAppName = state.slice("devui:".length);
@@ -124,6 +140,32 @@ export async function GET(req: NextRequest) {
     // Redirect to the dev-server's callback endpoint
     const callbackUrl = `https://${flyAppName}.fly.dev/dev/__auth/callback?token=${encodeURIComponent(jwt)}`;
     return NextResponse.redirect(callbackUrl);
+  }
+
+  // ── Web dashboard flow ──────────────────────────────────────────
+  if (state === "web") {
+    // Create web session
+    const sessionToken = randomHex(32);
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    await db.query(
+      `INSERT INTO web_sessions (user_id, session_token, expires_at)
+       VALUES ($1, $2, $3)`,
+      [userId, sessionToken, new Date(Date.now() + thirtyDays)],
+    );
+
+    const redirectUrl = new URL(
+      "/",
+      process.env.PUBLIC_URL || req.nextUrl.origin,
+    );
+    const response = NextResponse.redirect(redirectUrl);
+    response.cookies.set(WEB_SESSION_COOKIE, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+    return response;
   }
 
   // ── CLI flow ─────────────────────────────────────────────────────

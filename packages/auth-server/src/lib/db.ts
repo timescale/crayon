@@ -37,6 +37,7 @@ async function ensureSchema(): Promise<void> {
       github_id TEXT UNIQUE NOT NULL,
       github_login TEXT NOT NULL,
       email TEXT,
+      approved BOOLEAN NOT NULL DEFAULT false,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
@@ -143,6 +144,31 @@ async function ensureSchema(): Promise<void> {
       linux_user TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (machine_id, user_id)
+    )
+  `);
+
+  // Web sessions — cookie-based auth for the dashboard
+  await pool!.query(`
+    CREATE TABLE IF NOT EXISTS web_sessions (
+      id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      session_token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool!.query(`
+    CREATE INDEX IF NOT EXISTS idx_web_sessions_token ON web_sessions(session_token)
+  `);
+
+  // Pre-approved waitlist entries (by github login or email)
+  await pool!.query(`
+    CREATE TABLE IF NOT EXISTS waitlist_approved (
+      id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      github_login TEXT UNIQUE CHECK (github_login = lower(github_login)),
+      email TEXT UNIQUE CHECK (email = lower(email)),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT waitlist_has_identifier CHECK (github_login IS NOT NULL OR email IS NOT NULL)
     )
   `);
 }
