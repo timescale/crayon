@@ -84,20 +84,30 @@ export async function GET(req: NextRequest) {
 
   const userId = userResult.rows[0].id as string;
 
-  // Auto-approve if user is on the pre-approved waitlist
-  const approvedResult = await db.query(
-    `SELECT 1 FROM waitlist_approved
-     WHERE ($1::text IS NOT NULL AND lower(github_login) = lower($1::text))
-        OR ($2::text IS NOT NULL AND lower(email) = lower($2::text))
-     LIMIT 1`,
-    [githubUser.login, githubUser.email],
-  );
+  // Set to false to enable waitlist (only waitlist_approved entries get auto-approved)
+  const AUTO_APPROVE_ALL = true;
 
-  if (approvedResult.rows.length > 0) {
+  if (AUTO_APPROVE_ALL) {
     await db.query(
       `UPDATE users SET approved = true WHERE id = $1 AND approved = false`,
       [userId],
     );
+  } else {
+    // Check waitlist_approved table
+    const approvedResult = await db.query(
+      `SELECT 1 FROM waitlist_approved
+       WHERE ($1::text IS NOT NULL AND lower(github_login) = lower($1::text))
+          OR ($2::text IS NOT NULL AND lower(email) = lower($2::text))
+       LIMIT 1`,
+      [githubUser.login, githubUser.email],
+    );
+
+    if (approvedResult.rows.length > 0) {
+      await db.query(
+        `UPDATE users SET approved = true WHERE id = $1 AND approved = false`,
+        [userId],
+      );
+    }
   }
 
   // ── Dev UI flow ──────────────────────────────────────────────────
