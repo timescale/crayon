@@ -28,6 +28,9 @@
       ],
       "crayon/schema-ops": [
         "../core/src/cli/mcp/lib/schema-ops.ts"
+      ],
+      "crayon/cron-schemas": [
+        "./src/lib/cron-schemas.ts"
       ]
     }
   },

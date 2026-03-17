@@ -4,14 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "test ! -f ../../core/src/cli/mcp/lib/schema-ops.ts || diff ../../core/src/cli/mcp/lib/schema-ops.ts src/lib/schema-ops.ts || (echo 'ERROR: src/lib/schema-ops.ts is out of sync with packages/core. Copy the updated file.' && exit 1)",
+    "prebuild": "(test ! -f ../../core/src/cli/mcp/lib/schema-ops.ts || diff ../../core/src/cli/mcp/lib/schema-ops.ts src/lib/schema-ops.ts || (echo 'ERROR: src/lib/schema-ops.ts is out of sync with packages/core. Copy the updated file.' && exit 1)) && (test ! -f ../../core/src/cli/mcp/lib/cron-schemas.ts || diff ../../core/src/cli/mcp/lib/cron-schemas.ts src/lib/cron-schemas.ts || (echo 'ERROR: src/lib/cron-schemas.ts is out of sync with packages/core. Copy the updated file.' && exit 1))",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@nangohq/node": "^0.45.1",
     "@t3-oss/env-nextjs": "^0.13.10",
     "@tailwindcss/postcss": "^4.2.1",
+    "cron-parser": "^5.5.0",
     "jose": "^6.2.1",
     "next": "^15.5.12",
     "pg": "^8.20.0",
@@ -24,6 +27,7 @@
     "@types/node": "^22.19.15",
     "@types/pg": "^8.18.0",
     "@types/react": "^19.2.14",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

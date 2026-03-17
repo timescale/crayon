@@ -239,7 +239,8 @@ workflow
   .description("Run a workflow")
   .option("-i, --input <json>", "JSON input for the workflow", "{}")
   .option("--json", "Output result as JSON")
-  .action(async (workflowName: string, options: { input: string; json?: boolean }) => {
+  .option("--workflow-id <id>", "Use a specific workflow ID (UUID) instead of generating one")
+  .action(async (workflowName: string, options: { input: string; json?: boolean; workflowId?: string }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment (all .env vars into process.env)
@@ -308,7 +309,7 @@ workflow
       });
 
       try {
-        const runId = randomUUID();
+        const runId = options.workflowId ?? randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
           crayon.triggerWorkflow(wf.name, inputs),
         );

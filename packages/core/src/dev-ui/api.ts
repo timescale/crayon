@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
+import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { IntegrationProvider } from "../connections/integration-provider.js";
 import { parseOutput } from "../cli/trace.js";
@@ -301,6 +302,33 @@ export async function handleApiRequest(
       return true;
     }
 
+    // GET /api/runs/:runId — single run status (lightweight, no trace)
+    const runIdMatch = fullUrl.match(/^\/api\/runs\/([^/?]+)$/);
+    if (runIdMatch) {
+      const runId = decodeURIComponent(runIdMatch[1]);
+      try {
+        const result = await ctx.pool.query(
+          `SELECT workflow_uuid, name, status, created_at, updated_at, output::text, error
+           FROM ${ctx.schema}.workflow_status
+           WHERE workflow_uuid = $1`,
+          [runId],
+        );
+        if (result.rows.length === 0) {
+          jsonResponse(res, 404, { error: "Run not found" });
+          return true;
+        }
+        const row = result.rows[0];
+        row.output = parseOutput(row.output);
+        row.error = parseError(row.error);
+        jsonResponse(res, 200, row);
+      } catch (err) {
+        jsonResponse(res, 500, {
+          error: err instanceof Error ? err.message : "Failed to get run",
+        });
+      }
+      return true;
+    }
+
     // GET /api/runs (list)
     if (fullUrl.match(/^\/api\/runs(\?|$)/)) {
       try {
@@ -373,6 +401,33 @@ export async function handleApiRequest(
         error: execErr.stderr?.trim() || execErr.message || String(err),
       });
     }
+    return true;
+  }
+
+  // POST /api/workflows/:name/start — fire-and-forget workflow execution
+  const startMatch = url.match(/^\/api\/workflows\/([^/]+)\/start$/);
+  if (startMatch && method === "POST") {
+    const workflowName = decodeURIComponent(startMatch[1]);
+    const body = (await parseBody(req)) as { input?: Record<string, unknown> };
+    const input = body.input ?? {};
+    const runId = randomUUID();
+
+    const [runtime, script] = process.argv;
+    const child = spawn(runtime, [
+      ...process.execArgv,
+      script,
+      "workflow", "run", workflowName,
+      "--json",
+      "--workflow-id", runId,
+      "-i", JSON.stringify(input),
+    ], {
+      cwd: ctx.projectRoot,
+      stdio: "ignore",
+      detached: true,
+    });
+    child.unref();
+
+    jsonResponse(res, 202, { status: "accepted", runId, workflow: workflowName });
     return true;
   }
 

@@ -10,6 +10,10 @@ import { listRunsFactory } from "./listRuns.js";
 import { getRunFactory } from "./getRun.js";
 import { getTraceFactory } from "./getTrace.js";
 import { getSkillGuideFactory } from "./getSkillGuide.js";
+import { listCronJobsFactory } from "./listCronJobs.js";
+import { createCronJobFactory } from "./createCronJob.js";
+import { updateCronJobFactory } from "./updateCronJob.js";
+import { deleteCronJobFactory } from "./deleteCronJob.js";
 
 export async function getApiFactories() {
   return [
@@ -24,6 +28,11 @@ export async function getApiFactories() {
     listRunsFactory,
     getRunFactory,
     getTraceFactory,
+
+    listCronJobsFactory,
+    createCronJobFactory,
+    updateCronJobFactory,
+    deleteCronJobFactory,
 
     getSkillGuideFactory,
   ] as const;

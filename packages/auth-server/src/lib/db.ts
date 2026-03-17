@@ -171,4 +171,8 @@ async function ensureSchema(): Promise<void> {
       CONSTRAINT waitlist_has_identifier CHECK (github_login IS NOT NULL OR email IS NOT NULL)
     )
   `);
+
+  // Cron scheduler tables
+  const { ensureCronSchema } = await import("./cron/schema");
+  await ensureCronSchema(pool!);
 }
