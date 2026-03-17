@@ -15,6 +15,61 @@ interface BottomPanelProps {
 const MIN_HEIGHT = 150;
 const DEFAULT_HEIGHT = 400;
 
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="text-[10px] text-[#a8a099] hover:text-[#1a1a1a] transition-colors shrink-0 cursor-pointer"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
+const INSTALL_CMD = "curl -fsSL https://raw.githubusercontent.com/timescale/crayon/main/scripts/install.sh | bash";
+const RUN_CMD = "crayon";
+
+function HelpTooltip() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[11px] text-[#a8a099] hover:text-[#1a1a1a] w-5 h-5 rounded-full border border-[#e8e4df] flex items-center justify-center cursor-pointer transition-colors"
+        title="How to connect"
+      >
+        ?
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-8 right-0 z-50 w-64 bg-white border border-[#e8e4df] rounded-lg shadow-lg p-3">
+            <p className="text-[12px] font-medium text-[#1a1a1a] mb-2">
+              Connect with your Claude Code
+            </p>
+            <div className="rounded-md bg-[#faf9f7] border border-[#e8e4df] px-2.5 py-1.5 mb-3 flex items-center justify-between gap-2">
+              <code className="text-[11px] font-mono text-[#1a1a1a]">{RUN_CMD}</code>
+              <CopyBtn text={RUN_CMD} />
+            </div>
+            <p className="text-[10px] text-[#a8a099] mb-1">Don't have crayon? Install it:</p>
+            <div className="rounded-md bg-[#faf9f7] border border-[#e8e4df] px-2.5 py-1.5 flex items-start justify-between gap-2">
+              <code className="text-[10px] font-mono text-[#1a1a1a] break-all">{INSTALL_CMD}</code>
+              <CopyBtn text={INSTALL_CMD} />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
   const [activeTab, setActiveTab] = useState(defaultTab ?? tabs[0]?.id ?? "");
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
@@ -80,6 +135,9 @@ export function BottomPanel({ tabs, defaultTab, onClose }: BottomPanelProps) {
         ))}
 
         <div className="flex-1" />
+        <span className="text-[11px] text-[#a8a099] mr-1.5">Want to run Claude locally? Use the crayon CLI</span>
+        <HelpTooltip />
+        <span className="w-1" />
 
         <button
           onClick={onClose}
