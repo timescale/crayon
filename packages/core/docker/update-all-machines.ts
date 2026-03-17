@@ -2,16 +2,21 @@
  * Update all Fly machines across all crayon-dev-* apps to the latest image.
  *
  * Usage:
- *   npx tsx update-all-machines.ts [--image <image>] [--app <app-name>]
+ *   npx tsx update-all-machines.ts [--image <image>] [--app <app-name>] [--user <github-login>]
  *
  * Defaults image to registry.fly.io/crayon-cloud-dev-image:latest.
  * Use --image (or -i) to specify the Docker image.
  * Use --app (or -a) to update only a specific crayon-dev-* app.
+ * Use --user (or -u) to update only machines belonging to a specific GitHub user.
  * Requires flyctl to be installed and authenticated.
+ * --user requires AUTH_DATABASE_URL env var (or packages/auth-server/.env.local).
  */
 
 import { execFile } from "node:child_process";
 import { execSync } from "node:child_process";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_IMAGE = "registry.fly.io/crayon-cloud-dev-image:latest";
 
@@ -72,11 +77,12 @@ async function updateApp(app: string, image: string): Promise<{ app: string; ok:
   }
 }
 
-const USAGE = "Usage: npx tsx update-all-machines.ts [--image <image>] [--app <app-name>]";
+const USAGE = "Usage: npx tsx update-all-machines.ts [--image <image>] [--app <app-name>] [--user <github-login>]";
 
-function parseArgs(argv: string[]): { image: string; appFilter?: string } {
+function parseArgs(argv: string[]): { image: string; appFilter?: string; userFilter?: string } {
   const args = argv.slice(2);
   let appFilter: string | undefined;
+  let userFilter: string | undefined;
   let image: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
@@ -94,23 +100,71 @@ function parseArgs(argv: string[]): { image: string; appFilter?: string } {
       }
       image = args[i + 1];
       i++;
+    } else if (args[i] === "--user" || args[i] === "-u") {
+      if (!args[i + 1]) {
+        console.error(`Error: ${args[i]} requires a value.\n${USAGE}`);
+        process.exit(1);
+      }
+      userFilter = args[i + 1];
+      i++;
     } else {
       console.error(`Error: Unknown argument "${args[i]}".\n${USAGE}`);
       process.exit(1);
     }
   }
 
-  return { image: image ?? DEFAULT_IMAGE, appFilter };
+  return { image: image ?? DEFAULT_IMAGE, appFilter, userFilter };
+}
+
+/**
+ * Look up fly_app_name values for machines belonging to a GitHub user.
+ * Reads AUTH_DATABASE_URL from env or auth-server/.env.local.
+ */
+async function getMachinesForUser(githubLogin: string): Promise<string[]> {
+  let dbUrl = process.env.AUTH_DATABASE_URL;
+  if (!dbUrl) {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const envPath = resolve(__dirname, "../../auth-server/.env.local");
+    if (existsSync(envPath)) {
+      const content = readFileSync(envPath, "utf-8");
+      const match = content.match(/^AUTH_DATABASE_URL=(.+)$/m);
+      if (match) dbUrl = match[1];
+    }
+  }
+  if (!dbUrl) {
+    console.error("Error: AUTH_DATABASE_URL not set and auth-server/.env.local not found.");
+    process.exit(1);
+  }
+
+  const pg = await import("pg");
+  const client = new pg.default.Client({ connectionString: dbUrl });
+  await client.connect();
+  try {
+    const result = await client.query(
+      `SELECT dm.fly_app_name
+       FROM dev_machines dm
+       JOIN dev_machine_members dmm ON dm.id = dmm.machine_id
+       JOIN users u ON u.id = dmm.user_id
+       WHERE u.github_login = $1`,
+      [githubLogin],
+    );
+    return result.rows.map((r: { fly_app_name: string }) => r.fly_app_name);
+  } finally {
+    await client.end();
+  }
 }
 
 async function main() {
-  const { image, appFilter } = parseArgs(process.argv);
+  const { image, appFilter, userFilter } = parseArgs(process.argv);
 
   let apps: string[];
 
   if (appFilter) {
     apps = [appFilter];
     console.log(`Targeting app: ${appFilter}`);
+  } else if (userFilter) {
+    console.log(`Looking up machines for user: ${userFilter}...`);
+    apps = await getMachinesForUser(userFilter);
   } else {
     console.log("Listing all Fly apps...");
     const appsJson = JSON.parse(flyctl("apps list --json")) as App[];

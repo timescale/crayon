@@ -61,10 +61,10 @@ function StatusDot({ enabled, failures }: { enabled: boolean; failures: number }
 }
 
 function RunStatusIcon({ status }: { status: string }) {
-  if (status === "success") return <span className="text-green-600" title="Success">&check;</span>;
-  if (status === "error") return <span className="text-red-600" title="Error">&times;</span>;
-  if (status === "timeout") return <span className="text-amber-600" title="Timeout">&#8856;</span>;
-  return <span className="text-blue-500" title="Triggered">&#8987;</span>;
+  if (status === "success") return <span className="text-green-600" title="Success">{"\u2713"}</span>;
+  if (status === "error") return <span className="text-red-600" title="Error">{"\u2717"}</span>;
+  if (status === "timeout") return <span className="text-amber-600" title="Timeout">{"\u29B6"}</span>;
+  return <span className="text-blue-500" title="Triggered">{"\u23F3"}</span>;
 }
 
 function formatDuration(ms: number | null): string {
