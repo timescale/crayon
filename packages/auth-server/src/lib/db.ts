@@ -5,9 +5,9 @@ let schemaReady = false;
 
 export async function getPool(): Promise<pg.Pool> {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString = process.env.AUTH_DATABASE_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL environment variable is required");
+      throw new Error("AUTH_DATABASE_URL environment variable is required");
     }
     pool = new pg.Pool({ connectionString, max: 10 });
   }
@@ -17,9 +17,9 @@ export async function getPool(): Promise<pg.Pool> {
     } catch (err) {
       // Reset so next call retries instead of returning a broken pool
       pool = null;
-      const host = new URL(process.env.DATABASE_URL ?? "").host;
+      const host = new URL(process.env.AUTH_DATABASE_URL ?? "").host;
       throw new Error(
-        `Failed to connect to metadata database (DATABASE_URL) at ${host}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to connect to metadata database (AUTH_DATABASE_URL) at ${host}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
     schemaReady = true;
