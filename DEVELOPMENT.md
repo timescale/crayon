@@ -33,7 +33,10 @@ This will:
 - Launch the dev UI with cloud features enabled (webhook section, cron scheduling)
 - Open the browser and start Claude Code
 
-
+To see changes in the local you need to build and refresh browser
+```bash
+pnpm --filter runcrayon build 2>&1
+```
 
 ## Testing Local Changes On Cloud
 
