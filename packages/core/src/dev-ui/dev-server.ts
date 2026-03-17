@@ -153,10 +153,13 @@ export async function startDevServer(options: DevServerOptions) {
 
       // Claude command hint (no database required)
       if (devPath === "/api/claude-command" && req.method === "GET") {
-        const isCloud = !!process.env.FLY_APP_NAME;
+        const isCloud = !!(process.env.FLY_APP_NAME || process.env.CRAYON_SERVER_URL);
         const appName = process.env.APP_NAME;
+        const appUrl = process.env.FLY_APP_NAME
+          ? `https://${process.env.FLY_APP_NAME}.fly.dev/dev`
+          : `http://localhost:${actualPort}/dev`;
         res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
-        res.end(JSON.stringify({ projectRoot, isCloud, appName }));
+        res.end(JSON.stringify({ projectRoot, isCloud, appName, appUrl }));
         return;
       }
 

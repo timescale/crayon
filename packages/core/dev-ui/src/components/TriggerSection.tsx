@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { WorkflowDAG } from "../types";
 
 interface TriggerSectionProps {
@@ -49,8 +49,17 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   const [webhookExpiry, setWebhookExpiry] = useState("30d");
   const [generatingToken, setGeneratingToken] = useState(false);
 
-  const isCloud = typeof window !== "undefined" && window.location.hostname.endsWith(".fly.dev");
-  const appUrl = isCloud ? `${window.location.origin}/dev` : "";
+  // Fetch cloud info from the backend
+  const [cloudInfo, setCloudInfo] = useState<{ isCloud: boolean; appUrl: string } | null>(null);
+  useEffect(() => {
+    fetch("/dev/api/claude-command")
+      .then((r) => r.json())
+      .then((data) => setCloudInfo({ isCloud: data.isCloud, appUrl: data.appUrl ?? "" }))
+      .catch(() => {});
+  }, []);
+
+  const isCloud = cloudInfo?.isCloud ?? false;
+  const appUrl = cloudInfo?.appUrl ?? "";
 
   const buildInput = useCallback((): Record<string, unknown> => {
     if (useRawJson) {

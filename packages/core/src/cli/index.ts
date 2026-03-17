@@ -2,9 +2,9 @@
 import { Command } from "commander";
 import pc from "picocolors";
 import Table from "cli-table3";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { createCrayon } from "../index.js";
@@ -97,6 +97,17 @@ local
   .action(async () => {
     await runRun();
   });
+
+// Only register run-dev in the monorepo (auth-server must exist nearby)
+const authServerDir = resolve(__dirname, "../../../auth-server");
+if (existsSync(join(authServerDir, "package.json"))) {
+  local
+    .command("run-dev")
+    .description("Launch with local auth-server (for testing cloud features)")
+    .action(async () => {
+      await runRun({ withAuthServer: true });
+    });
+}
 
 // ============ Build command ============
 program

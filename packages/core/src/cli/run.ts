@@ -1,8 +1,9 @@
-import { exec, execSync, spawn } from "node:child_process";
+import { exec, execSync, spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { promisify } from "node:util";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import * as dotenv from "dotenv";
@@ -202,7 +203,81 @@ function discoverProjects(): ProjectInfo[] {
   return projects;
 }
 
-async function launchExistingProject(projectPath: string): Promise<void> {
+/**
+ * Resolve the auth-server directory relative to this file's location in the monorepo.
+ * Returns null if not in the monorepo (e.g., published npm package).
+ */
+function getAuthServerDir(): string | null {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const candidate = resolve(__dirname, "../../../auth-server");
+  return existsSync(join(candidate, "package.json")) ? candidate : null;
+}
+
+/**
+ * Start the auth-server as a local Next.js dev process.
+ * Sets CRAYON_SERVER_URL and CRAYON_TOKEN in process.env.
+ * Registers cleanup handlers to kill the child on exit.
+ */
+async function startLocalAuthServer(): Promise<void> {
+  const authServerDir = getAuthServerDir();
+  if (!authServerDir) {
+    throw new Error("Auth-server not found. This command is only available in the crayon monorepo.");
+  }
+  if (!existsSync(join(authServerDir, ".env.local"))) {
+    throw new Error(`auth-server/.env.local not found. Create it first — see packages/auth-server/README.md`);
+  }
+
+  const { getToken } = await import("../connections/cloud-auth.js");
+  const token = getToken();
+  if (!token) {
+    throw new Error("Not authenticated with crayon cloud. Run `crayon login` first.");
+  }
+
+  p.log.info("Starting local auth-server on port 3000...");
+
+  const child = spawn("npx", ["next", "dev", "--port", "3000"], {
+    cwd: authServerDir,
+    stdio: "pipe",
+    env: { ...process.env },
+  });
+
+  // Log auth-server errors to stderr
+  child.stderr?.on("data", (data: Buffer) => {
+    const msg = data.toString().trim();
+    if (msg) process.stderr.write(`[auth-server] ${msg}\n`);
+  });
+
+  // Cleanup on exit
+  const cleanup = () => { try { child.kill("SIGTERM"); } catch {} };
+  process.on("exit", cleanup);
+  process.on("SIGINT", () => { cleanup(); process.exit(0); });
+  process.on("SIGTERM", () => { cleanup(); process.exit(0); });
+
+  // Wait for health
+  const timeout = 30_000;
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const res = await fetch("http://localhost:3000");
+      if (res.ok || res.status < 500) break;
+    } catch {
+      // not ready yet
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  if (Date.now() - start >= timeout) {
+    cleanup();
+    throw new Error("Auth-server failed to start within 30 seconds");
+  }
+
+  p.log.success("Auth-server ready at http://localhost:3000");
+
+  process.env.CRAYON_SERVER_URL = "http://localhost:3000";
+  process.env.CRAYON_TOKEN = token;
+}
+
+async function launchExistingProject(projectPath: string, opts?: { withAuthServer?: boolean }): Promise<void> {
   // Check if database is paused and start it if needed
   try {
     const { findEnvFile } = await import("./env.js");
@@ -246,10 +321,10 @@ async function launchExistingProject(projectPath: string): Promise<void> {
   }
 
   p.outro(pc.green("Launching..."));
-  await launchDevServer(projectPath, { yolo: mode === "yolo" });
+  await launchDevServer(projectPath, { yolo: mode === "yolo", withAuthServer: opts?.withAuthServer });
 }
 
-async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean } = {}): Promise<void> {
+async function launchDevServer(cwd: string, { yolo = false, withAuthServer = false }: { yolo?: boolean; withAuthServer?: boolean } = {}): Promise<void> {
   // Load .env from the app directory (not process.cwd(), which may be a parent)
   try {
     const { findEnvFile, loadEnv } = await import("./env.js");
@@ -257,6 +332,10 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
     if (envPath) loadEnv(envPath);
   } catch {
     // Dev UI can work without env
+  }
+
+  if (withAuthServer) {
+    await startLocalAuthServer();
   }
 
   const { startDevServer } = await import("../dev-ui/index.js");
@@ -282,7 +361,7 @@ async function launchDevServer(cwd: string, { yolo = false }: { yolo?: boolean }
   claude.on("exit", (code) => process.exit(code ?? 0));
 }
 
-export async function runRun(): Promise<void> {
+export async function runRun(opts?: { withAuthServer?: boolean }): Promise<void> {
   p.intro(pc.red("crayon"));
 
   if (!isClaudeAvailable()) {
@@ -292,7 +371,7 @@ export async function runRun(): Promise<void> {
 
   // ── Existing project (CWD) → launch directly ───────────────────────
   if (isExistingcrayon()) {
-    await launchExistingProject(process.cwd());
+    await launchExistingProject(process.cwd(), opts);
     return;
   }
 
@@ -323,7 +402,7 @@ export async function runRun(): Promise<void> {
     }
 
     if (projectChoice !== CREATE_NEW) {
-      await launchExistingProject(projectChoice);
+      await launchExistingProject(projectChoice, opts);
       return;
     }
   }
@@ -553,7 +632,7 @@ export async function runRun(): Promise<void> {
 
   if (!p.isCancel(launchChoice) && launchChoice !== "no") {
     p.outro(pc.green("Launching..."));
-    await launchDevServer(resolve(appPath), { yolo: launchChoice === "yolo" });
+    await launchDevServer(resolve(appPath), { yolo: launchChoice === "yolo", withAuthServer: opts?.withAuthServer });
     return;
   }
 
