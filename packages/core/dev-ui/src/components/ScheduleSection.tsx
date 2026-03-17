@@ -153,16 +153,23 @@ export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
           <h3 className="text-[11px] uppercase tracking-wider text-[#a8a099] font-medium mb-3">
             Current Schedule
           </h3>
-          <div className="rounded-lg border border-[#e8e4df] bg-[#faf9f7] p-3 space-y-2">
+          <div className={`rounded-lg border p-3 space-y-2 ${job.enabled ? "border-[#e8e4df] bg-[#faf9f7]" : "border-amber-200 bg-amber-50/50"}`}>
+            {!job.enabled && (
+              <div className="text-[11px] font-medium text-amber-700 bg-amber-100 rounded px-2 py-1 inline-block mb-1">
+                Paused
+              </div>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-[13px] font-medium text-[#1a1a1a]">
+              <span className={`text-[13px] font-medium ${job.enabled ? "text-[#1a1a1a]" : "text-[#a8a099]"}`}>
                 {describeCron(job.cron_expression)}
               </span>
               <StatusDot enabled={job.enabled} failures={job.consecutive_failures} />
             </div>
             <div className="text-[11px] text-[#a8a099] space-y-0.5">
               <div>Timezone: {job.timezone}</div>
-              <div>Next run: {new Date(job.next_run_at).toLocaleString()}</div>
+              {job.enabled && (
+                <div>Next run: {new Date(job.next_run_at).toLocaleString()}</div>
+              )}
               {job.last_run_at && (
                 <div>Last run: {new Date(job.last_run_at).toLocaleString()}</div>
               )}
@@ -176,9 +183,13 @@ export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={handleToggle}
-                className="text-[11px] px-2.5 py-1 rounded border border-[#e8e4df] hover:bg-[#f0ece7] transition-colors cursor-pointer"
+                className={`text-[11px] px-2.5 py-1 rounded border transition-colors cursor-pointer ${
+                  job.enabled
+                    ? "border-[#e8e4df] hover:bg-[#f0ece7]"
+                    : "border-green-300 text-green-700 bg-green-50 hover:bg-green-100"
+                }`}
               >
-                {job.enabled ? "Disable" : "Enable"}
+                {job.enabled ? "Pause" : "Resume"}
               </button>
               <button
                 onClick={handleDelete}
@@ -327,9 +338,17 @@ export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
       {cron.runs.length > 0 && (
         <div>
           <div className="border-t border-[#e8e4df] mb-5" />
-          <h3 className="text-[11px] uppercase tracking-wider text-[#a8a099] font-medium mb-2">
-            Recent Cron Runs
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-[11px] uppercase tracking-wider text-[#a8a099] font-medium">
+              Recent Cron Runs
+            </h3>
+            <button
+              onClick={() => cron.refresh()}
+              className="text-[10px] text-[#a8a099] hover:text-[#1a1a1a] transition-colors cursor-pointer"
+            >
+              Refresh
+            </button>
+          </div>
           <div className="space-y-0">
             {cron.runs.map((run) => (
               <RunRow key={run.id} run={run} />

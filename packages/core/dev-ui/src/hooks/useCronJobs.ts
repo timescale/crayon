@@ -137,5 +137,5 @@ export function useCronJobs(workflowName: string | null) {
     [fetchJobs],
   );
 
-  return { jobs, runs, loading, error, createJob, updateJob, deleteJob };
+  return { jobs, runs, loading, error, createJob, updateJob, deleteJob, refresh: fetchJobs };
 }
