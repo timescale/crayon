@@ -15,6 +15,7 @@ import { createCronJobFactory } from "./createCronJob.js";
 import { updateCronJobFactory } from "./updateCronJob.js";
 import { deleteCronJobFactory } from "./deleteCronJob.js";
 import { listCronRunsFactory } from "./listCronRuns.js";
+import { generateWebhookTokenFactory } from "./generateWebhookToken.js";
 
 export async function getApiFactories() {
   return [
@@ -35,6 +36,7 @@ export async function getApiFactories() {
     updateCronJobFactory,
     deleteCronJobFactory,
     listCronRunsFactory,
+    generateWebhookTokenFactory,
 
     getSkillGuideFactory,
   ] as const;
