@@ -9,60 +9,75 @@ APP_NAME="${APP_NAME:-my-app}"
 DEV_USER="${DEV_USER:?DEV_USER must be set}"  # e.g., user-abc123
 CRAYON="$(npm prefix -g)/bin/crayon"  # globally installed binary
 
-# ── Create isolated Linux user ──────────────────────────────────
+# ── Create isolated Linux user with persistent home on /data ────
 log "Creating user $DEV_USER..."
+DEV_HOME="/data/home/$DEV_USER"
+mkdir -p "$DEV_HOME"
 groupadd -f devs
 if ! id "$DEV_USER" &>/dev/null; then
-  useradd -m -s /bin/bash -g devs "$DEV_USER"
+  useradd -d "$DEV_HOME" -s /bin/bash -g devs "$DEV_USER"
+else
+  usermod -d "$DEV_HOME" "$DEV_USER"
 fi
 echo "$DEV_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$DEV_USER"
-DEV_HOME=$(eval echo "~$DEV_USER")
 
-# ── Set up Claude Code config + credentials in user's home ────
-log "Setting up credentials..."
-mkdir -p "$DEV_HOME/.claude"
+# ── Set up Claude Code config + credentials (first boot only) ──
+# Home dir is on /data so everything persists across restarts.
+# Only write config/credentials on first boot to avoid overwriting
+# credentials the user may have set by re-logging in from the terminal.
+if [ ! -f "$DEV_HOME/.credentials-initialized" ]; then
+  log "First boot — setting up credentials..."
+  mkdir -p "$DEV_HOME/.claude"
 
-# Write OAuth credentials file if provided (skip if already exists — may have refreshed tokens)
-if [ -n "$CLAUDE_OAUTH_CREDENTIALS" ] && [ ! -f "$DEV_HOME/.claude/.credentials.json" ]; then
-  printf '%s' "$CLAUDE_OAUTH_CREDENTIALS" > "$DEV_HOME/.claude/.credentials.json"
-  log "  Wrote OAuth credentials ($(wc -c < "$DEV_HOME/.claude/.credentials.json") bytes)"
-elif [ -f "$DEV_HOME/.claude/.credentials.json" ]; then
-  log "  OAuth credentials already exist, skipping"
+  # Write OAuth credentials file if provided
+  if [ -n "$CLAUDE_OAUTH_CREDENTIALS" ]; then
+    printf '%s' "$CLAUDE_OAUTH_CREDENTIALS" > "$DEV_HOME/.claude/.credentials.json"
+    log "  Wrote OAuth credentials ($(wc -c < "$DEV_HOME/.claude/.credentials.json") bytes)"
+  fi
+
+  # Write .claude.json with credentials and onboarding flags
+  node -e "
+    const fs = require('fs');
+    const path = '$DEV_HOME/.claude.json';
+    const cfg = {};
+    const apiKey = process.env.CLAUDE_API_KEY || '';
+    if (apiKey) cfg.primaryApiKey = apiKey;
+    Object.assign(cfg, {
+      hasCompletedOnboarding: true,
+      effortCalloutDismissed: true,
+      bypassPermissionsModeAccepted: true,
+    });
+    cfg.projects = {};
+    cfg.projects['$APP_DIR'] = {
+      allowedTools: [],
+      mcpContextUris: [],
+      mcpServers: {},
+      enabledMcpjsonServers: [],
+      disabledMcpjsonServers: [],
+      hasTrustDialogAccepted: true,
+    };
+    fs.writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
+  "
+  log "  .claude.json written"
+
+  if [ -z "$CLAUDE_OAUTH_CREDENTIALS" ] && [ -z "$CLAUDE_API_KEY" ]; then
+    log "  WARNING: No Claude credentials found — user will need to log in from the terminal"
+  fi
+
+  # Write authorized key for SSH access
+  if [ -n "$SSH_PUBLIC_KEY" ]; then
+    log "  Setting up SSH authorized key..."
+    install -d -m 700 -o "$DEV_USER" -g devs "$DEV_HOME/.ssh"
+    printf '%s\n' "$SSH_PUBLIC_KEY" > "$DEV_HOME/.ssh/authorized_keys"
+    chmod 600 "$DEV_HOME/.ssh/authorized_keys"
+    chown "$DEV_USER:devs" "$DEV_HOME/.ssh/authorized_keys"
+  fi
+
+  chown -R "$DEV_USER:devs" "$DEV_HOME"
+  touch "$DEV_HOME/.credentials-initialized"
+else
+  log "Home already initialized on volume, skipping"
 fi
-
-# Merge required fields into .claude.json (skel provides plugin registrations;
-# we overlay credentials, onboarding flags, and project trust on every boot).
-log "Updating .claude.json..."
-node -e "
-  const fs = require('fs');
-  const path = '$DEV_HOME/.claude.json';
-  let cfg = {};
-  try { cfg = JSON.parse(fs.readFileSync(path, 'utf-8')); } catch {}
-  const apiKey = process.env.CLAUDE_API_KEY || '';
-  if (apiKey) cfg.primaryApiKey = apiKey;
-  Object.assign(cfg, {
-    hasCompletedOnboarding: true,
-    effortCalloutDismissed: true,
-    bypassPermissionsModeAccepted: true,
-  });
-  cfg.projects = cfg.projects || {};
-  cfg.projects['$APP_DIR'] = Object.assign(cfg.projects['$APP_DIR'] || {}, {
-    allowedTools: [],
-    mcpContextUris: [],
-    mcpServers: {},
-    enabledMcpjsonServers: [],
-    disabledMcpjsonServers: [],
-    hasTrustDialogAccepted: true,
-  });
-  fs.writeFileSync(path, JSON.stringify(cfg, null, 2) + '\n');
-"
-log "  .claude.json updated"
-
-if [ -z "$CLAUDE_OAUTH_CREDENTIALS" ] && [ -z "$CLAUDE_API_KEY" ]; then
-  log "  WARNING: No Claude credentials found (CLAUDE_OAUTH_CREDENTIALS / CLAUDE_API_KEY not set)"
-fi
-
-chown -R "$DEV_USER:devs" "$DEV_HOME"
 
 # ── Scaffold project on volume (first boot only) ───────────────
 # Run as DEV_USER so all files are created with correct ownership (no chown needed).
@@ -141,14 +156,6 @@ for key in /data/ssh_host_keys/ssh_host_*; do
   ln -sf "$key" "/etc/ssh/$(basename "$key")"
 done
 
-# Write authorized key for SSH access
-if [ -n "$SSH_PUBLIC_KEY" ]; then
-  log "Setting up SSH authorized key for $DEV_USER..."
-  install -d -m 700 -o "$DEV_USER" -g devs "$DEV_HOME/.ssh"
-  printf '%s\n' "$SSH_PUBLIC_KEY" > "$DEV_HOME/.ssh/authorized_keys"
-  chmod 600 "$DEV_HOME/.ssh/authorized_keys"
-  chown "$DEV_USER:devs" "$DEV_HOME/.ssh/authorized_keys"
-fi
 
 # Export Fly secrets to /etc/environment so SSH sessions see them (read by PAM)
 log "Writing environment for SSH sessions..."
@@ -183,6 +190,6 @@ fi
 # ── Start dev server as the user ────────────────────────────────
 log "Starting dev server..."
 cd "$APP_DIR"
-export HOME="$(eval echo "~$DEV_USER")"
+export HOME="$DEV_HOME"
 export PATH="$DEV_HOME/.local/bin:$PATH"
 exec su -s /bin/bash --preserve-environment "$DEV_USER" -c ""$CRAYON" dev --host --verbose --dangerously-skip-permissions 2>&1 | tee -a /data/dev-ui.log"
