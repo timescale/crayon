@@ -6,6 +6,54 @@ interface ScheduleSectionProps {
   workflowName: string;
 }
 
+type IntervalUnit = "minutes" | "hours" | "days";
+
+function buildCronExpression(
+  interval: number,
+  unit: IntervalUnit,
+  atHour: number,
+  atMinute: number,
+): string {
+  switch (unit) {
+    case "minutes":
+      return `*/${interval} * * * *`;
+    case "hours":
+      return `${atMinute} */${interval} * * *`;
+    case "days":
+      return `${atMinute} ${atHour} */${interval} * *`;
+  }
+}
+
+/** Parse a cron expression into human-readable text. */
+function describeCron(expr: string): string {
+  const parts = expr.split(/\s+/);
+  if (parts.length !== 5) return expr;
+  const [min, hour, dom] = parts;
+
+  // */N * * * * → every N minutes
+  if (min.startsWith("*/") && hour === "*" && dom === "*") {
+    const n = parseInt(min.slice(2));
+    return n === 1 ? "Every minute" : `Every ${n} minutes`;
+  }
+  // M */N * * * → every N hours at :MM
+  if (hour.startsWith("*/") && dom === "*") {
+    const n = parseInt(hour.slice(2));
+    const m = min.padStart(2, "0");
+    return n === 1 ? `Every hour at :${m}` : `Every ${n} hours at :${m}`;
+  }
+  // M H */N * * → every N days at H:MM
+  if (dom.startsWith("*/")) {
+    const n = parseInt(dom.slice(2));
+    const time = `${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+    return n === 1 ? `Daily at ${time}` : `Every ${n} days at ${time}`;
+  }
+  // M H * * * → daily at H:MM
+  if (dom === "*" && hour !== "*" && !hour.includes("/")) {
+    return `Daily at ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`;
+  }
+  return expr;
+}
+
 function StatusDot({ enabled, failures }: { enabled: boolean; failures: number }) {
   if (!enabled) return <span className="inline-block w-2 h-2 rounded-full bg-gray-400" title="Disabled" />;
   if (failures > 0) return <span className="inline-block w-2 h-2 rounded-full bg-amber-400" title={`${failures} consecutive failure${failures !== 1 ? "s" : ""}`} />;
@@ -48,16 +96,33 @@ function RunRow({ run }: { run: CronRun }) {
   );
 }
 
+function getCurrentTime() {
+  const now = new Date();
+  return { hour: now.getHours(), minute: now.getMinutes() };
+}
+
 export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
   const cron = useCronJobs(workflowName);
-  const job = cron.jobs[0] ?? null; // one schedule per workflow
+  const job = cron.jobs[0] ?? null;
 
-  const [cronExpr, setCronExpr] = useState("0 * * * *");
-  const [timezone, setTimezone] = useState("UTC");
+  const [interval, setInterval_] = useState(5);
+  const [unit, setUnit] = useState<IntervalUnit>("minutes");
+  const [atHour, setAtHour] = useState(() => getCurrentTime().hour);
+  const [atMinute, setAtMinute] = useState(() => getCurrentTime().minute);
+  const [timezone, setTimezone] = useState(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [customCron, setCustomCron] = useState("");
   const [creating, setCreating] = useState(false);
+
+  const showTimePicker = unit === "hours" || unit === "days";
 
   const handleCreate = async () => {
     setCreating(true);
+    const cronExpr = showAdvanced && customCron.trim()
+      ? customCron.trim()
+      : buildCronExpression(interval, unit, atHour, atMinute);
     await cron.createJob(cronExpr, timezone);
     setCreating(false);
   };
@@ -90,9 +155,9 @@ export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
           </h3>
           <div className="rounded-lg border border-[#e8e4df] bg-[#faf9f7] p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <code className="text-[13px] font-mono text-[#1a1a1a]">
-                {job.cron_expression}
-              </code>
+              <span className="text-[13px] font-medium text-[#1a1a1a]">
+                {describeCron(job.cron_expression)}
+              </span>
               <StatusDot enabled={job.enabled} failures={job.consecutive_failures} />
             </div>
             <div className="text-[11px] text-[#a8a099] space-y-0.5">
@@ -130,36 +195,119 @@ export function ScheduleSection({ workflowName }: ScheduleSectionProps) {
             Add Schedule
           </h3>
           <div className="space-y-3">
-            <div>
-              <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
-                Cron expression
-              </label>
-              <input
-                type="text"
-                value={cronExpr}
-                onChange={(e) => setCronExpr(e.target.value)}
-                className="w-full text-[13px] font-mono bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20 placeholder:text-[#d4cfc8]"
-                placeholder="*/5 * * * *"
-              />
-              <p className="text-[10px] text-[#a8a099] mt-1">
-                min hour day month weekday
-              </p>
-            </div>
-            <div>
-              <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
-                Timezone
-              </label>
-              <input
-                type="text"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20 placeholder:text-[#d4cfc8]"
-                placeholder="UTC"
-              />
-            </div>
+            {!showAdvanced ? (
+              <>
+                {/* Interval: every N [unit] */}
+                <div>
+                  <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
+                    Run every
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={unit === "minutes" ? 59 : unit === "hours" ? 23 : 31}
+                      value={interval}
+                      onChange={(e) => setInterval_(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="w-20 text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20"
+                    />
+                    <select
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value as IntervalUnit)}
+                      className="text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 outline-none"
+                    >
+                      <option value="minutes">minutes</option>
+                      <option value="hours">hours</option>
+                      <option value="days">days</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Time picker (for hours/days) */}
+                {showTimePicker && (
+                  <div>
+                    <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
+                      {unit === "hours" ? "At minute" : "At time"}
+                    </label>
+                    {unit === "days" ? (
+                      <input
+                        type="time"
+                        value={`${String(atHour).padStart(2, "0")}:${String(atMinute).padStart(2, "0")}`}
+                        onChange={(e) => {
+                          const [h, m] = e.target.value.split(":").map(Number);
+                          setAtHour(h);
+                          setAtMinute(m);
+                        }}
+                        className="text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[13px] text-[#a8a099]">:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={59}
+                          value={atMinute}
+                          onChange={(e) => setAtMinute(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                          className="w-16 text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Advanced: raw cron input */
+              <div>
+                <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
+                  Cron expression
+                </label>
+                <input
+                  type="text"
+                  value={customCron}
+                  onChange={(e) => setCustomCron(e.target.value)}
+                  className="w-full text-[13px] font-mono bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20 placeholder:text-[#d4cfc8]"
+                  placeholder="*/5 * * * *"
+                />
+                <p className="text-[10px] text-[#a8a099] mt-1">
+                  min hour day month weekday
+                </p>
+              </div>
+            )}
+
+            {/* Timezone (only for days / advanced) */}
+            {(unit === "days" || showAdvanced) && (
+              <div>
+                <label className="block text-[11px] font-medium text-[#1a1a1a] mb-1">
+                  Timezone
+                </label>
+                <input
+                  type="text"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full text-[13px] bg-[#faf9f7] border border-[#e8e4df] rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]/20 placeholder:text-[#d4cfc8]"
+                  placeholder="UTC"
+                />
+              </div>
+            )}
+
+            {/* Advanced toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!showAdvanced) {
+                  setCustomCron(buildCronExpression(interval, unit, atHour, atMinute));
+                }
+                setShowAdvanced(!showAdvanced);
+              }}
+              className="text-[11px] text-[#a8a099] hover:text-[#1a1a1a] transition-colors cursor-pointer"
+            >
+              {showAdvanced ? "Simple mode" : "Advanced (cron expression)"}
+            </button>
+
             <button
               onClick={handleCreate}
-              disabled={creating || !cronExpr.trim()}
+              disabled={creating}
               className="w-full bg-[#1a1a1a] text-white hover:bg-[#2a2a2a] text-[13px] h-9 rounded-lg transition-colors cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {creating ? "Creating..." : "+ Create Schedule"}
