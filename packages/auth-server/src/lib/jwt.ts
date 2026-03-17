@@ -46,6 +46,22 @@ export async function signDevUIToken(payload: {
 }
 
 /**
+ * Sign a long-lived webhook token for external callers (CI, Zapier, etc.).
+ * Same key and verification as dev-ui tokens, just with configurable expiry.
+ */
+export async function signWebhookToken(
+  payload: { sub: string; app: string; login: string },
+  expiresIn: string = "365d",
+): Promise<string> {
+  await ensureKeys();
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: "EdDSA" })
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(privateKey!);
+}
+
+/**
  * Get the Ed25519 public key in PEM format (for passing to machines).
  */
 export async function getPublicKeyPEM(): Promise<string> {

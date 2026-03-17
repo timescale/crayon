@@ -431,5 +431,114 @@ export async function handleApiRequest(
     return true;
   }
 
+  // ── Auth-server proxy endpoints ─────────────────────────────────────
+  // The frontend can't call the auth-server directly (CORS), so the
+  // machine proxies requests using CRAYON_TOKEN.
+
+  const CRAYON_SERVER_URL = process.env.CRAYON_SERVER_URL;
+  const CRAYON_TOKEN = process.env.CRAYON_TOKEN;
+  const FLY_APP_NAME = process.env.FLY_APP_NAME;
+  const APP_NAME = process.env.APP_NAME;
+
+  if (CRAYON_SERVER_URL && CRAYON_TOKEN) {
+    // POST /api/webhook-token — generate a long-lived webhook JWT
+    if (url === "/api/webhook-token" && method === "POST") {
+      const body = (await parseBody(req)) as { expiresIn?: string };
+      const proxyRes = await fetch(`${CRAYON_SERVER_URL}/api/cloud-dev/webhook-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CRAYON_TOKEN}`,
+        },
+        body: JSON.stringify({ appName: APP_NAME, expiresIn: body.expiresIn }),
+      });
+      const data = await proxyRes.json();
+      jsonResponse(res, proxyRes.status, data);
+      return true;
+    }
+
+    // GET /api/cron/jobs — list cron jobs (optionally filtered by workflow)
+    if (url.startsWith("/api/cron/jobs") && method === "GET") {
+      const fullUrl = req.url ?? "";
+      const params = new URL(fullUrl, "http://localhost").searchParams;
+      const workflow = params.get("workflow");
+      const qs = new URLSearchParams();
+      if (FLY_APP_NAME) qs.set("flyAppName", FLY_APP_NAME);
+      if (workflow) qs.set("workflowName", workflow);
+
+      // GET /api/cron/jobs/:id/runs
+      const runsMatch = fullUrl.match(/^\/api\/cron\/jobs\/(\d+)\/runs/);
+      if (runsMatch) {
+        const proxyRes = await fetch(
+          `${CRAYON_SERVER_URL}/api/cron/jobs/${runsMatch[1]}/runs?${params.toString()}`,
+          { headers: { Authorization: `Bearer ${CRAYON_TOKEN}` } },
+        );
+        const data = await proxyRes.json();
+        jsonResponse(res, proxyRes.status, data);
+        return true;
+      }
+
+      const proxyRes = await fetch(
+        `${CRAYON_SERVER_URL}/api/cron/jobs?${qs.toString()}`,
+        { headers: { Authorization: `Bearer ${CRAYON_TOKEN}` } },
+      );
+      const data = await proxyRes.json();
+      jsonResponse(res, proxyRes.status, data);
+      return true;
+    }
+
+    // POST /api/cron/jobs — create a cron job (inject flyAppName)
+    if (url === "/api/cron/jobs" && method === "POST") {
+      const body = (await parseBody(req)) as Record<string, unknown>;
+      body.flyAppName = FLY_APP_NAME;
+      const proxyRes = await fetch(`${CRAYON_SERVER_URL}/api/cron/jobs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${CRAYON_TOKEN}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await proxyRes.json();
+      jsonResponse(res, proxyRes.status, data);
+      return true;
+    }
+
+    // PATCH /api/cron/jobs/:id — update a cron job
+    const cronPatchMatch = url.match(/^\/api\/cron\/jobs\/(\d+)$/);
+    if (cronPatchMatch && method === "PATCH") {
+      const body = await parseBody(req);
+      const proxyRes = await fetch(
+        `${CRAYON_SERVER_URL}/api/cron/jobs/${cronPatchMatch[1]}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${CRAYON_TOKEN}`,
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await proxyRes.json();
+      jsonResponse(res, proxyRes.status, data);
+      return true;
+    }
+
+    // DELETE /api/cron/jobs/:id — delete a cron job
+    const cronDeleteMatch = url.match(/^\/api\/cron\/jobs\/(\d+)$/);
+    if (cronDeleteMatch && method === "DELETE") {
+      const proxyRes = await fetch(
+        `${CRAYON_SERVER_URL}/api/cron/jobs/${cronDeleteMatch[1]}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${CRAYON_TOKEN}` },
+        },
+      );
+      const data = await proxyRes.json();
+      jsonResponse(res, proxyRes.status, data);
+      return true;
+    }
+  }
+
   return false;
 }

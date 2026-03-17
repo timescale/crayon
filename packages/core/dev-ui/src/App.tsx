@@ -11,7 +11,8 @@ import type { Page } from "./hooks/useHashRouter";
 import { WorkflowGraph } from "./components/WorkflowGraph";
 import { BottomPanel } from "./components/BottomPanel";
 import { RunHistoryTab } from "./components/RunHistoryTab";
-import { TestSection } from "./components/TestSection";
+import { TriggerSection } from "./components/TriggerSection";
+import { ScheduleSection } from "./components/ScheduleSection";
 import { ClaudeTerminal } from "./components/ClaudeTerminal";
 import { CredentialsPage } from "./components/CredentialsPage";
 import { DashboardPage } from "./components/DashboardPage";
@@ -27,7 +28,7 @@ export function App() {
     return params.get("claude-code-panel") === "open";
   });
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightTab, setRightTab] = useState<"test" | "runs">("test");
+  const [rightTab, setRightTab] = useState<"trigger" | "runs" | "schedule">("trigger");
 
   const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
 
@@ -280,7 +281,7 @@ export function App() {
           {/* Tab bar */}
           <div className="shrink-0 px-4 pt-3 pb-0 border-b border-[#e8e4df] flex items-center justify-between">
             <div className="flex gap-0">
-              {(["test", "runs"] as const).map((tab) => (
+              {(["trigger", "schedule", "runs"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setRightTab(tab)}
@@ -290,7 +291,7 @@ export function App() {
                       : "text-[#a8a099] hover:text-[#787068]"
                   }`}
                 >
-                  {tab === "test" ? "Test" : "Runs"}
+                  {tab === "trigger" ? "Trigger" : tab === "schedule" ? "Schedule" : "Runs"}
                   {rightTab === tab && (
                     <span className="absolute bottom-0 left-3 right-3 h-[1.5px] bg-[#1a1a1a]" />
                   )}
@@ -308,14 +309,20 @@ export function App() {
 
           {/* Tab content */}
           <div className="flex-1 min-h-0 overflow-auto">
-            {rightTab === "test" ? (
+            {rightTab === "trigger" ? (
               <div className="p-4">
-                <TestSection
+                <TriggerSection
                   dag={activeDag}
                   onSuccess={() => {
                     runHistory.refresh();
                     setRightTab("runs");
                   }}
+                />
+              </div>
+            ) : rightTab === "schedule" ? (
+              <div className="p-4">
+                <ScheduleSection
+                  workflowName={activeDag.workflowName}
                 />
               </div>
             ) : (

@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const flyAppName = req.nextUrl.searchParams.get("flyAppName");
+    const workflowName = req.nextUrl.searchParams.get("workflowName");
     const db = await getPool();
 
     let query = `
@@ -96,6 +97,11 @@ export async function GET(req: NextRequest) {
     if (flyAppName) {
       params.push(flyAppName);
       query += ` AND dm.fly_app_name = $${params.length}`;
+    }
+
+    if (workflowName) {
+      params.push(workflowName);
+      query += ` AND cj.workflow_name = $${params.length}`;
     }
 
     query += ` ORDER BY cj.created_at DESC`;
