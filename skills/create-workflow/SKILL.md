@@ -150,6 +150,7 @@ Each node/agent's `description` field captures **what that node does**, its inpu
 <What this node does — one or two sentences.>
 
 **Input Description:** <what information this task needs>
+
 **Output Description:** <what this task produces>
 ```
 
@@ -159,9 +160,11 @@ Each node/agent's `description` field captures **what that node does**, its inpu
 <What this node does — one or two sentences.>
 
 **Side Effect:** <what external action is performed and the target>
+
 **Test Mode:** <what happens when ctx.testMode is true — typically "Returns the <action details> without actually <performing the action>">
 
 **Input Description:** <what information this task needs — include target if dynamic>
+
 **Output Description:** <what this task produces — MUST include action details (e.g., messageSent, recipient, fieldsUpdated, testMode)>
 ```
 
@@ -185,6 +188,7 @@ export const <camelCaseName> = Node.create({
 <What this node does.>
 
 **Input Description:** <plain language>
+
 **Output Description:** <plain language>
 `,
   inputSchema: z.object({}),
@@ -214,6 +218,7 @@ export const <camelCaseName> = Agent.create({
 <What this agent does.>
 
 **Input Description:** <plain language>
+
 **Output Description:** <plain language>
 `,
   inputSchema: z.object({}),

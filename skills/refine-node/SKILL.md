@@ -152,6 +152,7 @@ For each node/agent file (`src/crayon/nodes/<name>.ts` or `src/crayon/agents/<na
 **Implementation:** <SDK, library, or approach>
 
 **Input Description:** <original from create-workflow>
+
 **Output Description:** <original from create-workflow>
 ```
 
@@ -160,13 +161,16 @@ For each node/agent file (`src/crayon/nodes/<name>.ts` or `src/crayon/agents/<na
 <Expanded description>
 
 **Implementation:** <SDK, library, or approach>
+
 **Tools needed:**
   - webRead (builtin)
   - openai.tools.webSearch() (provider)
   - myCustomNode (user node in src/crayon/nodes/my-custom-node.ts)
+
 **Guidelines:** <specific guidelines>
 
 **Input Description:** <original from create-workflow>
+
 **Output Description:** <original from create-workflow>
 ```
 
@@ -202,6 +206,7 @@ export const enrichLead = Agent.create({
 Searches the web to find additional professional info about a lead.
 
 **Input Description:** A lead's name, email, and any known company or title from Salesforce.
+
 **Output Description:** Enriched lead info including LinkedIn URL, company, job title, and summary.
 `,
   inputSchema: z.object({}),
@@ -225,11 +230,14 @@ additional information: LinkedIn profile URL, current company, job title, and ot
 relevant professional details.
 
 **Implementation:** OpenAI GPT-4o with web search tool
+
 **Tools needed:**
   - openai.tools.webSearch() (provider)
+
 **Guidelines:** Search by name + email domain or company. Prioritize LinkedIn as primary source. Do not fabricate URLs.
 
 **Input Description:** A lead's name, email, and any known company or title from Salesforce.
+
 **Output Description:** Enriched lead info including LinkedIn URL, company, job title, and summary.
 `,
   inputSchema: z.object({
