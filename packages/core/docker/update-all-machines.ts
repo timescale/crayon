@@ -154,8 +154,44 @@ async function getMachinesForUser(githubLogin: string): Promise<string[]> {
   }
 }
 
+/**
+ * Resolve an image tag to a pinned digest reference using `docker manifest inspect`.
+ * This avoids Fly's registry tag caching returning a stale digest.
+ * If the image already contains `@sha256:`, it's returned as-is.
+ */
+function resolveImageDigest(image: string): string {
+  if (image.includes("@sha256:")) return image;
+  try {
+    // Ensure Docker is authenticated to the Fly registry
+    if (image.includes("registry.fly.io")) {
+      execSync("flyctl auth docker", { stdio: "pipe", timeout: 15_000 });
+    }
+    const output = execSync(`docker manifest inspect --verbose ${image}`, {
+      stdio: "pipe",
+      timeout: 30_000,
+    })
+      .toString("utf-8")
+      .trim();
+    const data = JSON.parse(output);
+    const digest = data?.Descriptor?.digest;
+    if (digest) {
+      const pinned = `${image}@${digest}`;
+      console.log(`Resolved ${image} → ${pinned}`);
+      return pinned;
+    }
+    console.warn("Warning: manifest inspect succeeded but no Descriptor.digest found.");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`Warning: could not resolve digest for ${image}, using tag as-is.\n  ${msg.split("\n")[0]}`);
+  }
+  return image;
+}
+
 async function main() {
-  const { image, appFilter, userFilter } = parseArgs(process.argv);
+  const { image: rawImage, appFilter, userFilter } = parseArgs(process.argv);
+
+  // Resolve tag to digest to bypass Fly registry tag caching
+  const image = resolveImageDigest(rawImage);
 
   let apps: string[];
 

@@ -175,7 +175,7 @@ function toSourceFilename(dir: string, entry: RegistryEntry): string {
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".ts") || f.endsWith(".js"));
   for (const file of files) {
     const content = fs.readFileSync(path.join(dir, file), "utf-8");
-    if (content.includes(`export const ${entry.importName}`)) {
+    if (new RegExp(`export\\s+const\\s+${entry.importName}\\s*=`).test(content)) {
       return file.replace(/\.(ts|js)$/, "");
     }
   }
