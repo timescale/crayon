@@ -49,7 +49,10 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
   );
 
   // Create shared pg pool for connection management (needed for local connection mapping)
-  const pool = new pg.Pool({ connectionString: config.databaseUrl });
+  const pool = new pg.Pool({
+    connectionString: config.databaseUrl,
+    connectionTimeoutMillis: 10_000, // 10s — fail fast if DB is unreachable
+  });
   const appSchema = config.appName;
 
   // Configure workflow runtime with pool + integration provider
