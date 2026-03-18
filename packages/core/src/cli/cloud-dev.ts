@@ -633,13 +633,46 @@ async function registerSandboxMcp(appName: string, projectDir: string): Promise<
       mcpUrl,
       "--header", `Authorization: Bearer ${mcpToken}`,
     ], { stdio: "ignore", cwd: projectDir });
-    return true;
   } catch (err) {
     p.log.error(
       `Failed to register MCP server: ${err instanceof Error ? err.message : String(err)}`,
     );
     return false;
   }
+
+  // 5. Write settings.local.json to auto-allow read-only MCP tools (only if it doesn't exist)
+  writeClaudeSettings(projectDir);
+
+  return true;
+}
+
+/** Read-only MCP tools that can be auto-allowed without user confirmation. */
+const READ_ONLY_MCP_TOOLS = [
+  "list_integrations",
+  "list_connections",
+  "get_connection",
+  "list_workflows",
+  "list_runs",
+  "get_run",
+  "get_trace",
+  "list_cron_jobs",
+  "list_cron_runs",
+  "view_skill",
+];
+
+function writeClaudeSettings(projectDir: string): void {
+  const settingsPath = join(projectDir, ".claude", "settings.local.json");
+  if (existsSync(settingsPath)) return;
+
+  const claudeDir = join(projectDir, ".claude");
+  mkdirSync(claudeDir, { recursive: true });
+
+  const allowList = READ_ONLY_MCP_TOOLS.map(
+    (tool) => `mcp__${MCP_SERVER_NAME}__${tool}`,
+  );
+
+  const settings = { permissions: { allow: allowList } };
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
 }
 
 function launchClaude(projectDir: string): void {
