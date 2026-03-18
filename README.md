@@ -7,7 +7,7 @@ AI-native workflow engine for GTM/RevOps automation.
 Get started with a single command:
 
 ```bash
-curl -fsSL https://install.crayon.run |bash
+curl -fsSL https://install.crayon.run | bash
 ```
 
 This installs all dependencies (Node.js, Claude Code, Tiger CLI) and sets up the `crayon` command.
