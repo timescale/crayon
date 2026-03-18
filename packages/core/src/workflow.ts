@@ -59,17 +59,24 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
       _currentNodeName = executable.name;
       _currentIntegrations = executable.integrations;
 
-      if (executable.type === "workflow" || executable.type === "agent") {
-        // For workflows and agents, call execute directly (they handle their own DBOS registration)
-        // This allows proper child workflow tracking
-        return executable.execute(ctx, validated);
-      }
+      try {
+        if (executable.type === "workflow" || executable.type === "agent") {
+          // For workflows and agents, call execute directly (they handle their own DBOS registration)
+          // This allows proper child workflow tracking
+          return await executable.execute(ctx, validated);
+        }
 
-      // For nodes, wrap execution in DBOS step for durability
-      return DBOS.runStep(
-        async () => executable.execute(ctx, validated),
-        { name: executable.name }
-      );
+        // For nodes, wrap execution in DBOS step for durability
+        return await DBOS.runStep(
+          async () => executable.execute(ctx, validated),
+          { name: executable.name }
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Error in ${executable.type} "${executable.name}" (workflow "${config?.workflowName ?? "unknown"}"): ${msg}`,
+        );
+      }
     },
 
     getConnection: async (integrationId: string): Promise<ConnectionCredentials> => {
