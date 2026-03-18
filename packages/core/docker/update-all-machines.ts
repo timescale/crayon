@@ -42,21 +42,36 @@ interface Machine {
   id: string;
   name?: string;
   state?: string;
+  config?: { image?: string };
 }
 
-async function updateApp(app: string, image: string): Promise<{ app: string; ok: boolean; error?: string }> {
+async function updateApp(
+  app: string,
+  image: string,
+): Promise<{ app: string; ok: boolean; skipped: number; updated: number; error?: string }> {
   try {
     const machinesJson = JSON.parse(flyctl(`machines list -a ${app} --json`)) as Machine[];
 
     if (machinesJson.length === 0) {
       console.log(`  [${app}] No machines, skipping.`);
-      return { app, ok: true };
+      return { app, ok: true, skipped: 0, updated: 0 };
     }
 
-    const results = await Promise.all(
+    let skipped = 0;
+    let updated = 0;
+
+    await Promise.all(
       machinesJson.map(async (machine) => {
+        const currentImage = machine.config?.image;
+        if (currentImage && currentImage === image && image.includes("@sha256:")) {
+          console.log(`  [${app}] Machine ${machine.id} already on ${image}, skipping.`);
+          skipped++;
+          return;
+        }
+
         console.log(`  [${app}] Updating machine ${machine.id} (state: ${machine.state ?? "unknown"})...`);
         await flyctlAsync(["machine", "update", machine.id, "--image", image, "-a", app, "--yes"]);
+        updated++;
         // Show the image digest after update
         try {
           const imageInfo = flyctl(`image show -a ${app} --json`);
@@ -69,11 +84,11 @@ async function updateApp(app: string, image: string): Promise<{ app: string; ok:
       }),
     );
 
-    return { app, ok: true };
+    return { app, ok: true, skipped, updated };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`  [${app}] FAILED: ${msg}`);
-    return { app, ok: false, error: msg };
+    return { app, ok: false, skipped: 0, updated: 0, error: msg };
   }
 }
 
@@ -219,7 +234,11 @@ async function main() {
   const results = await Promise.all(apps.map((app) => updateApp(app, image)));
 
   const failed = results.filter((r) => !r.ok);
-  console.log(`\nDone. Updated ${apps.length - failed.length}/${apps.length} app(s).`);
+  const totalSkipped = results.reduce((sum, r) => sum + r.skipped, 0);
+  const totalUpdated = results.reduce((sum, r) => sum + r.updated, 0);
+  console.log(
+    `\nDone. ${totalUpdated} machine(s) updated, ${totalSkipped} already up-to-date, ${failed.length} app(s) failed.`,
+  );
   if (failed.length > 0) {
     console.error(`Failed apps: ${failed.map((r) => r.app).join(", ")}`);
     process.exit(1);
