@@ -15,19 +15,19 @@ This installs all dependencies (Node.js, Claude Code, Tiger CLI) and sets up the
 After installation, open a new terminal and run:
 
 ```bash
-crayon cloud run
+crayon
 ```
 Want to contribute? See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Quick Start
 
 ```bash
-crayon cloud run
+crayon
 ```
 
 This spins up a cloud sandbox and opens the dev environment in your browser. Describe what you want to automate — Claude will build, test, and iterate on your workflow automatically. Once ready, trigger it manually or connect it to a webhook.
 
-Prefer working in your terminal?
+Want to open a new local Claude terminal connected to Crayon?
 ```bash
 crayon cloud claude
 ```
