@@ -12,12 +12,19 @@ export class CloudIntegrationProvider implements IntegrationProvider {
     integrationId: string,
     connectionId: string,
   ): Promise<ConnectionCredentials> {
-    const data = (await apiCall(
-      "GET",
-      `/api/credentials/${encodeURIComponent(integrationId)}?connection_id=${encodeURIComponent(connectionId)}`,
-    )) as { token: string; connectionConfig?: Record<string, unknown>; raw?: Record<string, unknown> };
+    try {
+      const data = (await apiCall(
+        "GET",
+        `/api/credentials/${encodeURIComponent(integrationId)}?connection_id=${encodeURIComponent(connectionId)}`,
+      )) as { token: string; connectionConfig?: Record<string, unknown>; raw?: Record<string, unknown> };
 
-    return new ConnectionCredentials(data);
+      return new ConnectionCredentials(data);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to fetch credentials for integration "${integrationId}" (connection "${connectionId}"): ${msg}`,
+      );
+    }
   }
 
   async listIntegrations(): Promise<Array<{ id: string; provider: string }>> {

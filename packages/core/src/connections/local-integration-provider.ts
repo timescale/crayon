@@ -19,7 +19,15 @@ export class LocalIntegrationProvider implements IntegrationProvider {
     integrationId: string,
     connectionId: string,
   ): Promise<ConnectionCredentials> {
-    const connection = await this.nango.getConnection(integrationId, connectionId);
+    let connection;
+    try {
+      connection = await this.nango.getConnection(integrationId, connectionId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to fetch credentials for integration "${integrationId}" (connection "${connectionId}"): ${msg}`,
+      );
+    }
 
     const creds = connection.credentials ?? {};
     const token =

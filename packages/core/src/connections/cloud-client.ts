@@ -77,10 +77,10 @@ export async function apiCall(
   }
 
   if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    let errorMessage = `${method} ${path} failed with HTTP ${response.status}: ${response.statusText}`;
     try {
       const errorData = (await response.json()) as { error?: string };
-      if (errorData.error) errorMessage = errorData.error;
+      if (errorData.error) errorMessage = `${method} ${path}: ${errorData.error}`;
     } catch {
       // Response wasn't JSON (e.g. HTML error page) — use the status line
     }
