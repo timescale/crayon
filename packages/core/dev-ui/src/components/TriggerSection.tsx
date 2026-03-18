@@ -71,6 +71,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   );
   const [rawJson, setRawJson] = useState("{}");
   const [useRawJson, setUseRawJson] = useState(false);
+  const [testMode, setTestMode] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +81,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   const [webhookExpiry, setWebhookExpiry] = useState("30d");
   const [generatingToken, setGeneratingToken] = useState(false);
   const [webhookModal, setWebhookModal] = useState<"async" | "sync" | null>(null);
+  const [webhookTestMode, setWebhookTestMode] = useState(false);
 
   // Fetch cloud info from the backend
   const [cloudInfo, setCloudInfo] = useState<{ isCloud: boolean; appUrl: string } | null>(null);
@@ -124,7 +126,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
       const res = await fetch(`/dev/api/workflows/${encodeURIComponent(dag.workflowName)}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, test_mode: testMode }),
       });
       const data = await res.json();
       if (data.status === "ERROR") {
@@ -138,7 +140,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
       setError(e instanceof Error ? e.message : "Request failed");
       setRunning(false);
     }
-  }, [dag.workflowName, buildInput, onSuccess]);
+  }, [dag.workflowName, buildInput, onSuccess, testMode]);
 
   const handleGenerateToken = useCallback(async () => {
     setGeneratingToken(true);
@@ -173,10 +175,11 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
     inputJson = "{}";
   }
 
+  const testModeParam = webhookTestMode ? "true" : "false";
   const asyncCurlExample = `curl -X POST \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${tokenForCurl}" \\
-  -d '{"input":${inputJson},"test_mode":false}' \\
+  -d '{"input":${inputJson},"test_mode":${testModeParam}}' \\
   ${asyncUrl}`;
 
   const pollCurlExample = `curl -H "Authorization: Bearer ${tokenForCurl}" \\
@@ -185,7 +188,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   const syncCurlExample = `curl -X POST \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${tokenForCurl}" \\
-  -d '{"input":${inputJson},"test_mode":false}' \\
+  -d '{"input":${inputJson},"test_mode":${testModeParam}}' \\
   ${syncUrl}`;
 
   return (
@@ -245,6 +248,16 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
               {error}
             </pre>
           )}
+
+          <label className="flex items-center gap-2 text-[11px] text-[#a8a099] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={testMode}
+              onChange={(e) => setTestMode(e.target.checked)}
+              className="accent-[#1a1a1a]"
+            />
+            Test mode <span className="text-[10px]">(skip side effects)</span>
+          </label>
 
           <button
             onClick={handleRun}
@@ -308,6 +321,16 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
             <p className="text-[12px] text-[#a8a099]">
               Starts the workflow in the background and returns immediately with a run ID.
             </p>
+
+            <label className="flex items-center gap-2 text-[11px] text-[#a8a099] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={webhookTestMode}
+                onChange={(e) => setWebhookTestMode(e.target.checked)}
+                className="accent-[#1a1a1a]"
+              />
+              Test mode <span className="text-[10px]">(skip side effects)</span>
+            </label>
 
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -386,6 +409,16 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
             <p className="text-[12px] text-[#a8a099]">
               Blocks until the workflow completes and returns the result directly.
             </p>
+
+            <label className="flex items-center gap-2 text-[11px] text-[#a8a099] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={webhookTestMode}
+                onChange={(e) => setWebhookTestMode(e.target.checked)}
+                className="accent-[#1a1a1a]"
+              />
+              Test mode <span className="text-[10px]">(skip side effects)</span>
+            </label>
 
             <div>
               <div className="flex items-center justify-between mb-1">
