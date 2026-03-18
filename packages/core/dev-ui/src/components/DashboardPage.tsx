@@ -84,9 +84,6 @@ export function DashboardPage({ workflows, parseErrors, onSelectWorkflow }: Dash
                   <h3 className="text-[15px] font-medium text-[#1a1a1a] tracking-tight truncate">
                     {w.workflowName}
                   </h3>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shrink-0">
-                    v{w.version}
-                  </span>
                 </div>
 
                 <p className="text-sm text-[#787068] mt-2 leading-relaxed line-clamp-2">

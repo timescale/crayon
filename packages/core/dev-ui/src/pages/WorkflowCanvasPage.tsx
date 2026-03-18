@@ -71,9 +71,6 @@ export function WorkflowCanvasPage({
               <span className="text-[15px] font-semibold text-foreground">
                 {activeDag.workflowName}
               </span>
-              <span className="text-xs text-muted-foreground ml-2">
-                v{activeDag.version}
-              </span>
             </div>
             <button
               onClick={() => setShowRunModal(true)}
