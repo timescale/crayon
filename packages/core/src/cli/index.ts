@@ -253,7 +253,8 @@ workflow
   .option("--json", "Output result as JSON")
   .option("--workflow-id <id>", "Use a specific workflow ID (UUID) instead of generating one")
   .option("--live", "Run with side effects enabled (default is test mode — side effects are skipped)")
-  .action(async (workflowName: string, options: { input: string; json?: boolean; workflowId?: string; live?: boolean }) => {
+  .option("--source <source>", "Trigger source for run metadata")
+  .action(async (workflowName: string, options: { input: string; json?: boolean; workflowId?: string; live?: boolean; source?: string }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment (all .env vars into process.env)
@@ -328,7 +329,7 @@ workflow
       try {
         const runId = options.workflowId ?? randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerWorkflow(wf.name, inputs, { runId, testMode }),
+          crayon.triggerWorkflow(wf.name, inputs, { runId, testMode, source: options.source ?? "cli" }),
         );
 
         if (writeJson) {
@@ -409,7 +410,8 @@ node
   .option("-w, --workflow <name>", "Workflow name for connection resolution")
   .option("--json", "Output result as JSON")
   .option("--live", "Run with side effects enabled (default is test mode — side effects are skipped)")
-  .action(async (nodeName: string, options: { input: string; workflow?: string; json?: boolean; live?: boolean }) => {
+  .option("--source <source>", "Trigger source for run metadata")
+  .action(async (nodeName: string, options: { input: string; workflow?: string; json?: boolean; live?: boolean; source?: string }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment
@@ -473,7 +475,7 @@ node
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerNode(nodeName, inputs, { runId, workflowName: options.workflow, testMode }),
+          crayon.triggerNode(nodeName, inputs, { runId, workflowName: options.workflow, testMode, source: options.source ?? "cli" }),
         );
 
         if (writeJson) {

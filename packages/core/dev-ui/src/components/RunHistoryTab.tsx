@@ -227,6 +227,13 @@ function RunCard({
           </span>
         )}
 
+        {/* Source */}
+        {run.source && (
+          <span className="shrink-0 text-[10px] text-[#a8a099]">
+            {run.source === "dev-ui-manual-run" ? "manual" : run.source}
+          </span>
+        )}
+
         <div className="flex-1" />
 
         {/* Duration */}

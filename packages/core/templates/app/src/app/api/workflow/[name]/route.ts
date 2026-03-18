@@ -11,7 +11,7 @@ export async function GET(
     const testMode = request.nextUrl.searchParams.get("test_mode") !== "false";
     const runId = randomUUID();
     const crayon = await getCrayon();
-    const result = await crayon.triggerWorkflow(name, {}, { runId, testMode });
+    const result = await crayon.triggerWorkflow(name, {}, { runId, testMode, source: "webhook" });
     return NextResponse.json({ status: "completed", run_id: runId, result, test_mode: testMode });
   } catch (error) {
     return NextResponse.json(
@@ -32,7 +32,7 @@ export async function POST(
     const input = body.input ?? body;
     const testMode = body.test_mode ?? false;
     const runId = randomUUID();
-    const result = await crayon.triggerWorkflow(name, input, { runId, testMode });
+    const result = await crayon.triggerWorkflow(name, input, { runId, testMode, source: "webhook" });
     return NextResponse.json({ status: "completed", run_id: runId, result, test_mode: testMode });
   } catch (error) {
     return NextResponse.json(

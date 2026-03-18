@@ -17,6 +17,7 @@ function runMetadataTableSQL(schema: string): string {
 CREATE TABLE IF NOT EXISTS "${schema}".crayon_run_metadata (
   workflow_uuid TEXT PRIMARY KEY,
   test_mode BOOLEAN NOT NULL,
+  source TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`;
 }

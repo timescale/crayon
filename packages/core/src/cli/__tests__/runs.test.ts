@@ -61,7 +61,7 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
     // Run a workflow so there's data to query
     const runId = randomUUID();
     await DBOS.withNextWorkflowID(runId, () =>
-      crayon.triggerWorkflow("echo-workflow", { message: "hello" }, { runId }),
+      crayon.triggerWorkflow("echo-workflow", { message: "hello" }, { runId, source: "cli" }),
     );
   }, 30000);
 
@@ -106,22 +106,23 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
     expect(result.ambiguous).toBeUndefined();
   });
 
-  it("records test_mode metadata for workflow runs", async () => {
+  it("records test_mode and source metadata for workflow runs", async () => {
     const runs = await listRuns(DATABASE_URL!, { limit: 1, schema: TEST_SCHEMA });
     expect(runs.length).toBeGreaterThan(0);
-    // The workflow was triggered with default testMode (true)
-    expect(runs[0]).toHaveProperty("test_mode");
+    // The workflow was triggered with default testMode (true) and source "cli"
     expect(runs[0].test_mode).toBe(true);
+    expect(runs[0].source).toBe("cli");
   });
 
   it("records test_mode=false for live runs", async () => {
     const liveId = randomUUID();
     await DBOS.withNextWorkflowID(liveId, () =>
-      crayon.triggerWorkflow("echo-workflow", { message: "live" }, { runId: liveId, testMode: false }),
+      crayon.triggerWorkflow("echo-workflow", { message: "live" }, { runId: liveId, testMode: false, source: "webhook" }),
     );
     const result = await getRun(DATABASE_URL!, liveId, TEST_SCHEMA);
     expect(result.run).not.toBeNull();
     expect(result.run!.test_mode).toBe(false);
+    expect(result.run!.source).toBe("webhook");
   });
 
   it("duplicate runId metadata inserts are ignored", async () => {

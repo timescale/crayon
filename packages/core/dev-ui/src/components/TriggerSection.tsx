@@ -126,7 +126,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
       const res = await fetch(`/dev/api/workflows/${encodeURIComponent(dag.workflowName)}/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, test_mode: testMode }),
+        body: JSON.stringify({ input, test_mode: testMode, source: "dev-ui-manual-run" }),
       });
       const data = await res.json();
       if (data.status === "ERROR") {

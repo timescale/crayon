@@ -166,7 +166,7 @@ Nodes with side effects use an extended description format with `**Side Effect:*
 ## Development
 
 - **Build:** `pnpm --filter runcrayon build` (TypeScript + Vite for dev-ui)
-- **Test:** Vitest — `pnpm --filter runcrayon test`
+- **Test:** Vitest — `pnpm --filter runcrayon test 2>&1 > /tmp/test-output.txt; grep -E "Test Files|Tests " /tmp/test-output.txt` (pipe to file to avoid noisy output, then check summary)
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
 - **Never swallow errors** — do not use empty `catch {}` blocks. Always log, rethrow, or return the error to the caller. Silent failures hide bugs and make debugging impossible.

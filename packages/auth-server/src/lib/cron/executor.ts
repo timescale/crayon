@@ -41,7 +41,7 @@ export async function triggerWorkflow(
       "Content-Type": "application/json",
       Authorization: `Bearer ${jwt}`,
     },
-    body: JSON.stringify({ input, test_mode: input.test_mode ?? false }),
+    body: JSON.stringify({ input, test_mode: input.test_mode ?? false, source: "cron" }),
     signal: AbortSignal.timeout(TRIGGER_TIMEOUT_MS),
   });
 

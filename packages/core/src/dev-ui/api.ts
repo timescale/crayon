@@ -246,7 +246,7 @@ export async function handleApiRequest(
             ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
             (ws.updated_at - ws.created_at) as duration_ms,
             ws.output::text, ws.error,
-            rm.test_mode
+            rm.test_mode, rm.source
           FROM ${ctx.schema}.workflow_status ws
           LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
           WHERE ws.workflow_uuid = $1`,
@@ -312,7 +312,7 @@ export async function handleApiRequest(
         const result = await ctx.pool.query(
           `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
                   ws.output::text, ws.error,
-                  rm.test_mode
+                  rm.test_mode, rm.source
            FROM ${ctx.schema}.workflow_status ws
            LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
            WHERE ws.workflow_uuid = $1`,
@@ -345,7 +345,7 @@ export async function handleApiRequest(
         let query = `
           SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
                  ws.output::text, ws.error,
-                 rm.test_mode
+                 rm.test_mode, rm.source
           FROM ${ctx.schema}.workflow_status ws
           LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
           WHERE LENGTH(ws.workflow_uuid) = 36
@@ -382,9 +382,10 @@ export async function handleApiRequest(
   const runMatch = url.match(/^\/api\/workflows\/([^/]+)\/run$/);
   if (runMatch && method === "POST") {
     const workflowName = decodeURIComponent(runMatch[1]);
-    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean };
+    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean; source?: string };
     const input = body.input ?? {};
     const testMode = body.test_mode ?? false; // default: live (webhooks are production triggers)
+    const source = body.source ?? "webhook";
 
     const [runtime, script] = process.argv;
     try {
@@ -394,6 +395,7 @@ export async function handleApiRequest(
         "workflow", "run", workflowName,
         "--json",
         "-i", JSON.stringify(input),
+        "--source", source,
       ];
       if (!testMode) {
         args.push("--live");
@@ -421,9 +423,10 @@ export async function handleApiRequest(
   const startMatch = url.match(/^\/api\/workflows\/([^/]+)\/start$/);
   if (startMatch && method === "POST") {
     const workflowName = decodeURIComponent(startMatch[1]);
-    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean };
+    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean; source?: string };
     const input = body.input ?? {};
     const testMode = body.test_mode ?? false; // default: live (webhooks/cron are production triggers)
+    const source = body.source ?? "webhook";
     const runId = randomUUID();
 
     const [runtime, script] = process.argv;
@@ -434,6 +437,7 @@ export async function handleApiRequest(
       "--json",
       "--workflow-id", runId,
       "-i", JSON.stringify(input),
+      "--source", source,
     ];
     if (!testMode) {
       args.push("--live");

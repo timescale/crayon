@@ -75,6 +75,7 @@ export const runWorkflowFactory: ApiFactory<
         if (!test_mode) {
           args.push("--live");
         }
+        args.push("--source", "mcp");
         const { stdout } = await execFileAsync(runtime, args, { cwd: process.cwd() });
 
         const parsed = JSON.parse(stdout) as OutputSchema;

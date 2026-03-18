@@ -11,6 +11,7 @@ export interface WorkflowRun {
   output: unknown;
   error: string | null;
   test_mode: boolean | null;
+  source: string | null;
 }
 
 export interface ListRunsOptions {
@@ -39,7 +40,7 @@ export async function listRuns(
     let query = `
       SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
              ws.output, ws.error,
-             rm.test_mode
+             rm.test_mode, rm.source
       FROM ${schema}.workflow_status ws
       LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
       WHERE LENGTH(ws.workflow_uuid) = 36
@@ -84,7 +85,7 @@ export async function getRun(
     // Try exact match first
     const exact = await client.query(
       `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
-              ws.output, ws.error, rm.test_mode
+              ws.output, ws.error, rm.test_mode, rm.source
        FROM ${schema}.workflow_status ws
        LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
        WHERE ws.workflow_uuid = $1`,
@@ -99,7 +100,7 @@ export async function getRun(
     // Exclude child workflows (they have -N suffix after the 36-char UUID)
     const prefix = await client.query(
       `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
-              ws.output, ws.error, rm.test_mode
+              ws.output, ws.error, rm.test_mode, rm.source
        FROM ${schema}.workflow_status ws
        LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
        WHERE ws.workflow_uuid LIKE $1

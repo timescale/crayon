@@ -97,13 +97,13 @@ export interface Crayon {
   /** Get a workflow by name */
   getWorkflow: (name: string) => AnyExecutable | undefined;
   /** Trigger a workflow by name (for webhooks/UI) */
-  triggerWorkflow: <T = unknown>(name: string, inputs: unknown, options: { runId: string; testMode?: boolean }) => Promise<T>;
+  triggerWorkflow: <T = unknown>(name: string, inputs: unknown, options: { runId: string; testMode?: boolean; source?: string }) => Promise<T>;
   /** List all registered node names */
   listNodes: () => string[];
   /** Get a node by name */
   getNode: (name: string) => AnyExecutable | undefined;
   /** Trigger a node by name (wrapped in workflow for durability) */
-  triggerNode: <T = unknown>(name: string, inputs: unknown, options: { runId: string; workflowName?: string; testMode?: boolean }) => Promise<T>;
+  triggerNode: <T = unknown>(name: string, inputs: unknown, options: { runId: string; workflowName?: string; testMode?: boolean; source?: string }) => Promise<T>;
   /** Shutdown the crayon instance and DBOS */
   shutdown: () => Promise<void>;
 }

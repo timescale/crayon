@@ -82,7 +82,7 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
     triggerWorkflow: async <T = unknown>(
       name: string,
       inputs: unknown,
-      options: { runId: string; testMode?: boolean },
+      options: { runId: string; testMode?: boolean; source?: string },
     ): Promise<T> => {
       const workflow = registry.getWorkflow(name);
       if (!workflow) {
@@ -91,8 +91,8 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
 
       const testMode = options.testMode ?? true;
 
-      // Record run metadata (test mode) before execution
-      await recordRunMetadata(pool, appSchema, options.runId, testMode);
+      // Record run metadata (test mode, source) before execution
+      await recordRunMetadata(pool, appSchema, options.runId, testMode, options.source);
 
       // Set testMode for this execution (default: true = safe)
       const prevTestMode = getWorkflowTestMode();
@@ -112,7 +112,7 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
     triggerNode: async <T = unknown>(
       name: string,
       inputs: unknown,
-      options: { runId: string; workflowName?: string; testMode?: boolean },
+      options: { runId: string; workflowName?: string; testMode?: boolean; source?: string },
     ): Promise<T> => {
       const node = registry.getNode(name);
       if (!node) {
@@ -132,8 +132,8 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
 
       const testMode = options.testMode ?? true;
 
-      // Record run metadata (test mode) before execution
-      await recordRunMetadata(pool, appSchema, options.runId, testMode);
+      // Record run metadata (test mode, source) before execution
+      await recordRunMetadata(pool, appSchema, options.runId, testMode, options.source);
 
       // Set testMode for this execution (default: true = safe)
       const prevTestMode = getWorkflowTestMode();
