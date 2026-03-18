@@ -304,11 +304,18 @@ export async function runCloudRun(): Promise<void> {
           const projectDir = ensureProjectDir(appName as string);
           s.start("Registering sandbox MCP server...");
           const ok = await registerSandboxMcp(appName as string, projectDir);
-          if (ok) {
+          if (ok && verifySandboxMcp(projectDir)) {
             s.stop(pc.green("MCP server registered"));
             p.log.info("Launching Claude Code with sandbox access...");
             p.outro("");
             launchClaude(projectDir);
+          } else if (ok) {
+            s.stop(pc.yellow("MCP server registered but not visible to Claude Code"));
+            p.log.warn(
+              "Claude Code may have a broken configuration. " +
+              "Please launch Claude Code and run /doctor to fix it.",
+            );
+            p.outro(pc.green("Cloud dev environment is ready!"));
           } else {
             s.stop(pc.yellow("MCP registration failed"));
             p.outro(pc.green("Cloud dev environment is ready!"));
@@ -648,6 +655,8 @@ async function registerSandboxMcp(appName: string, projectDir: string): Promise<
 
 /** Read-only MCP tools that can be auto-allowed without user confirmation. */
 const READ_ONLY_MCP_TOOLS = [
+  "list_directory",
+  "read_file",
   "list_integrations",
   "list_connections",
   "get_connection",
@@ -673,6 +682,19 @@ function writeClaudeSettings(projectDir: string): void {
 
   const settings = { permissions: { allow: allowList } };
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
+}
+
+function verifySandboxMcp(projectDir: string): boolean {
+  try {
+    const output = execFileSync("claude", ["mcp", "list"], {
+      cwd: projectDir,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return output.includes(MCP_SERVER_NAME);
+  } catch {
+    return false;
+  }
 }
 
 function launchClaude(projectDir: string): void {
