@@ -13,8 +13,6 @@ import { resolveEnv } from "./env.js";
 import { listRuns, getRun } from "./runs.js";
 import { getTrace, printTrace } from "./trace.js";
 import { getAppName, getAppSchema } from "./app.js";
-import { startMcpServer } from "./mcp/server.js";
-import { runInstall, runUninstall } from "./install.js";
 import { runRun } from "./run.js";
 
 // Read version from package.json
@@ -88,19 +86,22 @@ program
   .description("CLI for crayon workflow engine")
   .version(version);
 
-// ============ Local commands ============
-const local = program.command("local").description("Local development commands");
+function isRunFromMonorepo(): boolean {
+  const authServerDir = resolve(__dirname, "../../../auth-server");
+  return existsSync(join(authServerDir, "package.json"));
+}
 
-local
-  .command("run")
-  .description("Create a new project or launch an existing one")
-  .action(async () => {
-    await runRun();
-  });
+// ============ Local commands (monorepo only) ============
+if (isRunFromMonorepo()) {
+  const local = program.command("local").description("Local development commands");
 
-// Only register run-dev in the monorepo (auth-server must exist nearby)
-const authServerDir = resolve(__dirname, "../../../auth-server");
-if (existsSync(join(authServerDir, "package.json"))) {
+  local
+    .command("run")
+    .description("Create a new project or launch an existing one")
+    .action(async () => {
+      await runRun();
+    });
+
   local
     .command("run-dev")
     .description("Launch with local auth-server (for testing cloud features)")
@@ -117,16 +118,6 @@ program
     const { generateRegistry } = await import("../registry-gen.js");
     const outPath = generateRegistry(process.cwd());
     console.log(pc.green(`Registry generated: ${outPath}`));
-  });
-
-// ============ Deploy command ============
-program
-  .command("deploy")
-  .description("Deploy app to the cloud")
-  .option("--verbose", "Show detailed output")
-  .action(async (options: { verbose?: boolean }) => {
-    const { runDeploy } = await import("./deploy.js");
-    await runDeploy(options);
   });
 
 // ============ Init command ============
@@ -657,36 +648,11 @@ program
 const mcp = program.command("mcp").description("MCP server commands");
 
 mcp
-  .command("start")
-  .description("Start the MCP server for Claude Code")
-  .action(async () => {
-    await startMcpServer();
-  });
-
-mcp
   .command("sandbox")
   .description("Start the sandbox MCP server (filesystem + bash tools for remote access)")
   .action(async () => {
     const { startSandboxMcpServer } = await import("./mcp/sandbox-server.js");
     await startSandboxMcpServer();
-  });
-
-// ============ Install/Uninstall commands ============
-program
-  .command("install")
-  .description("Install crayon plugin to Claude Code")
-  .option("-f, --force", "Force reinstall even if already installed")
-  .option("-v, --verbose", "Show detailed output")
-  .action(async (options: { force?: boolean; verbose?: boolean }) => {
-    await runInstall({ force: options.force, verbose: options.verbose });
-  });
-
-program
-  .command("uninstall")
-  .description("Uninstall crayon plugin from Claude Code")
-  .option("-v, --verbose", "Show detailed output")
-  .action(async (options: { verbose?: boolean }) => {
-    await runUninstall({ verbose: options.verbose });
   });
 
 // ============ Auth commands ============

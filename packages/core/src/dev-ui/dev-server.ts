@@ -9,7 +9,6 @@ import { createWSServer, type WSClientMessage } from "./ws.js";
 import { createWatcher } from "./watcher.js";
 import type { PtyManager } from "./pty.js";
 import { handleApiRequest } from "./api.js";
-import { handleDeployRequest } from "./deploy-api.js";
 import { proxyToUserApp } from "./proxy.js";
 import {
   isAuthEnabled,
@@ -171,21 +170,6 @@ export async function startDevServer(options: DevServerOptions) {
         return;
       }
 
-      // Deploy endpoint (no database required)
-      if (devPath === "/api/deploy") {
-        try {
-          // Temporarily rewrite req.url so deploy-api sees /api/deploy
-          const origUrl = req.url;
-          req.url = fullUrl.replace(/^\/dev/, "");
-          const handled = await handleDeployRequest(req, res, projectRoot);
-          req.url = origUrl;
-          if (handled) return;
-        } catch (err) {
-          res.writeHead(500, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }));
-          return;
-        }
-      }
 
       // Route /dev/api/* to API handler
       if (devPath.startsWith("/api/") && hasApi && pool) {
