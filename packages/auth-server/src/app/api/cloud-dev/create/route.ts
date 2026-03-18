@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as {
       appName?: string;
       envVars?: Record<string, string>;
+      imageTag?: string;
     };
 
     if (!body.appName) {
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { appName, envVars = {} } = body;
+    const { appName, envVars = {}, imageTag } = body;
     const db = await getPool();
 
     // Check for existing machine with this app name
@@ -295,8 +296,11 @@ export async function POST(req: NextRequest) {
         console.log(`[cloud-dev/create] Trying region: ${region}`);
         const vol = await createVolume(flyAppName, "app_data", 10, region, machineGuest);
         currentVolumeId = vol.id;
+        const machineImage = imageTag
+          ? CLOUD_DEV_IMAGE.replace(/:[\w.-]+$/, `:${imageTag}`)
+          : CLOUD_DEV_IMAGE;
         machine = await createMachine(flyAppName, {
-          image: CLOUD_DEV_IMAGE,
+          image: machineImage,
           services: machineServicesConfig,
           guest: machineGuest,
           mounts: [{ volume: currentVolumeId, path: "/data" }],

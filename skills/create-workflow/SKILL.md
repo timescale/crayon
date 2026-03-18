@@ -153,6 +153,20 @@ Each node/agent's `description` field captures **what that node does**, its inpu
 **Output Description:** <what this task produces>
 ```
 
+**For nodes with side effects** (sending messages, updating records, writing data), use this extended format:
+
+```markdown
+<What this node does — one or two sentences.>
+
+**Side Effect:** <what external action is performed and the target>
+**Test Mode:** <what happens when ctx.testMode is true — typically "Returns the <action details> without actually <performing the action>">
+
+**Input Description:** <what information this task needs — include target if dynamic>
+**Output Description:** <what this task produces — MUST include action details (e.g., messageSent, recipient, fieldsUpdated, testMode)>
+```
+
+The `**Side Effect:**` tag marks the node as having side effects so the compiler generates `ctx.testMode` guards. The `**Test Mode:**` description spells out the exact expected behavior to reduce ambiguity in code generation.
+
 ### Node Stub Creation
 
 For each task in the workflow, create a stub file:
@@ -259,3 +273,4 @@ Built-in nodes: `web_read`
 3. **Leverage existing** — prefer reusing existing agents/nodes over creating new ones
 4. **What, not how** — capture intent in plain language; implementation details come during refinement
 5. **Run it yourself** — when the user wants to test a workflow or node, use the `runWorkflow` / `runNode` MCP tools or run CLI commands yourself.
+6. **Side effects require intentional targets** — nodes that send messages, update records, or write to external systems must name WHO/WHERE the action targets. The target should either be traced to a workflow input / upstream node output, or be a deliberate constant with clear rationale. Never fabricate or randomly choose a target.

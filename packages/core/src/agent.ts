@@ -9,6 +9,7 @@ import type { ModelConfig } from "./nodes/agent/model-config.js";
 import type { NodeRegistry } from "./nodes/registry.js";
 import { resolveConnectionId } from "./connections/index.js";
 import type { IntegrationProvider } from "./connections/integration-provider.js";
+import { getWorkflowTestMode } from "./workflow.js";
 import type pg from "pg";
 
 export type { AgentTool, AgentTools } from "./nodes/agent/executor.js";
@@ -81,6 +82,7 @@ function createAgentContext(
 
   const ctx: WorkflowContext = {
     workflowName: agentName,
+    testMode: getWorkflowTestMode(),
 
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,

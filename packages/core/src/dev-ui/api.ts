@@ -374,18 +374,23 @@ export async function handleApiRequest(
   const runMatch = url.match(/^\/api\/workflows\/([^/]+)\/run$/);
   if (runMatch && method === "POST") {
     const workflowName = decodeURIComponent(runMatch[1]);
-    const body = (await parseBody(req)) as { input?: Record<string, unknown> };
+    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean };
     const input = body.input ?? {};
+    const testMode = body.test_mode ?? false; // default: live (webhooks are production triggers)
 
     const [runtime, script] = process.argv;
     try {
-      const { stdout } = await execFileAsync(runtime, [
+      const args = [
         ...process.execArgv,
         script,
         "workflow", "run", workflowName,
         "--json",
         "-i", JSON.stringify(input),
-      ], { cwd: ctx.projectRoot });
+      ];
+      if (!testMode) {
+        args.push("--live");
+      }
+      const { stdout } = await execFileAsync(runtime, args, { cwd: ctx.projectRoot });
 
       jsonResponse(res, 200, JSON.parse(stdout));
     } catch (err: unknown) {
@@ -408,19 +413,24 @@ export async function handleApiRequest(
   const startMatch = url.match(/^\/api\/workflows\/([^/]+)\/start$/);
   if (startMatch && method === "POST") {
     const workflowName = decodeURIComponent(startMatch[1]);
-    const body = (await parseBody(req)) as { input?: Record<string, unknown> };
+    const body = (await parseBody(req)) as { input?: Record<string, unknown>; test_mode?: boolean };
     const input = body.input ?? {};
+    const testMode = body.test_mode ?? false; // default: live (webhooks/cron are production triggers)
     const runId = randomUUID();
 
     const [runtime, script] = process.argv;
-    const child = spawn(runtime, [
+    const args = [
       ...process.execArgv,
       script,
       "workflow", "run", workflowName,
       "--json",
       "--workflow-id", runId,
       "-i", JSON.stringify(input),
-    ], {
+    ];
+    if (!testMode) {
+      args.push("--live");
+    }
+    const child = spawn(runtime, args, {
       cwd: ctx.projectRoot,
       stdio: "ignore",
       detached: true,

@@ -70,6 +70,51 @@ For each node, determine:
 
 Use your judgment to propose reasonable schemas and tool selections based on the descriptions. The user can correct anything after.
 
+### Side-Effect Node Safety
+
+When refining a node that performs side effects (sends emails/messages, updates database records, calls write APIs, modifies external state):
+
+1. **Targets must be intentional** — The recipient, channel, record ID, or destination must be either an explicit input field OR a deliberate constant with clear rationale. Never randomly choose or fabricate a target. If the target isn't obvious from the node description, ask the user — don't guess.
+
+2. **Output schema MUST include action details** — Every side-effect node must return what it did (or would have done), regardless of whether the action was actually performed:
+   - `messageSent: z.string().describe("The message that was sent")`
+   - `recipientEmail: z.string().describe("The email address the message was sent to")`
+   - `fieldsUpdated: z.record(z.string(), z.unknown()).describe("The fields that were updated and their new values")`
+   - `testMode: z.boolean().describe("Whether the node ran in test mode (action was skipped)")`
+
+3. **Guidelines for agents with side-effect tools** — If an agent uses tools that have side effects, add explicit guidelines:
+   - "Only send messages to the channel/recipient specified in the input"
+   - "Never modify records other than those explicitly identified in the input"
+
+### Test Mode Support
+
+Side-effect nodes must support **test mode** via `ctx.testMode`. When `ctx.testMode` is `true`, the node should:
+- Skip the actual side effect (do not send the email, do not post to Slack, do not write to the database)
+- Still return the full output schema with all action details filled in (what WOULD have been done)
+- Include `testMode: ctx.testMode` in the output
+
+**Example pattern for side-effect nodes:**
+
+```typescript
+execute: async (ctx, inputs) => {
+  const message = `Summary for ${inputs.recipientName}: ...`;
+
+  if (!ctx.testMode) {
+    // Actually send the message
+    await slackClient.postMessage({ channel: inputs.slackChannel, text: message });
+  }
+
+  return {
+    messageSent: message,
+    channelName: inputs.slackChannel,
+    recipientName: inputs.recipientName,
+    testMode: ctx.testMode,
+  };
+},
+```
+
+The key insight: the output schema is the SAME in both modes. The node always returns what it did (or would have done). Test mode only skips the external call.
+
 ### Tool Categories (Agent Nodes)
 
 | Category | Description | Examples |
@@ -222,3 +267,4 @@ What changed:
 2. **Preserve descriptions** — keep the original Input/Output Description fields from create-workflow
 3. **Concrete types** — every field needs a type; no `any` or untyped fields
 4. **Research before guessing** — check integration skills and provider docs before selecting tools/SDKs
+5. **Side effects require intentional targets** — never let a side-effect node target an ambiguous or fabricated recipient/destination. The target must be a required input field or deliberate constant.

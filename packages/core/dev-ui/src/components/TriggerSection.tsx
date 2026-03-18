@@ -176,7 +176,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   const asyncCurlExample = `curl -X POST \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${tokenForCurl}" \\
-  -d '{"input":${inputJson}}' \\
+  -d '{"input":${inputJson},"test_mode":false}' \\
   ${asyncUrl}`;
 
   const pollCurlExample = `curl -H "Authorization: Bearer ${tokenForCurl}" \\
@@ -185,7 +185,7 @@ export function TriggerSection({ dag, onSuccess }: TriggerSectionProps) {
   const syncCurlExample = `curl -X POST \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${tokenForCurl}" \\
-  -d '{"input":${inputJson}}' \\
+  -d '{"input":${inputJson},"test_mode":false}' \\
   ${syncUrl}`;
 
   return (

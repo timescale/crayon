@@ -167,6 +167,27 @@ async run(ctx, inputs: <Name>Input): Promise<<Name>Output> {
 },
 ```
 
+### Side-Effect Node Data Flow
+
+When wiring `ctx.run()` calls for side-effect nodes (nodes whose description includes `**Side Effect:**`):
+
+1. **Every target input MUST trace to an explicit source** — Side-effect node inputs like `recipientEmail`, `slackChannel`, `recordId` must come from:
+   - The workflow's own input fields (e.g., `inputs.recipientEmail`)
+   - An upstream node's output field (e.g., `enrichResult.email`)
+   - A deliberate constant with clear rationale
+
+   **NEVER fabricate or randomly choose** a target value. If the data flow for a target field is unclear, add a `// TODO: wire this to an explicit source` comment and flag it to the user.
+
+2. **Side-effect outputs should be captured** — Always capture the return value of side-effect nodes, even if it's not used by downstream nodes. This ensures the action details (what was sent, to whom, what was updated) appear in the workflow trace.
+
+   ```typescript
+   // GOOD: capture the result
+   const slackResult = await ctx.run(sendSlackDm, { channel: inputs.slackChannel, message: summary });
+
+   // BAD: discard the result
+   await ctx.run(sendSlackDm, { channel: inputs.slackChannel, message: summary });
+   ```
+
 ### Naming Conventions
 
 - Workflow export: `camelCase` (e.g., `urlSummarizer`)
@@ -252,3 +273,4 @@ Tell the user:
 4. **Readable output** — generated code should be understandable
 5. **Update descriptions** — when clarifying, update the description field so it stays canonical
 6. **Run it yourself** — when the user wants to test a workflow or node, use the `runWorkflow` / `runNode` MCP tools or run CLI commands yourself.
+7. **Side-effect targets are never fabricated** — they must come from an explicit source or be a deliberate constant.

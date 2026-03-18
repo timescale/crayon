@@ -58,3 +58,27 @@ To test local core changes on a cloud dev machine:
    ```
 
 4. **Open the dev UI** at `https://<fly-app-name>.fly.dev/dev/`
+
+## Testing Custom Images On Cloud
+
+You can create a cloud sandbox with a specific Docker image tag without modifying the auth-server's `CLOUD_DEV_IMAGE` env var.
+
+```bash
+crayon cloud run --image-tag <tag>
+```
+
+This creates the sandbox using `registry.fly.io/crayon-cloud-dev-image:<tag>` instead of the default `:latest`.
+
+### Workflow
+
+1. Build and push your image with a custom tag:
+   ```bash
+   cd packages/core/docker && ./build-dev.sh my-feature
+   ```
+
+2. Create a sandbox using that tag:
+   ```bash
+   crayon cloud run --image-tag my-feature
+   ```
+
+This is useful for testing changes in isolation without affecting other developers' sandboxes that use the default image.

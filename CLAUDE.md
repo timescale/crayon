@@ -75,6 +75,37 @@ my-app/
 └── dbos-config.yaml         # DBOS runtime config
 ```
 
+## Test Mode (Side-Effect Safety)
+
+Nodes with side effects (sending emails, Slack messages, updating databases) support a **test mode** where they describe what they would do without actually performing the action. This is controlled via `ctx.testMode` on `WorkflowContext`.
+
+### Defaults by trigger
+
+| Trigger | testMode default | Rationale |
+|---------|-----------------|-----------|
+| CLI `workflow run` / `node run` | ON (`--live` to disable) | Interactive dev |
+| MCP tools `run_workflow` / `run_node` | ON (`test_mode: false` to disable) | Claude experimenting |
+| HTTP API (webhooks) | OFF (`test_mode: true` to enable) | Production triggers |
+| Cron jobs | OFF (pass `test_mode: true` in job input to enable) | Scheduled automation |
+
+### How nodes use it
+
+Side-effect nodes check `ctx.testMode` and skip the actual action when true. The output schema is the same in both modes — always includes action details (what was sent, to whom) plus a `testMode: boolean` field.
+
+```typescript
+execute: async (ctx, inputs) => {
+  const message = `Hello ${inputs.name}`;
+  if (!ctx.testMode) {
+    await slack.postMessage({ channel: inputs.channel, text: message });
+  }
+  return { messageSent: message, channel: inputs.channel, testMode: ctx.testMode };
+},
+```
+
+### Side-effect node descriptions
+
+Nodes with side effects use an extended description format with `**Side Effect:**` and `**Test Mode:**` tags. These are documented in the skill files (`create-workflow`, `refine-node`, `compile-workflow`).
+
 ## Key Source Paths (packages/core/src/)
 
 ### SDK Core
@@ -160,8 +191,9 @@ To test local core changes on a cloud dev machine:
 
 3. **Create a new cloud machine using the local auth server:**
    ```bash
-   CRAYON_SERVER_URL=http://localhost:3000 pnpm --filter runcrayon exec tsx src/cli/index.ts cloud run
+   CRAYON_SERVER_URL=http://localhost:3000 pnpm --filter runcrayon exec tsx src/cli/index.ts cloud run --image-tag <tag>
    ```
+   The `--image-tag` flag overrides the Docker image tag (default: `latest`). This lets you test a specific build without changing `CLOUD_DEV_IMAGE` in the auth-server env.
 
 4. **Open the dev UI** at `https://<fly-app-name>.fly.dev/dev/`
 

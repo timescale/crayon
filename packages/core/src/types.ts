@@ -58,6 +58,9 @@ export interface WorkflowContext {
 
   /** Structured logging */
   log: (message: string, level?: LogLevel) => void;
+
+  /** Whether the workflow is running in test mode (side-effect nodes should skip actions) */
+  readonly testMode: boolean;
 }
 
 export type LogLevel = "info" | "warn" | "error" | "debug";
@@ -94,13 +97,13 @@ export interface Crayon {
   /** Get a workflow by name */
   getWorkflow: (name: string) => AnyExecutable | undefined;
   /** Trigger a workflow by name (for webhooks/UI) */
-  triggerWorkflow: <T = unknown>(name: string, inputs: unknown) => Promise<T>;
+  triggerWorkflow: <T = unknown>(name: string, inputs: unknown, options?: { testMode?: boolean }) => Promise<T>;
   /** List all registered node names */
   listNodes: () => string[];
   /** Get a node by name */
   getNode: (name: string) => AnyExecutable | undefined;
   /** Trigger a node by name (wrapped in workflow for durability) */
-  triggerNode: <T = unknown>(name: string, inputs: unknown, options?: { workflowName?: string }) => Promise<T>;
+  triggerNode: <T = unknown>(name: string, inputs: unknown, options?: { workflowName?: string; testMode?: boolean }) => Promise<T>;
   /** Shutdown the crayon instance and DBOS */
   shutdown: () => Promise<void>;
 }

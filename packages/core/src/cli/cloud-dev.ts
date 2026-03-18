@@ -79,7 +79,7 @@ function collectClaudeCredentials(): Record<string, string> {
 
 // ── Main command ────────────────────────────────────────────────
 
-export async function runCloudRun(): Promise<void> {
+export async function runCloudRun(options?: { imageTag?: string }): Promise<void> {
   p.intro(pc.bold("crayon cloud run"));
 
   // ── Step 1: Authenticate with crayon cloud ────────────────────
@@ -268,6 +268,7 @@ export async function runCloudRun(): Promise<void> {
       createResult = (await apiCall("POST", "/api/cloud-dev/create", {
         appName: appName as string,
         envVars: machineEnvVars,
+        ...(options?.imageTag ? { imageTag: options.imageTag } : {}),
       })) as { appUrl: string; status: string };
     } catch (err) {
       s.stop(pc.red("Failed to create cloud dev sandbox"));

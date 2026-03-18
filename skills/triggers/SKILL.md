@@ -21,6 +21,10 @@ Use these to trigger workflows and nodes directly from Claude:
 
 Two modes for HTTP triggering:
 
+### Test Mode
+
+Interactive triggers (CLI, MCP tools) run in **test mode by default** — side-effect nodes describe what they would do without actually performing the action. Webhooks and cron run **live by default**. Pass `"test_mode": true` in the request body to run a webhook in test mode instead.
+
 ### Async (fire-and-forget)
 
 ```
@@ -31,6 +35,8 @@ Content-Type: application/json
 {"input": {}}
 ```
 
+- Runs live by default (side effects are performed)
+- Pass `"test_mode": true` to run in test mode instead
 - Returns `202` immediately with `{ "status": "accepted", "runId": "...", "workflow": "..." }`
 - The workflow runs in the background
 - Poll status via `GET /dev/api/runs/{runId}` — returns `{ "status": "SUCCESS" | "ERROR" | "PENDING", ... }`
@@ -45,6 +51,8 @@ Content-Type: application/json
 {"input": {}}
 ```
 
+- Runs live by default (side effects are performed)
+- Pass `"test_mode": true` to run in test mode instead
 - Blocks until the workflow completes
 - Returns `200` with `{ "run_id": "...", "status": "SUCCESS", "result": ... }`
 - Returns `500` on error with `{ "status": "ERROR", "error": "..." }`
@@ -85,6 +93,8 @@ Workflows can be scheduled to run on a recurring basis via the cron system. The 
 - `update_cron_job` — update schedule, enable/disable
 - `delete_cron_job` — remove a schedule
 - `list_cron_runs` — view execution history for a job
+
+**Test mode:** Cron jobs run live by default. To run a cron job in test mode, include `"test_mode": true` in the job's input JSON when creating or updating the job. This value is forwarded to the workflow execution.
 
 **Cron behavior:**
 - Scheduler ticks every 15 seconds

@@ -155,9 +155,10 @@ const cloud = program.command("cloud").description("Cloud dev environment comman
 cloud
   .command("run")
   .description("Create a cloud dev environment on Fly.io")
-  .action(async () => {
+  .option("--image-tag <tag>", "Docker image tag to use (default: latest)")
+  .action(async (options: { imageTag?: string }) => {
     const { runCloudRun } = await import("./cloud-dev.js");
-    await runCloudRun();
+    await runCloudRun({ imageTag: options.imageTag });
   });
 
 cloud
@@ -251,7 +252,8 @@ workflow
   .option("-i, --input <json>", "JSON input for the workflow", "{}")
   .option("--json", "Output result as JSON")
   .option("--workflow-id <id>", "Use a specific workflow ID (UUID) instead of generating one")
-  .action(async (workflowName: string, options: { input: string; json?: boolean; workflowId?: string }) => {
+  .option("--live", "Run with side effects enabled (default is test mode — side effects are skipped)")
+  .action(async (workflowName: string, options: { input: string; json?: boolean; workflowId?: string; live?: boolean }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment (all .env vars into process.env)
@@ -308,8 +310,12 @@ workflow
       );
 
       // Create crayon instance and run
+      const testMode = !options.live;
       if (!options.json) {
         console.log(pc.dim(`Running ${workflowName}...`));
+        if (testMode) {
+          console.error(pc.yellow(pc.bold("\n⚠ TEST MODE: Side-effect nodes will skip actions. Use --live to enable real side effects.\n")));
+        }
       }
 
       const crayon = await createCrayon({
@@ -322,13 +328,16 @@ workflow
       try {
         const runId = options.workflowId ?? randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerWorkflow(wf.name, inputs),
+          crayon.triggerWorkflow(wf.name, inputs, { testMode }),
         );
 
         if (writeJson) {
-          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result }));
+          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result, test_mode: testMode }));
         } else {
           console.log(pc.dim(`Run ID: ${runId}`));
+          if (testMode) {
+            console.log(pc.yellow(pc.bold("\n⚠ TEST MODE — side effects were skipped. Run with --live to perform real actions.")));
+          }
           console.log(pc.green("\nResult:"));
           console.log(JSON.stringify(result, null, 2));
         }
@@ -399,7 +408,8 @@ node
   .option("-i, --input <json>", "JSON input for the node", "{}")
   .option("-w, --workflow <name>", "Workflow name for connection resolution")
   .option("--json", "Output result as JSON")
-  .action(async (nodeName: string, options: { input: string; workflow?: string; json?: boolean }) => {
+  .option("--live", "Run with side effects enabled (default is test mode — side effects are skipped)")
+  .action(async (nodeName: string, options: { input: string; workflow?: string; json?: boolean; live?: boolean }) => {
     const writeJson = options.json ? captureStdout() : null;
     try {
       // Load environment
@@ -446,8 +456,12 @@ node
       const inputs = validation.data;
 
       // Create crayon instance
+      const testMode = !options.live;
       if (!options.json) {
         console.log(pc.dim(`Running node ${nodeName}...`));
+        if (testMode) {
+          console.error(pc.yellow(pc.bold("\n⚠ TEST MODE: Side-effect nodes will skip actions. Use --live to enable real side effects.\n")));
+        }
       }
 
       const crayon = await createCrayon({
@@ -459,13 +473,16 @@ node
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerNode(nodeName, inputs, { workflowName: options.workflow }),
+          crayon.triggerNode(nodeName, inputs, { workflowName: options.workflow, testMode }),
         );
 
         if (writeJson) {
-          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result }));
+          writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result, test_mode: testMode }));
         } else {
           console.log(pc.dim(`Run ID: ${runId}`));
+          if (testMode) {
+            console.log(pc.yellow(pc.bold("\n⚠ TEST MODE — side effects were skipped. Run with --live to perform real actions.")));
+          }
           console.log(pc.green("\nResult:"));
           console.log(JSON.stringify(result, null, 2));
         }

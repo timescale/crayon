@@ -22,6 +22,7 @@ export function createWorkflowContext(options: ContextOptions = {}): WorkflowCon
 
   const ctx: WorkflowContext = {
     workflowName: "*",
+    testMode: true,
 
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,

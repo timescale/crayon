@@ -34,6 +34,7 @@ interface WorkflowRuntimeConfig {
   integrationProvider: IntegrationProvider | null;
   workflowName: string;
   appSchema: string;
+  testMode?: boolean;
 }
 
 /**
@@ -45,6 +46,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
 
   const ctx: WorkflowContext = {
     workflowName: config?.workflowName ?? "*",
+    testMode: config?.testMode ?? false,
 
     run: async <TInput, TOutput>(
       executable: Executable<TInput, TOutput>,
@@ -141,6 +143,7 @@ function createDurableContext(config?: WorkflowRuntimeConfig): WorkflowContext {
 const POOL_KEY = Symbol.for("crayon.getWorkflowPool()");
 const PROVIDER_KEY = Symbol.for("crayon.getWorkflowIntegrationProvider()");
 const SCHEMA_KEY = Symbol.for("crayon.getWorkflowAppSchema()");
+const TESTMODE_KEY = Symbol.for("crayon.getWorkflowTestMode()");
 
 function getWorkflowPool(): pg.Pool | null {
   return (globalThis as Record<symbol, pg.Pool | null>)[POOL_KEY] ?? null;
@@ -152,6 +155,16 @@ function getWorkflowIntegrationProvider(): IntegrationProvider | null {
 
 function getWorkflowAppSchema(): string {
   return (globalThis as Record<symbol, string>)[SCHEMA_KEY] ?? "public";
+}
+
+/** Get the current test mode setting (per-run, set by factory) */
+export function getWorkflowTestMode(): boolean {
+  return (globalThis as Record<symbol, boolean>)[TESTMODE_KEY] ?? true;
+}
+
+/** Set the test mode for the current execution (called by factory before triggering) */
+export function setWorkflowTestMode(testMode: boolean): void {
+  (globalThis as Record<symbol, boolean>)[TESTMODE_KEY] = testMode;
 }
 
 /**
@@ -204,6 +217,7 @@ export const Workflow = {
         integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: definition.name,
         appSchema: getWorkflowAppSchema(),
+        testMode: getWorkflowTestMode(),
       });
       return definition.run(ctx, inputs);
     }
@@ -249,6 +263,7 @@ export const Workflow = {
         integrationProvider: getWorkflowIntegrationProvider(),
         workflowName: _parentWorkflowName ?? wrapperName,
         appSchema: getWorkflowAppSchema(),
+        testMode: getWorkflowTestMode(),
       });
       _parentWorkflowName = undefined;
       return ctx.run(node, inputs);

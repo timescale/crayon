@@ -4,7 +4,7 @@ import { Registry } from "./registry.js";
 import { initializeDBOS, shutdownDBOS } from "./dbos.js";
 import { NodeRegistry } from "./nodes/registry.js";
 import { configureAgentRuntime } from "./agent.js";
-import { Workflow, configureWorkflowRuntime, type NodeWrapper } from "./workflow.js";
+import { Workflow, configureWorkflowRuntime, setWorkflowTestMode, getWorkflowTestMode, type NodeWrapper } from "./workflow.js";
 import { createIntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
 
@@ -80,16 +80,23 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
 
     triggerWorkflow: async <T = unknown>(
       name: string,
-      inputs: unknown
+      inputs: unknown,
+      options?: { testMode?: boolean },
     ): Promise<T> => {
       const workflow = registry.getWorkflow(name);
       if (!workflow) {
         throw new Error(`Workflow "${name}" not found`);
       }
 
-      // Validate inputs and execute (workflow handles DBOS context internally)
-      const validated = workflow.inputSchema.parse(inputs);
-      return workflow.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+      // Set testMode for this execution (default: true = safe)
+      const prevTestMode = getWorkflowTestMode();
+      setWorkflowTestMode(options?.testMode ?? true);
+      try {
+        const validated = workflow.inputSchema.parse(inputs);
+        return await workflow.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+      } finally {
+        setWorkflowTestMode(prevTestMode);
+      }
     },
 
     listNodes: () => registry.listNodes(),
@@ -99,7 +106,7 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
     triggerNode: async <T = unknown>(
       name: string,
       inputs: unknown,
-      options?: { workflowName?: string },
+      options?: { workflowName?: string; testMode?: boolean },
     ): Promise<T> => {
       const node = registry.getNode(name);
       if (!node) {
@@ -117,9 +124,15 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
         wrapper.setParentWorkflowName(options.workflowName);
       }
 
-      // Validate inputs and execute via wrapper workflow
-      const validated = node.inputSchema.parse(inputs);
-      return wrapper.executable.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+      // Set testMode for this execution (default: true = safe)
+      const prevTestMode = getWorkflowTestMode();
+      setWorkflowTestMode(options?.testMode ?? true);
+      try {
+        const validated = node.inputSchema.parse(inputs);
+        return await wrapper.executable.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
+      } finally {
+        setWorkflowTestMode(prevTestMode);
+      }
     },
 
     shutdown: async () => {

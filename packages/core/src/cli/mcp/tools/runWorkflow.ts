@@ -21,6 +21,11 @@ const inputSchema = {
     .optional()
     .default({})
     .describe("JSON input for the workflow (default: {})"),
+  test_mode: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Run in test mode — side-effect nodes describe what they would do without performing actions (default: true)"),
 } as const;
 
 const outputSchema = {
@@ -28,6 +33,7 @@ const outputSchema = {
   status: z.string().describe("Execution status: SUCCESS or ERROR"),
   result: z.unknown().optional().describe("Workflow return value"),
   error: z.string().optional().describe("Error message if execution failed"),
+  test_mode: z.boolean().optional().describe("Whether the workflow ran in test mode (side effects were skipped)"),
 } as const;
 
 type OutputSchema = {
@@ -35,6 +41,7 @@ type OutputSchema = {
   status: string;
   result?: unknown;
   error?: string;
+  test_mode?: boolean;
 };
 
 export const runWorkflowFactory: ApiFactory<
@@ -48,35 +55,43 @@ export const runWorkflowFactory: ApiFactory<
       title: "Run Workflow",
       description:
         "Execute a compiled workflow by name with JSON input. " +
+        "By default runs in test mode (side-effect nodes skip actions). Pass test_mode: false to run live. " +
         "Returns the result and a run_id that can be used with get_trace to inspect execution details. " +
         "Use list_workflows first to see available workflows.",
       inputSchema,
       outputSchema,
     },
-    fn: async ({ workflow_name, input }): Promise<OutputSchema> => {
+    fn: async ({ workflow_name, input, test_mode }): Promise<OutputSchema> => {
       const [runtime, script] = process.argv;
 
       try {
-        const { stdout } = await execFileAsync(runtime, [
+        const args = [
           ...process.execArgv,
           script,
           "workflow", "run", workflow_name,
           "--json",
           "-i", JSON.stringify(input),
-        ], { cwd: process.cwd() });
+        ];
+        if (!test_mode) {
+          args.push("--live");
+        }
+        const { stdout } = await execFileAsync(runtime, args, { cwd: process.cwd() });
 
-        return JSON.parse(stdout) as OutputSchema;
+        const parsed = JSON.parse(stdout) as OutputSchema;
+        return { ...parsed, test_mode };
       } catch (err: unknown) {
         // execFile rejects on non-zero exit — try to parse JSON from stdout
         const execErr = err as { stdout?: string; stderr?: string; message?: string };
         if (execErr.stdout) {
           try {
-            return JSON.parse(execErr.stdout) as OutputSchema;
+            const parsed = JSON.parse(execErr.stdout) as OutputSchema;
+            return { ...parsed, test_mode };
           } catch { /* fall through */ }
         }
         return {
           status: "ERROR",
           error: execErr.stderr?.trim() || execErr.message || String(err),
+          test_mode,
         };
       }
     },
