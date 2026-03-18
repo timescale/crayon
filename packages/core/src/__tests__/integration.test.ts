@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
 import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
+import { ensureCrayonTables } from "../connections/schema.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -22,6 +23,7 @@ async function resetDatabase(): Promise<void> {
   } finally {
     await client.end();
   }
+  await ensureCrayonTables(DATABASE_URL!, "integration_test");
 }
 
 // Define nodes
@@ -108,7 +110,7 @@ describe.skipIf(!DATABASE_URL)("crayon integration", () => {
   it("complete workflow with multiple nodes", async () => {
     const result = await crayon.triggerWorkflow("research", {
       url: "https://example.com",
-    });
+    }, { runId: "test-int-1" });
 
     expect(result).toEqual({
       title: "Page: https://example.com",
@@ -117,7 +119,7 @@ describe.skipIf(!DATABASE_URL)("crayon integration", () => {
   });
 
   it("nested workflow calls", async () => {
-    const result = await crayon.triggerWorkflow("outer", { value: 5 });
+    const result = await crayon.triggerWorkflow("outer", { value: 5 }, { runId: "test-int-2" });
     expect(result).toBe(11); // (5 * 2) + 1
   });
 });

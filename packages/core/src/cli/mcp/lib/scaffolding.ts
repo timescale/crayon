@@ -8,7 +8,7 @@ import * as dotenv from "dotenv";
 import { packageRoot, version } from "../config.js";
 import { writeAppTemplates, createCrayonDirectories } from "../lib/templates.js";
 import { setupSchemaFromUrl } from "./schema-ops.js";
-import { ensureConnectionsTable } from "../../../connections/schema.js";
+import { ensureCrayonTables } from "../../../connections/schema.js";
 
 const execAsync = (cmd: string, cwd?: string) =>
   new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
@@ -268,8 +268,8 @@ export async function setupAppSchema({
 
   await writeFile(envPath, `${newEnvContent}\n`);
 
-  // Create the crayon_connections table so it's ready before the dev UI launches
-  await ensureConnectionsTable(creds.DATABASE_URL, creds.DATABASE_SCHEMA);
+  // Create crayon tables so they're ready before the dev UI launches
+  await ensureCrayonTables(creds.DATABASE_URL, creds.DATABASE_SCHEMA);
 
   return {
     success: true,

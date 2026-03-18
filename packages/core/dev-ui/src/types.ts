@@ -63,6 +63,7 @@ export interface WorkflowRun {
   updated_at: string;
   output: unknown;
   error: string | null;
+  test_mode?: boolean | null;
 }
 
 export interface OperationTrace {

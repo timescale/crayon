@@ -7,6 +7,7 @@ import { configureAgentRuntime } from "./agent.js";
 import { Workflow, configureWorkflowRuntime, setWorkflowTestMode, getWorkflowTestMode, type NodeWrapper } from "./workflow.js";
 import { createIntegrationProvider } from "./connections/integration-provider.js";
 import pg from "pg";
+import { recordRunMetadata } from "./run-metadata.js";
 
 // Global singleton to survive across Turbopack chunk duplication.
 // Module-level `let` in user's crayon.ts breaks across chunks, but globalThis is shared.
@@ -81,16 +82,21 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
     triggerWorkflow: async <T = unknown>(
       name: string,
       inputs: unknown,
-      options?: { testMode?: boolean },
+      options: { runId: string; testMode?: boolean },
     ): Promise<T> => {
       const workflow = registry.getWorkflow(name);
       if (!workflow) {
         throw new Error(`Workflow "${name}" not found`);
       }
 
+      const testMode = options.testMode ?? true;
+
+      // Record run metadata (test mode) before execution
+      await recordRunMetadata(pool, appSchema, options.runId, testMode);
+
       // Set testMode for this execution (default: true = safe)
       const prevTestMode = getWorkflowTestMode();
-      setWorkflowTestMode(options?.testMode ?? true);
+      setWorkflowTestMode(testMode);
       try {
         const validated = workflow.inputSchema.parse(inputs);
         return await workflow.execute(null as unknown as WorkflowContext, validated) as Promise<T>;
@@ -106,7 +112,7 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
     triggerNode: async <T = unknown>(
       name: string,
       inputs: unknown,
-      options?: { workflowName?: string; testMode?: boolean },
+      options: { runId: string; workflowName?: string; testMode?: boolean },
     ): Promise<T> => {
       const node = registry.getNode(name);
       if (!node) {
@@ -120,13 +126,18 @@ export async function createCrayon(config: CrayonConfig): Promise<Crayon> {
       }
 
       // Set parent workflow name for connection resolution (same pattern as Agent)
-      if (options?.workflowName) {
+      if (options.workflowName) {
         wrapper.setParentWorkflowName(options.workflowName);
       }
 
+      const testMode = options.testMode ?? true;
+
+      // Record run metadata (test mode) before execution
+      await recordRunMetadata(pool, appSchema, options.runId, testMode);
+
       // Set testMode for this execution (default: true = safe)
       const prevTestMode = getWorkflowTestMode();
-      setWorkflowTestMode(options?.testMode ?? true);
+      setWorkflowTestMode(testMode);
       try {
         const validated = node.inputSchema.parse(inputs);
         return await wrapper.executable.execute(null as unknown as WorkflowContext, validated) as Promise<T>;

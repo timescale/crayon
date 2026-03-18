@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
 import { createCrayon, Workflow, Node, type Crayon } from "../index.js";
+import { ensureCrayonTables } from "../connections/schema.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -21,6 +22,7 @@ async function resetDatabase(): Promise<void> {
   } finally {
     await client.end();
   }
+  await ensureCrayonTables(DATABASE_URL!, "crayon");
 }
 
 async function countWorkflowExecutions(workflowName: string): Promise<number> {
@@ -100,7 +102,6 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
 
   beforeAll(async () => {
     process.env.DATABASE_SCHEMA = "crayon";
-    // Drop DBOS schema for clean test state
     await resetDatabase();
 
     crayon = await createCrayon({
@@ -122,7 +123,7 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
   it("complete workflow with multiple nodes", async () => {
     const result = await crayon.triggerWorkflow("research", {
       url: "https://example.com",
-    });
+    }, { runId: "test-e2e-1" });
 
     expect(result).toEqual({
       title: "Page: https://example.com",
@@ -131,7 +132,7 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
   });
 
   it("nested workflow calls", async () => {
-    const result = await crayon.triggerWorkflow("outer", { value: 5 });
+    const result = await crayon.triggerWorkflow("outer", { value: 5 }, { runId: "test-e2e-2" });
     expect(result).toBe(11); // (5 * 2) + 1
   });
 
@@ -139,7 +140,7 @@ describe.skipIf(!DATABASE_URL)("crayon e2e", () => {
     // Trigger the workflow once
     await crayon.triggerWorkflow("research", {
       url: "https://count-test.example.com",
-    });
+    }, { runId: "test-e2e-3" });
 
     const count = await countWorkflowExecutions("research");
 

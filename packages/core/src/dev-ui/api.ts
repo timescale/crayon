@@ -243,11 +243,13 @@ export async function handleApiRequest(
         // Get workflow metadata
         const workflowResult = await ctx.pool.query(
           `SELECT
-            workflow_uuid, name, status, created_at, updated_at,
-            (updated_at - created_at) as duration_ms,
-            output::text, error
-          FROM ${ctx.schema}.workflow_status
-          WHERE workflow_uuid = $1`,
+            ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+            (ws.updated_at - ws.created_at) as duration_ms,
+            ws.output::text, ws.error,
+            rm.test_mode
+          FROM ${ctx.schema}.workflow_status ws
+          LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+          WHERE ws.workflow_uuid = $1`,
           [runId],
         );
 
@@ -308,9 +310,12 @@ export async function handleApiRequest(
       const runId = decodeURIComponent(runIdMatch[1]);
       try {
         const result = await ctx.pool.query(
-          `SELECT workflow_uuid, name, status, created_at, updated_at, output::text, error
-           FROM ${ctx.schema}.workflow_status
-           WHERE workflow_uuid = $1`,
+          `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+                  ws.output::text, ws.error,
+                  rm.test_mode
+           FROM ${ctx.schema}.workflow_status ws
+           LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+           WHERE ws.workflow_uuid = $1`,
           [runId],
         );
         if (result.rows.length === 0) {
@@ -338,18 +343,21 @@ export async function handleApiRequest(
 
         const queryParams: (string | number)[] = [];
         let query = `
-          SELECT workflow_uuid, name, status, created_at, updated_at, output::text, error
-          FROM ${ctx.schema}.workflow_status
-          WHERE LENGTH(workflow_uuid) = 36
+          SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+                 ws.output::text, ws.error,
+                 rm.test_mode
+          FROM ${ctx.schema}.workflow_status ws
+          LEFT JOIN "${ctx.appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+          WHERE LENGTH(ws.workflow_uuid) = 36
         `;
 
         if (workflowName) {
           queryParams.push(workflowName);
-          query += ` AND name = $${queryParams.length}`;
+          query += ` AND ws.name = $${queryParams.length}`;
         }
 
         queryParams.push(limit);
-        query += ` ORDER BY created_at DESC LIMIT $${queryParams.length}`;
+        query += ` ORDER BY ws.created_at DESC LIMIT $${queryParams.length}`;
 
         const result = await ctx.pool.query(query, queryParams);
 

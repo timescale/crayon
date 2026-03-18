@@ -215,6 +215,18 @@ function RunCard({
           {statusCfg.label}
         </span>
 
+        {/* Test/Live badge */}
+        {run.test_mode === true && (
+          <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700">
+            TEST
+          </span>
+        )}
+        {run.test_mode === false && (
+          <span className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">
+            LIVE
+          </span>
+        )}
+
         <div className="flex-1" />
 
         {/* Duration */}

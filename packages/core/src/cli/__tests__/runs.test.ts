@@ -2,8 +2,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { z } from "zod";
 import pg from "pg";
+import { randomUUID } from "node:crypto";
+import { DBOS } from "@dbos-inc/dbos-sdk";
 import { listRuns, getRun } from "../runs.js";
 import { createCrayon, Workflow, Node, type Crayon } from "../../index.js";
+import { ensureCrayonTables } from "../../connections/schema.js";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 // Use a dedicated schema for runs tests
@@ -19,6 +22,7 @@ async function resetDatabase(): Promise<void> {
   } finally {
     await client.end();
   }
+  await ensureCrayonTables(DATABASE_URL!, TEST_APP_NAME);
 }
 
 const echoNode = Node.create({
@@ -55,7 +59,10 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
     });
 
     // Run a workflow so there's data to query
-    await crayon.triggerWorkflow("echo-workflow", { message: "hello" });
+    const runId = randomUUID();
+    await DBOS.withNextWorkflowID(runId, () =>
+      crayon.triggerWorkflow("echo-workflow", { message: "hello" }, { runId }),
+    );
   }, 30000);
 
   afterAll(async () => {
@@ -97,5 +104,39 @@ describe.skipIf(!DATABASE_URL)("runs", () => {
     const result = await getRun(DATABASE_URL!, "non-existent-id", TEST_SCHEMA);
     expect(result.run).toBeNull();
     expect(result.ambiguous).toBeUndefined();
+  });
+
+  it("records test_mode metadata for workflow runs", async () => {
+    const runs = await listRuns(DATABASE_URL!, { limit: 1, schema: TEST_SCHEMA });
+    expect(runs.length).toBeGreaterThan(0);
+    // The workflow was triggered with default testMode (true)
+    expect(runs[0]).toHaveProperty("test_mode");
+    expect(runs[0].test_mode).toBe(true);
+  });
+
+  it("records test_mode=false for live runs", async () => {
+    const liveId = randomUUID();
+    await DBOS.withNextWorkflowID(liveId, () =>
+      crayon.triggerWorkflow("echo-workflow", { message: "live" }, { runId: liveId, testMode: false }),
+    );
+    const result = await getRun(DATABASE_URL!, liveId, TEST_SCHEMA);
+    expect(result.run).not.toBeNull();
+    expect(result.run!.test_mode).toBe(false);
+  });
+
+  it("duplicate runId metadata inserts are ignored", async () => {
+    const dupId = randomUUID();
+    // First trigger — test mode (default)
+    await DBOS.withNextWorkflowID(dupId, () =>
+      crayon.triggerWorkflow("echo-workflow", { message: "first" }, { runId: dupId }),
+    );
+    // Second trigger with same runId — ON CONFLICT DO NOTHING preserves original
+    await DBOS.withNextWorkflowID(dupId, () =>
+      crayon.triggerWorkflow("echo-workflow", { message: "second" }, { runId: dupId, testMode: false }),
+    );
+    const result = await getRun(DATABASE_URL!, dupId, TEST_SCHEMA);
+    expect(result.run).not.toBeNull();
+    // Original test_mode (true) should be preserved
+    expect(result.run!.test_mode).toBe(true);
   });
 });

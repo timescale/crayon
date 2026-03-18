@@ -5,6 +5,11 @@ import { createCrayon } from "../factory.js";
 import { Workflow } from "../workflow.js";
 import { Node } from "../node.js";
 
+// Mock run metadata (no real DB in unit tests)
+vi.mock("../run-metadata.js", () => ({
+  recordRunMetadata: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock DBOS
 vi.mock("@dbos-inc/dbos-sdk", () => ({
   DBOS: {
@@ -98,7 +103,7 @@ describe("createCrayon()", () => {
       workflows: { echo: workflow },
     });
 
-    const result = await crayon.triggerWorkflow("echo", { message: "hello" });
+    const result = await crayon.triggerWorkflow("echo", { message: "hello" }, { runId: "test-run" });
     expect(result).toEqual({ echoed: "hello" });
   });
 
@@ -108,7 +113,7 @@ describe("createCrayon()", () => {
       appName: "test",
     });
 
-    await expect(crayon.triggerWorkflow("unknown", {})).rejects.toThrow(
+    await expect(crayon.triggerWorkflow("unknown", {}, { runId: "test-run" })).rejects.toThrow(
       'Workflow "unknown" not found'
     );
   });
@@ -128,7 +133,7 @@ describe("createCrayon()", () => {
       workflows: { strict: workflow },
     });
 
-    await expect(crayon.triggerWorkflow("strict", {})).rejects.toThrow();
+    await expect(crayon.triggerWorkflow("strict", {}, { runId: "test-run" })).rejects.toThrow();
   });
 
   it("workflows can use ctx.run to call nodes", async () => {
@@ -157,7 +162,7 @@ describe("createCrayon()", () => {
       nodes: { double: doubleNode },
     });
 
-    const result = await crayon.triggerWorkflow("double-workflow", { value: 5 });
+    const result = await crayon.triggerWorkflow("double-workflow", { value: 5 }, { runId: "test-run" });
     expect(result).toEqual({ result: 10 });
   });
 });

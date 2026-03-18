@@ -328,7 +328,7 @@ workflow
       try {
         const runId = options.workflowId ?? randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerWorkflow(wf.name, inputs, { testMode }),
+          crayon.triggerWorkflow(wf.name, inputs, { runId, testMode }),
         );
 
         if (writeJson) {
@@ -473,7 +473,7 @@ node
       try {
         const runId = randomUUID();
         const result = await DBOS.withNextWorkflowID(runId, () =>
-          crayon.triggerNode(nodeName, inputs, { workflowName: options.workflow, testMode }),
+          crayon.triggerNode(nodeName, inputs, { runId, workflowName: options.workflow, testMode }),
         );
 
         if (writeJson) {

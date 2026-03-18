@@ -1,4 +1,4 @@
-export { ensureConnectionsTable } from "./schema.js";
+export { ensureCrayonTables } from "./schema.js";
 export {
   resolveConnectionId,
   upsertConnection,

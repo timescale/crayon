@@ -169,6 +169,7 @@ Nodes with side effects use an extended description format with `**Side Effect:*
 - **Test:** Vitest — `pnpm --filter runcrayon test`
 - **Lint/Format:** Biome — `pnpm biome check`
 - **CI:** GitHub Actions (`publish-dev.yml`) publishes to npm with `dev` tag on push to main
+- **Never swallow errors** — do not use empty `catch {}` blocks. Always log, rethrow, or return the error to the caller. Silent failures hide bugs and make debugging impossible.
 
 ### Testing Local Changes Against Cloud
 

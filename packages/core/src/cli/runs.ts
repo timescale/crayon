@@ -10,6 +10,7 @@ export interface WorkflowRun {
   updated_at: Date;
   output: unknown;
   error: string | null;
+  test_mode: boolean | null;
 }
 
 export interface ListRunsOptions {
@@ -29,22 +30,28 @@ export async function listRuns(
   const schema = schemaOverride ?? getDbosSchema();
   const client = new pg.Client({ connectionString: databaseUrl });
 
+  // crayon_run_metadata lives in the app schema (without _dbos suffix)
+  const appSchema = schema.endsWith("_dbos") ? schema.slice(0, -5) : schema;
+
   await client.connect();
   try {
     // Exclude child workflows (they have -N suffix after the 36-char UUID)
     let query = `
-      SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-      FROM ${schema}.workflow_status
-      WHERE LENGTH(workflow_uuid) = 36
+      SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+             ws.output, ws.error,
+             rm.test_mode
+      FROM ${schema}.workflow_status ws
+      LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+      WHERE LENGTH(ws.workflow_uuid) = 36
     `;
     const params: (string | number)[] = [];
 
     if (workflowName) {
-      query += ` AND name = $1`;
+      query += ` AND ws.name = $1`;
       params.push(workflowName);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    query += ` ORDER BY ws.created_at DESC LIMIT $${params.length + 1}`;
     params.push(limit);
 
     const result = await client.query(query, params);
@@ -69,15 +76,18 @@ export async function getRun(
   schemaOverride?: string
 ): Promise<GetRunResult> {
   const schema = schemaOverride ?? getDbosSchema();
+  const appSchema = schema.endsWith("_dbos") ? schema.slice(0, -5) : schema;
   const client = new pg.Client({ connectionString: databaseUrl });
 
   await client.connect();
   try {
     // Try exact match first
     const exact = await client.query(
-      `SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-       FROM ${schema}.workflow_status
-       WHERE workflow_uuid = $1`,
+      `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+              ws.output, ws.error, rm.test_mode
+       FROM ${schema}.workflow_status ws
+       LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+       WHERE ws.workflow_uuid = $1`,
       [runId]
     );
 
@@ -88,11 +98,13 @@ export async function getRun(
     // Try prefix match (like git short hashes)
     // Exclude child workflows (they have -N suffix after the 36-char UUID)
     const prefix = await client.query(
-      `SELECT workflow_uuid, name, status, created_at, updated_at, output, error
-       FROM ${schema}.workflow_status
-       WHERE workflow_uuid LIKE $1
-         AND LENGTH(workflow_uuid) = 36
-       ORDER BY created_at DESC
+      `SELECT ws.workflow_uuid, ws.name, ws.status, ws.created_at, ws.updated_at,
+              ws.output, ws.error, rm.test_mode
+       FROM ${schema}.workflow_status ws
+       LEFT JOIN "${appSchema}".crayon_run_metadata rm ON rm.workflow_uuid = ws.workflow_uuid
+       WHERE ws.workflow_uuid LIKE $1
+         AND LENGTH(ws.workflow_uuid) = 36
+       ORDER BY ws.created_at DESC
        LIMIT 2`,
       [runId + "%"]
     );

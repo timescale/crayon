@@ -20,7 +20,7 @@ import {
   sendUnauthorized,
 } from "./auth.js";
 import { createIntegrationProvider } from "../connections/integration-provider.js";
-import { ensureConnectionsTable } from "../connections/schema.js";
+import { ensureCrayonTables } from "../connections/schema.js";
 import { configureConnectionManager, onConnectionChange } from "../connections/manager.js";
 import { getAppSchema } from "../cli/app.js";
 import pg from "pg";
@@ -97,7 +97,7 @@ export async function startDevServer(options: DevServerOptions) {
 
   if (hasApi) {
     pool = new pg.Pool({ connectionString: options.databaseUrl! });
-    await ensureConnectionsTable(options.databaseUrl!, appSchema);
+    await ensureCrayonTables(options.databaseUrl!, appSchema);
   }
 
   // Integration provider auto-detects: NANGO_SECRET_KEY → local, otherwise → cloud
