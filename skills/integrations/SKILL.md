@@ -15,6 +15,7 @@ This skill generates function nodes for querying external APIs. It creates prope
 |-------------|-------------|------|
 | PostgreSQL | Connection String (via Credentials) | `postgres.md` |
 | Salesforce | OAuth2 Client Credentials | `salesforce.md` |
+| Slack | OAuth2 (Bot + User tokens) | `slack.md` |
 
 **To use a listed integration:** Read this skill's corresponding file (e.g., `salesforce.md`).
 

@@ -15,11 +15,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Use provided tag, or "latest" on main, or git-branch-based tag otherwise
+# Use provided tag, or "test" on main, or git-branch-based tag otherwise
 if [ -n "$TAG" ]; then
   :
 elif [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ]; then
-  TAG="latest"
+  TAG="test"
 else
   TAG="$(git rev-parse --abbrev-ref HEAD 2>/dev/null | sed 's/[^a-zA-Z0-9._-]/-/g')"
 fi

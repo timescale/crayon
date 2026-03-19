@@ -2,10 +2,11 @@
  * Update all Fly machines across all crayon-dev-* apps to the latest image.
  *
  * Usage:
- *   npx tsx update-all-machines.ts [--image <image>] [--app <app-name>] [--user <github-login>]
+ *   npx tsx update-all-machines.ts [--image <image>] [--tag <tag>] [--app <app-name>] [--user <github-login>]
  *
  * Defaults image to registry.fly.io/crayon-cloud-dev-image:latest.
- * Use --image (or -i) to specify the Docker image.
+ * Use --tag (or -t) to specify just the tag (e.g. --tag test → registry.fly.io/crayon-cloud-dev-image:test).
+ * Use --image (or -i) to specify the full Docker image.
  * Use --app (or -a) to update only a specific crayon-dev-* app.
  * Use --user (or -u) to update only machines belonging to a specific GitHub user.
  * Requires flyctl to be installed and authenticated.
@@ -18,7 +19,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DEFAULT_IMAGE = "registry.fly.io/crayon-cloud-dev-image:latest";
+const REGISTRY = "registry.fly.io/crayon-cloud-dev-image";
+const DEFAULT_IMAGE = `${REGISTRY}:latest`;
 
 function flyctl(args: string, timeoutMs = 30_000): string {
   return execSync(`flyctl ${args}`, { stdio: "pipe", timeout: timeoutMs }).toString("utf-8").trim();
@@ -92,13 +94,14 @@ async function updateApp(
   }
 }
 
-const USAGE = "Usage: npx tsx update-all-machines.ts [--image <image>] [--app <app-name>] [--user <github-login>]";
+const USAGE = "Usage: npx tsx update-all-machines.ts [--image <image>] [--tag <tag>] [--app <app-name>] [--user <github-login>]";
 
 function parseArgs(argv: string[]): { image: string; appFilter?: string; userFilter?: string } {
   const args = argv.slice(2);
   let appFilter: string | undefined;
   let userFilter: string | undefined;
   let image: string | undefined;
+  let tag: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--app" || args[i] === "-a") {
@@ -115,6 +118,13 @@ function parseArgs(argv: string[]): { image: string; appFilter?: string; userFil
       }
       image = args[i + 1];
       i++;
+    } else if (args[i] === "--tag" || args[i] === "-t") {
+      if (!args[i + 1]) {
+        console.error(`Error: ${args[i]} requires a value.\n${USAGE}`);
+        process.exit(1);
+      }
+      tag = args[i + 1];
+      i++;
     } else if (args[i] === "--user" || args[i] === "-u") {
       if (!args[i + 1]) {
         console.error(`Error: ${args[i]} requires a value.\n${USAGE}`);
@@ -128,7 +138,13 @@ function parseArgs(argv: string[]): { image: string; appFilter?: string; userFil
     }
   }
 
-  return { image: image ?? DEFAULT_IMAGE, appFilter, userFilter };
+  if (image && tag) {
+    console.error(`Error: --image and --tag are mutually exclusive.\n${USAGE}`);
+    process.exit(1);
+  }
+
+  const resolvedImage = image ?? (tag ? `${REGISTRY}:${tag}` : DEFAULT_IMAGE);
+  return { image: resolvedImage, appFilter, userFilter };
 }
 
 /**
