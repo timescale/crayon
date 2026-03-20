@@ -26,6 +26,13 @@ export async function POST(req: NextRequest) {
     const session = await nango.createConnectSession({
       end_user: { id: auth.userId },
       allowed_integrations: [body.integration_id],
+      ...(body.integration_id === "slack" && {
+        integrations_config_defaults: {
+          slack: {
+            user_scopes: "search:read",
+          },
+        },
+      }),
     });
 
     return NextResponse.json({
