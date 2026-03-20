@@ -70,7 +70,7 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
 3. After all tasks are written:
    a. **Save a version** — Call the `create_version` MCP tool with a message like:
       ```
-      Create workflow: <workflow-name>
+      Scaffold workflow: <workflow-name>
 
       <Describe what changed — like a good git commit message body.>
       ```
