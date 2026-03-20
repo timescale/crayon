@@ -67,7 +67,14 @@ This phase focuses on **WHAT** each node does, not **HOW**. Capture purpose and 
    d. Add the `ctx.run()` call to the workflow's `run()` method
    e. **Save the workflow file** — the graph gains a new node immediately
 
-3. After all tasks are written, **immediately** invoke `/crayon:refine-node` to add typed schemas and implementation details. Do NOT ask the user — just proceed directly.
+3. After all tasks are written:
+   a. **Save a version** — Call the `create_version` MCP tool with a message like:
+      ```
+      Create workflow: <workflow-name>
+
+      <Describe what changed — like a good git commit message body.>
+      ```
+   b. **Immediately** invoke `/crayon:refine-node` to add typed schemas and implementation details. Do NOT ask the user — just proceed directly.
        
 ### Workflow Scaffold Template
 

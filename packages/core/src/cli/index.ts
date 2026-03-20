@@ -323,6 +323,23 @@ workflow
           crayon.triggerWorkflow(wf.name, inputs, { runId, testMode, source: options.source ?? "cli" }),
         );
 
+        // Auto-commit on first successful test/live run
+        try {
+          const { autoCommit, tagExists, createTag } = await import("./mcp/lib/git-commit.js");
+          const mode = testMode ? "test" : "live";
+          const tagName = `run/${mode}/${wf.name}`;
+          if (!(await tagExists(tagName))) {
+            const commitResult = await autoCommit({
+              message: `First successful ${mode} run of ${wf.name}`,
+            });
+            if (commitResult.success) {
+              await createTag(tagName);
+            }
+          }
+        } catch {
+          // git not available — continue silently
+        }
+
         if (writeJson) {
           writeJson(JSON.stringify({ run_id: runId, status: "SUCCESS", result, test_mode: testMode }));
         } else {

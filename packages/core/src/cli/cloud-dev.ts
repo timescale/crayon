@@ -667,6 +667,8 @@ const READ_ONLY_MCP_TOOLS = [
   "get_trace",
   "list_cron_jobs",
   "list_cron_runs",
+  "create_version", // safe: only creates a git commit, no side effects
+  "list_versions",
   "view_skill",
 ];
 

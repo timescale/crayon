@@ -181,6 +181,14 @@ export async function POST(req: NextRequest) {
     const appUrl = `https://${flyAppName}.fly.dev`;
     const linuxUser = `user-${userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16)}`;
 
+    // Fetch GitHub profile for git identity on the sandbox
+    const userProfile = await db.query(
+      `SELECT github_login, email FROM users WHERE id = $1`,
+      [userId],
+    );
+    const gitUserName = (userProfile.rows[0]?.github_login as string) ?? "crayon";
+    const gitUserEmail = (userProfile.rows[0]?.email as string) ?? "crayon@localhost";
+
     // Generate SSH keypair for remote access
     const sshKeypair = generateSSHKeypair();
 
@@ -228,6 +236,8 @@ export async function POST(req: NextRequest) {
       ...provisionedEnvVars,
       APP_NAME: appName,
       DEV_USER: linuxUser,
+      GIT_USER_NAME: gitUserName,
+      GIT_USER_EMAIL: gitUserEmail,
       SSH_PUBLIC_KEY: sshKeypair.publicKey,
     };
     if (process.env.PUBLIC_URL) {

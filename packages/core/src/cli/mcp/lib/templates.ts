@@ -12,6 +12,7 @@ import { templatesDir } from "../config.js";
 export interface AppTemplateVars {
   app_name: string;
   crayon_version: string;
+  fly_app_name?: string;
 }
 
 type ContentTransform = (content: string) => string;
@@ -49,7 +50,12 @@ async function copyTemplateDir(
     for (const entry of entries) {
       const srcPath = join(srcDir, entry.name);
       const relPath = relative(srcBaseDir, srcPath);
-      const destPath = join(destDir, relPath);
+      // npm strips .gitignore during publish, so the template stores it as
+      // "gitignore" (no dot). Rename it back when copying to the destination.
+      const destRelPath = entry.name === "gitignore"
+        ? join(dirname(relPath), ".gitignore")
+        : relPath;
+      const destPath = join(destDir, destRelPath);
 
       if (entry.isDirectory()) {
         await mkdir(destPath, { recursive: true });

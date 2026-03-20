@@ -22,3 +22,15 @@ This skill generates function nodes for querying external APIs. It creates prope
 **For unlisted systems:** Read this skill's `unlisted.md` for instructions on researching and setting up custom integrations.
 
 ---
+
+## After Integration Setup
+
+After generating integration node files:
+
+1. **Save a version** — Call the `create_version` MCP tool with a message like:
+   ```
+   Add integration: <integration-name>
+
+   <Describe what changed — like a good git commit message body.>
+   ```
+2. Tell the user which files were created and what to do next.

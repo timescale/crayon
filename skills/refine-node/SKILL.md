@@ -188,8 +188,14 @@ For each node/agent file (`src/crayon/nodes/<name>.ts` or `src/crayon/agents/<na
 
 After writing all refinements:
 
-- Tell the user the node files have been updated
-- Invoke `/crayon:compile-workflow` to regenerate the workflow's `run()` method with proper types
+1. **Save a version** — Call the `create_version` MCP tool with a message like:
+   ```
+   Refine nodes: <workflow-name>
+
+   <Describe what changed — like a good git commit message body.>
+   ```
+2. Tell the user the node files have been updated
+3. Invoke `/crayon:compile-workflow` to regenerate the workflow's `run()` method with proper types
 
 ---
 

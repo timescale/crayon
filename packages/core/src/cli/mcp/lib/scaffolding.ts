@@ -58,6 +58,7 @@ export async function scaffoldApp({
       // - Installed from crayon@dev (e.g. 0.1.0-dev.c6251ba): "dev" dist-tag
       // - Installed from crayon@latest (e.g. 0.1.0): exact version
       crayon_version: isDevMode() || version.includes("-dev.") ? "dev" : version,
+      fly_app_name: process.env.FLY_APP_NAME,
     });
 
     await createCrayonDirectories(appPath);

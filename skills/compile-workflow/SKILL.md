@@ -258,11 +258,18 @@ Key things the compiler did:
 
 ### After Compilation
 
-Tell the user:
-1. "Updated `src/crayon/workflows/<name>.ts`"
-2. If any missing nodes/agents were created: list the new files
-3. If agent tools were updated from descriptions: list which agents were updated
-4. "To test it, just say **run it** and I'll trigger it for you." — do NOT suggest using the CLI or opening the Dev UI manually
+1. **Save a version** — Call the `create_version` MCP tool with a message like:
+   ```
+   Compile workflow: <workflow-name>
+
+   <Describe what changed — like a good git commit message body.>
+   ```
+
+2. Tell the user:
+   - "Updated `src/crayon/workflows/<name>.ts`"
+   - If any missing nodes/agents were created: list the new files
+   - If agent tools were updated from descriptions: list which agents were updated
+   - "To test it, just say **run it** and I'll trigger it for you." — do NOT suggest using the CLI or opening the Dev UI manually
 
 ---
 
