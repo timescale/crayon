@@ -16,6 +16,8 @@ import { ScheduleSection } from "./components/ScheduleSection";
 import { ClaudeTerminal } from "./components/ClaudeTerminal";
 import { CredentialsPage } from "./components/CredentialsPage";
 import { DashboardPage } from "./components/DashboardPage";
+import { VersionsSection } from "./components/VersionsSection";
+import { useVersions } from "./hooks/useVersions";
 
 export function App() {
   const { state, connected, sendMessage, ptyEvents } = useDAGSocket();
@@ -28,7 +30,8 @@ export function App() {
     return params.get("claude-code-panel") === "open";
   });
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightTab, setRightTab] = useState<"trigger" | "runs" | "schedule">("trigger");
+  const [rightTab, setRightTab] = useState<"trigger" | "history" | "schedule">("trigger");
+  const versions = useVersions();
 
   const rightResize = useResizeX({ defaultWidth: 288, minWidth: 200, maxWidth: 500, side: "left" });
 
@@ -278,7 +281,7 @@ export function App() {
           {/* Tab bar */}
           <div className="shrink-0 px-4 pt-3 pb-0 border-b border-[#e8e4df] flex items-center justify-between">
             <div className="flex gap-0">
-              {(["trigger", "schedule", "runs"] as const).map((tab) => (
+              {(["trigger", "schedule", "history"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setRightTab(tab)}
@@ -288,7 +291,7 @@ export function App() {
                       : "text-[#a8a099] hover:text-[#787068]"
                   }`}
                 >
-                  {tab === "trigger" ? "Trigger" : tab === "schedule" ? "Schedule" : "Runs"}
+                  {tab === "trigger" ? "Trigger" : tab === "schedule" ? "Schedule" : "History"}
                   {rightTab === tab && (
                     <span className="absolute bottom-0 left-3 right-3 h-[1.5px] bg-[#1a1a1a]" />
                   )}
@@ -312,7 +315,7 @@ export function App() {
                   dag={activeDag}
                   onSuccess={() => {
                     runHistory.refresh();
-                    setRightTab("runs");
+                    setRightTab("history");
                   }}
                 />
               </div>
@@ -323,15 +326,22 @@ export function App() {
                 />
               </div>
             ) : (
-              <RunHistoryTab
-                runs={runHistory.runs}
-                loading={runHistory.loading}
-                selectedRunId={runHistory.selectedRunId}
-                trace={runHistory.trace}
-                traceLoading={runHistory.traceLoading}
-                selectRun={runHistory.selectRun}
-                refresh={runHistory.refresh}
-              />
+              <div className="flex flex-col h-full">
+                <div className="flex-1 min-h-0 overflow-auto basis-1/2">
+                  <RunHistoryTab
+                    runs={runHistory.runs}
+                    loading={runHistory.loading}
+                    selectedRunId={runHistory.selectedRunId}
+                    trace={runHistory.trace}
+                    traceLoading={runHistory.traceLoading}
+                    selectRun={runHistory.selectRun}
+                    refresh={runHistory.refresh}
+                  />
+                </div>
+                <div className="flex-1 min-h-0 overflow-auto basis-1/2">
+                  <VersionsSection versions={versions.versions} />
+                </div>
+              </div>
             )}
           </div>
         </div>

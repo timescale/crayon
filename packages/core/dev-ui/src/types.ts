@@ -51,7 +51,8 @@ export type WSMessage =
   | { type: "pty-data"; data: string }
   | { type: "pty-exit"; data: { code: number } }
   | { type: "pty-spawned"; data: { pid: number } }
-  | { type: "connections-changed" };
+  | { type: "connections-changed" }
+  | { type: "versions-changed" };
 
 // ---- Run History types ----
 
@@ -83,4 +84,14 @@ export interface OperationTrace {
 export interface TraceResult {
   workflow: WorkflowRun & { duration_ms: number | null };
   operations: OperationTrace[];
+}
+
+// ---- Version History types ----
+
+export interface VersionEntry {
+  hash: string;
+  hashShort: string;
+  date: string;
+  message: string;
+  body: string;
 }

@@ -171,7 +171,23 @@ export async function startDevServer(options: DevServerOptions) {
       }
 
 
-      // Route /dev/api/* to API handler
+      // GET /dev/api/versions — git-backed, no DB required
+      if (devPath.match(/^\/api\/versions(\?|$)/) && req.method === "GET") {
+        try {
+          const params = new URL(fullUrl, "http://localhost").searchParams;
+          const limit = Math.min(parseInt(params.get("limit") ?? "20", 10), 100);
+          const { listVersions } = await import("../cli/mcp/lib/git-commit.js");
+          const versions = await listVersions(limit);
+          res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+          res.end(JSON.stringify(versions));
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: err instanceof Error ? err.message : "Failed to list versions" }));
+        }
+        return;
+      }
+
+      // Route /dev/api/* to API handler (requires DB)
       if (devPath.startsWith("/api/") && hasApi && pool) {
         try {
           const origUrl = req.url;
@@ -281,6 +297,19 @@ export async function startDevServer(options: DevServerOptions) {
     onMessage: (msg) => broadcast(msg),
   });
 
+  // Poll git HEAD every 30s — broadcast when a new commit appears
+  let lastKnownHead: string | undefined;
+  const versionPollTimer = setInterval(async () => {
+    try {
+      const { getHead } = await import("../cli/mcp/lib/git-commit.js");
+      const currentHead = await getHead();
+      if (currentHead && currentHead !== lastKnownHead) {
+        lastKnownHead = currentHead;
+        broadcast({ type: "versions-changed" });
+      }
+    } catch { /* git not available */ }
+  }, 30_000);
+
   // PTY spawns on first client pty-resize so it starts with correct dimensions
 
   // On new WS connection, wait for initial scan then send full state
@@ -353,6 +382,7 @@ export async function startDevServer(options: DevServerOptions) {
   }
 
   const cleanup = async () => {
+    clearInterval(versionPollTimer);
     unsubConnectionChange();
     ptyManager?.kill();
     try {

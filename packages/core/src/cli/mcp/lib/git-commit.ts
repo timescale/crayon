@@ -91,6 +91,18 @@ export async function createTag(tag: string): Promise<boolean> {
   }
 }
 
+// ── HEAD ───────────────────────────────────────────────────────
+
+/** Return the current HEAD commit hash, or null if not a git repo. */
+export async function getHead(): Promise<string | null> {
+  try {
+    const { stdout } = await git("rev-parse", "HEAD");
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
+
 // ── Version listing ────────────────────────────────────────────
 
 export interface VersionEntry {
@@ -102,7 +114,7 @@ export interface VersionEntry {
 }
 
 const RECORD_SEP = "\x1e";
-const FIELD_SEP = "\x00";
+const FIELD_SEP = "\x1f";
 
 /**
  * List recent commits as version entries.

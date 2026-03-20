@@ -92,7 +92,7 @@ export async function scaffoldApp({
     try {
       await execAsync("git init", appPath);
       await execAsync("git add -A", appPath);
-      await execAsync('git commit -m "Initial commit"', appPath);
+      await execAsync('git commit -m "Initial scaffold"', appPath);
     } catch {
       // git not available — continue without repo
     }

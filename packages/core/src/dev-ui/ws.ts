@@ -13,7 +13,9 @@ export type WSMessage =
   | { type: "pty-exit"; data: { code: number } }
   | { type: "pty-spawned"; data: { pid: number } }
   // Connection mapping changes (triggers frontend refetch)
-  | { type: "connections-changed" };
+  | { type: "connections-changed" }
+  // Version history changed (triggers frontend refetch)
+  | { type: "versions-changed" };
 
 export type WSClientMessage =
   | { type: "pty-input"; data: string }

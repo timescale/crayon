@@ -115,6 +115,10 @@ export function useDAGSocket() {
           case "connections-changed":
             window.dispatchEvent(new CustomEvent("connections-changed"));
             break;
+
+          case "versions-changed":
+            window.dispatchEvent(new CustomEvent("versions-changed"));
+            break;
         }
       } catch {
         // Ignore malformed messages
