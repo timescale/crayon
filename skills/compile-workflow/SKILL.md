@@ -260,7 +260,7 @@ Key things the compiler did:
 
 1. **Save a version** — Call the `create_version` MCP tool with a message like:
    ```
-   Compile workflow: <workflow-name>
+   Finalize workflow: <workflow-name>
 
    <Describe what changed — like a good git commit message body.>
    ```
